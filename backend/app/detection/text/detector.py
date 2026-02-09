@@ -7,8 +7,15 @@ from collections import Counter
 from typing import Optional
 
 import numpy as np
-import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+# Optional ML dependencies - fall back to heuristics if not available
+try:
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    torch = None
 
 from app.models.detection import (
     AIModel,
@@ -31,16 +38,21 @@ class TextDetector:
 
     def __init__(self, lazy_load: bool = True) -> None:
         """Initialize the text detector with ML models."""
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cpu"
+        if ML_AVAILABLE and torch is not None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = None
         self.tokenizer = None
         self.model_loaded = False
         self._loading = False
-        if not lazy_load:
+        if not lazy_load and ML_AVAILABLE:
             self._load_model()
 
     def _load_model(self) -> None:
         """Load the transformer model for classification."""
+        if not ML_AVAILABLE:
+            return
+
         if self._loading or self.model_loaded:
             return
 
@@ -74,8 +86,8 @@ class TextDetector:
         Returns:
             TextDetectionResponse with detection results
         """
-        # Lazy load model on first request
-        if not self.model_loaded and not self._loading:
+        # Lazy load model on first request (if ML available)
+        if ML_AVAILABLE and not self.model_loaded and not self._loading:
             self._load_model()
 
         start_time = time.time()
