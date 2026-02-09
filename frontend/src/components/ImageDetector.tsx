@@ -21,7 +21,7 @@ interface DetectionResult {
   processing_time_ms: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ai-provenance-tracker-production-4622.up.railway.app";
 
 export default function ImageDetector() {
   const [file, setFile] = useState<File | null>(null);
