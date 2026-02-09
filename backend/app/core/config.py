@@ -23,11 +23,15 @@ class Settings(BaseSettings):
 
     # API
     api_prefix: str = "/api/v1"
-    allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://provenance-detect.vercel.app",
+    ]
 
     # Server
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8000  # Railway overrides this with PORT env var
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/provenance.db"

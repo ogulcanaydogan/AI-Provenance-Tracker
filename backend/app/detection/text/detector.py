@@ -29,16 +29,22 @@ class TextDetector:
     5. Structural analysis - Paragraph and sentence patterns
     """
 
-    def __init__(self) -> None:
+    def __init__(self, lazy_load: bool = True) -> None:
         """Initialize the text detector with ML models."""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = None
         self.tokenizer = None
         self.model_loaded = False
-        self._load_model()
+        self._loading = False
+        if not lazy_load:
+            self._load_model()
 
     def _load_model(self) -> None:
         """Load the transformer model for classification."""
+        if self._loading or self.model_loaded:
+            return
+
+        self._loading = True
         try:
             # Use a lightweight model for AI text detection
             # In production, you'd fine-tune this on AI vs human text
@@ -55,6 +61,8 @@ class TextDetector:
         except Exception:
             # Fallback to heuristics if model loading fails
             self.model_loaded = False
+        finally:
+            self._loading = False
 
     async def detect(self, text: str) -> TextDetectionResponse:
         """
@@ -66,6 +74,10 @@ class TextDetector:
         Returns:
             TextDetectionResponse with detection results
         """
+        # Lazy load model on first request
+        if not self.model_loaded and not self._loading:
+            self._load_model()
+
         start_time = time.time()
 
         # Clean and prepare text
