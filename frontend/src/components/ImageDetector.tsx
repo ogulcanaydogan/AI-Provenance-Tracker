@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import ResultCard from "./ResultCard";
 
 interface ImageAnalysis {
@@ -21,7 +22,7 @@ interface DetectionResult {
   processing_time_ms: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ai-provenance-tracker-production-4622.up.railway.app";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function ImageDetector() {
   const [file, setFile] = useState<File | null>(null);
@@ -135,10 +136,13 @@ export default function ImageDetector() {
           >
             {preview ? (
               <div className="relative">
-                <img
+                <Image
                   src={preview}
                   alt="Preview"
-                  className="max-h-64 mx-auto rounded-lg"
+                  width={512}
+                  height={512}
+                  unoptimized
+                  className="max-h-64 w-auto h-auto mx-auto rounded-lg"
                 />
                 <button
                   type="button"

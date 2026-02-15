@@ -13,6 +13,12 @@ export default function Header() {
 
         <nav className="flex items-center gap-6">
           <Link
+            href="/dashboard"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Dashboard
+          </Link>
+          <Link
             href="https://github.com/ogulcanaydogan/ai-provenance-tracker"
             target="_blank"
             rel="noopener noreferrer"

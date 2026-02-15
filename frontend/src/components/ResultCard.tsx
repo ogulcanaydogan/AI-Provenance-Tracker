@@ -166,8 +166,9 @@ export default function ResultCard({
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-[#262626] text-xs text-gray-600">
-        Processed in {processingTime.toFixed(0)}ms
+      <div className="pt-4 border-t border-[#262626] text-xs text-gray-600 flex items-center justify-between gap-3">
+        <span>Type: {type}</span>
+        <span>Processed in {processingTime.toFixed(0)}ms</span>
       </div>
     </div>
   );

@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     image_detection_model: str = "resnet50"
     max_text_length: int = 50000
     max_image_size_mb: int = 10
+    max_audio_size_mb: int = 25
+    max_video_size_mb: int = 150
+    max_batch_items: int = 50
 
     # Rate limiting
     rate_limit_requests: int = 100
@@ -51,6 +54,12 @@ class Settings(BaseSettings):
 
     # API Keys (optional, for premium features)
     api_key_header: str = "X-API-Key"
+
+    # X (Twitter) intelligence collection
+    x_bearer_token: str = ""
+    x_api_base_url: str = "https://api.x.com/2"
+    x_request_timeout_seconds: float = 20.0
+    x_max_pages: int = 6
 
 
 @lru_cache

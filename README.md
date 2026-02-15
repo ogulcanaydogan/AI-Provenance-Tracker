@@ -44,15 +44,37 @@ AI Provenance Tracker is an open-source platform that:
 - Artifact pattern recognition
 - Metadata forensics
 
-### Audio Detection (Coming Soon)
-- Voice cloning detection
-- Speech synthesis identification
-- Audio deepfake analysis
+### Audio Detection (MVP)
+- WAV audio detection endpoint
+- Spectral flatness and dynamic range analysis
+- Clipping and zero-crossing anomaly checks
 
-### Video Detection (Coming Soon)
-- Face swap detection
-- Lip sync anomaly detection
-- Temporal consistency analysis
+### Video Detection (MVP Scaffold)
+- Video upload endpoint
+- Byte-pattern and container-signature analysis
+- Confidence scoring with explainable flags
+
+### Browser Extension (MVP)
+- Analyze visible text from the current page
+- Uses the same `POST /api/v1/detect/text` backend endpoint
+- Displays confidence and explanation in the popup
+
+### X Reputation Intelligence Input (MVP)
+- Collects target-handle X data (default 14-day window)
+- Normalizes posts/network/bot/AI/claim fields into a single JSON schema
+- Exposes `POST /api/v1/intel/x/collect` and `backend/scripts/collect_x_input.py`
+- Generates explainable trust-and-safety reports (`/api/v1/intel/x/report`)
+- Includes benchmark + talent-visa evidence pack tooling
+
+### Batch Processing
+- Batch text detection endpoint: `POST /api/v1/batch/text`
+- Per-item success/error results in request order
+- Configurable item cap via `MAX_BATCH_ITEMS`
+
+### API Analytics Dashboard
+- Dashboard metrics endpoint: `GET /api/v1/analyze/dashboard`
+- Windowed totals, AI-rate, source/type breakdowns, and daily timeline
+- Frontend dashboard page at `/dashboard`
 
 ---
 
@@ -139,6 +161,51 @@ curl -X POST "http://localhost:8000/api/v1/detect/image" \
 }
 ```
 
+### Detect Audio (WAV)
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/detect/audio" \
+  -F "file=@sample.wav"
+```
+
+### Detect Video (MVP)
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/detect/video" \
+  -F "file=@clip.mp4"
+```
+
+### Collect X Intelligence Input
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/intel/x/collect" \
+  -H "Content-Type: application/json" \
+  -d '{"target_handle":"@example","window_days":30,"max_posts":300,"query":"anthropic OR claudecode"}'
+```
+
+### Generate Trust Report + Evidence Pack
+
+```bash
+cd backend
+python scripts/generate_x_trust_report.py --input ./x_intel_input.json --output ./x_trust_report.json
+python scripts/benchmark_x_intel.py --report ./x_trust_report.json --labels ./evidence/labels_template.json --output ./x_trust_benchmark.json
+python scripts/build_talent_visa_evidence_pack.py --reports-glob "./x_trust_report*.json" --benchmarks-glob "./x_trust_benchmark*.json" --output-dir ./evidence
+```
+
+### Batch Detect Text
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/batch/text" \
+  -H "Content-Type: application/json" \
+  -d '{"items":[{"item_id":"a","text":"Sample text one..."},{"item_id":"b","text":"Sample text two..."}]}'
+```
+
+### API Dashboard Metrics
+
+```bash
+curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
+```
+
 ---
 
 ## Architecture
@@ -195,6 +262,7 @@ ai-provenance-tracker/
 │   ├── tests/                # Test suite
 │   └── pyproject.toml        # Python dependencies
 ├── frontend/                 # Next.js web app
+├── extension/                # Chrome extension (MVP)
 ├── docs/                     # Documentation
 ├── scripts/                  # Utility scripts
 ├── docker-compose.yml
@@ -231,15 +299,23 @@ Our text detection uses multiple signals:
 ## Roadmap
 
 - [x] Project structure and API foundation
-- [ ] Text detection engine (MVP)
-- [ ] Image detection engine (MVP)
-- [ ] Web interface
-- [ ] Public API with rate limiting
-- [ ] Browser extension
-- [ ] Audio detection
-- [ ] Video detection
-- [ ] Batch processing
-- [ ] API analytics dashboard
+- [x] Text detection engine (MVP)
+- [x] Image detection engine (MVP)
+- [x] Web interface
+- [x] Public API with rate limiting
+- [x] Browser extension (Chrome MVP)
+- [x] Audio detection (MVP)
+- [x] Video detection (MVP scaffold)
+- [x] Batch processing
+- [x] API analytics dashboard
+
+---
+
+## Browser Extension
+
+Load the unpacked extension from `extension/` in Chrome to analyze the active page text.
+
+See setup details: [extension/README.md](extension/README.md)
 
 ---
 

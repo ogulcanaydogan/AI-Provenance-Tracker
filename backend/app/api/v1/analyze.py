@@ -1,7 +1,9 @@
 """Analysis API endpoints for detailed content inspection."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+from app.services.analysis_store import analysis_store
 
 router = APIRouter()
 
@@ -29,21 +31,58 @@ async def detailed_analysis(request: AnalysisRequest) -> AnalysisResponse:
     Provides in-depth breakdown of detection signals
     and metadata forensics.
     """
-    # TODO: Implement detailed analysis with stored results
-    raise HTTPException(status_code=501, detail="Detailed analysis not yet implemented")
+    record = await analysis_store.get_record(request.content_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    details = {
+        "analysis_id": record.analysis_id,
+        "content_type": record.content_type,
+        "result": record.result,
+    }
+
+    metadata = None
+    if request.include_metadata:
+        metadata = {
+            "created_at": record.created_at.isoformat(),
+            "source": record.source,
+            "source_url": record.source_url,
+            "content_hash": record.content_hash,
+            "input_size": record.input_size,
+            "filename": record.filename,
+        }
+
+        if request.include_timeline:
+            metadata["timeline"] = [
+                {
+                    "event": "content_analyzed",
+                    "at": record.created_at.isoformat(),
+                    "content_type": record.content_type,
+                }
+            ]
+
+    return AnalysisResponse(
+        content_id=record.analysis_id,
+        analysis_type=record.content_type,
+        details=details,
+        metadata=metadata,
+    )
 
 
 @router.get("/history")
-async def get_analysis_history(limit: int = 10, offset: int = 0) -> dict:
+async def get_analysis_history(
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
     """
     Get history of past analyses.
 
     Returns paginated list of previous detection results.
     """
-    # TODO: Implement history retrieval
+    items, total = await analysis_store.get_history(limit=limit, offset=offset)
     return {
-        "items": [],
-        "total": 0,
+        "items": items,
+        "total": total,
         "limit": limit,
         "offset": offset,
     }
@@ -56,15 +95,15 @@ async def get_stats() -> dict:
 
     Returns overall detection statistics and trends.
     """
-    return {
-        "total_analyses": 0,
-        "ai_detected_count": 0,
-        "human_detected_count": 0,
-        "average_confidence": 0.0,
-        "by_type": {
-            "text": 0,
-            "image": 0,
-            "audio": 0,
-            "video": 0,
-        }
-    }
+    return await analysis_store.get_stats()
+
+
+@router.get("/dashboard")
+async def get_dashboard(days: int = Query(default=14, ge=1, le=90)) -> dict:
+    """
+    Get dashboard-ready analytics for recent activity.
+
+    Returns windowed totals, source/type breakdown, top predicted models,
+    and per-day timeline metrics.
+    """
+    return await analysis_store.get_dashboard(days=days)
