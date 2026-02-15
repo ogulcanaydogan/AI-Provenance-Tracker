@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Activity, Bot, CalendarDays, BarChart3, RefreshCw } from "lucide-react";
-import { getDashboard } from "@/lib/api";
-import { BackendDashboardResponse } from "@/lib/types";
+import { getDashboard, getEvaluation } from "@/lib/api";
+import { BackendDashboardResponse, BackendEvaluationResponse } from "@/lib/types";
 
 function formatPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -18,14 +18,15 @@ export default function DashboardPage() {
   const [days, setDays] = useState(14);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<BackendDashboardResponse | null>(null);
+  const [evaluation, setEvaluation] = useState<BackendEvaluationResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getDashboard(days)
-      .then((payload) => {
-        if (!cancelled) {
-          setData(payload);
-        }
+    Promise.all([getDashboard(days), getEvaluation(Math.max(days, 30))])
+      .then(([dashboardPayload, evaluationPayload]) => {
+        if (cancelled) return;
+        setData(dashboardPayload);
+        setEvaluation(evaluationPayload);
       })
       .catch((err: Error) => {
         if (!cancelled) {
@@ -58,9 +59,18 @@ export default function DashboardPage() {
     [data]
   );
   const alerts = useMemo(() => data?.alerts_window || [], [data]);
+  const evalAlerts = useMemo(() => evaluation?.alerts || [], [evaluation]);
+  const evalLatestRows = useMemo(
+    () => Object.entries(evaluation?.latest_by_content_type || {}).sort((a, b) => a[0].localeCompare(b[0])),
+    [evaluation]
+  );
+  const evalTrendRows = useMemo(
+    () => [...(evaluation?.trend || [])].slice(-12).reverse(),
+    [evaluation]
+  );
 
   const maxTimeline = maxTimelineValue(data?.timeline || []);
-  const loading = data === null && error === null;
+  const loading = (data === null || evaluation === null) && error === null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -83,6 +93,7 @@ export default function DashboardPage() {
               setDays(Number(e.target.value));
               setError(null);
               setData(null);
+              setEvaluation(null);
             }}
             className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100"
           >
@@ -114,6 +125,19 @@ export default function DashboardPage() {
               <div className="space-y-1">
                 {alerts.map((alert) => (
                   <p key={`${alert.code}-${alert.message}`} className="text-sm text-amber-100">
+                    [{alert.severity}] {alert.message}
+                  </p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {evalAlerts.length > 0 && (
+            <section className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+              <h2 className="text-sm font-semibold text-red-200 mb-2">Evaluation Alerts</h2>
+              <div className="space-y-1">
+                {evalAlerts.map((alert) => (
+                  <p key={`${alert.code}-${alert.message}`} className="text-sm text-red-100">
                     [{alert.severity}] {alert.message}
                   </p>
                 ))}
@@ -229,6 +253,56 @@ export default function DashboardPage() {
                   <span className="text-white font-medium">{row.count}</span>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Evaluation Trend</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Recent calibration snapshots (precision, recall, F1, threshold) across modalities.
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300">Latest by Content Type</h3>
+                {evalLatestRows.length === 0 && (
+                  <p className="text-sm text-gray-500">No evaluation reports found.</p>
+                )}
+                {evalLatestRows.map(([contentType, metrics]) => (
+                  <div
+                    key={contentType}
+                    className="rounded-lg border border-gray-800 bg-gray-950 p-3 text-sm"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-gray-200 capitalize">{contentType}</span>
+                      <span className="text-gray-400">{metrics.generated_at.slice(0, 10)}</span>
+                    </div>
+                    <div className="text-gray-400">
+                      P {formatPct(metrics.precision)} | R {formatPct(metrics.recall)} | F1{" "}
+                      {formatPct(metrics.f1)} | Th {metrics.recommended_threshold.toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300">Recent Snapshots</h3>
+                {evalTrendRows.length === 0 && (
+                  <p className="text-sm text-gray-500">No trend rows yet.</p>
+                )}
+                {evalTrendRows.map((row, index) => (
+                  <div
+                    key={`${row.generated_at}-${row.content_type}-${index}`}
+                    className="flex items-center justify-between text-xs border-b border-gray-800 py-1"
+                  >
+                    <span className="text-gray-400">
+                      {row.date} {row.content_type}
+                    </span>
+                    <span className="text-gray-300">
+                      F1 {formatPct(row.f1)} | P {formatPct(row.precision)} | R {formatPct(row.recall)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 

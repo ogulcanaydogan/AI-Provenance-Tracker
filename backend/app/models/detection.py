@@ -71,6 +71,24 @@ class DetectionAnalysis(BaseModel):
       explanation: str = Field(..., description="Human-readable explanation")
 
 
+class ProviderConsensusVote(BaseModel):
+      """Per-provider vote used in weighted consensus."""
+      provider: Literal["internal", "copyleaks", "reality_defender", "c2pa"]
+      probability: float = Field(..., ge=0, le=1)
+      weight: float = Field(..., ge=0)
+      status: Literal["ok", "unavailable", "unsupported", "error"]
+      rationale: str
+
+
+class ConsensusSummary(BaseModel):
+      """Weighted consensus output across configured providers."""
+      final_probability: float = Field(..., ge=0, le=1)
+      threshold: float = Field(..., ge=0, le=1)
+      is_ai_generated: bool
+      disagreement: float = Field(..., ge=0, le=1)
+      providers: list[ProviderConsensusVote] = Field(default_factory=list)
+
+
 class TextDetectionRequest(BaseModel):
       """Request to detect AI-generated text."""
       text: str = Field(..., min_length=1, max_length=50000, description="Text to analyze")
@@ -86,6 +104,7 @@ class TextDetectionResponse(BaseModel):
       analysis: TextAnalysis = Field(..., description="Detailed analysis metrics")
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
 class ImageDetectionResponse(BaseModel):
@@ -99,6 +118,7 @@ class ImageDetectionResponse(BaseModel):
       filename: str = Field(..., description="Original filename")
       dimensions: tuple[int, int] = Field(..., description="Image dimensions (width, height)")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
 class AudioDetectionResponse(BaseModel):
@@ -111,6 +131,7 @@ class AudioDetectionResponse(BaseModel):
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       filename: str = Field(..., description="Original filename")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
 class VideoDetectionResponse(BaseModel):
@@ -123,6 +144,7 @@ class VideoDetectionResponse(BaseModel):
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       filename: str = Field(..., description="Original filename")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
 class BatchTextItem(BaseModel):

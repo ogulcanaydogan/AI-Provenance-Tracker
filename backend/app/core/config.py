@@ -75,6 +75,41 @@ class Settings(BaseSettings):
     x_request_timeout_seconds: float = 20.0
     x_max_pages: int = 6
 
+    # Provider consensus layer
+    consensus_enabled: bool = True
+    consensus_threshold: float = 0.5
+    provider_timeout_seconds: float = 8.0
+    provider_internal_weight: float = 0.6
+    provider_copyleaks_weight: float = 0.15
+    provider_reality_defender_weight: float = 0.15
+    provider_c2pa_weight: float = 0.1
+    copyleaks_api_key: str = ""
+    copyleaks_api_url: str = "https://api.copyleaks.com/v1/ai-content/detect"
+    reality_defender_api_key: str = ""
+    reality_defender_api_url: str = "https://api.realitydefender.com/v1/detect"
+    c2pa_enabled: bool = True
+
+    # Scheduled X pipeline
+    scheduler_enabled: bool = False
+    scheduler_handles: list[str] = []
+    scheduler_interval_minutes: int = 1440
+    scheduler_window_days: int = 14
+    scheduler_max_posts: int = 250
+    scheduler_query: str = ""
+    scheduler_retry_attempts: int = 3
+    scheduler_retry_backoff_seconds: float = 5.0
+    scheduler_output_dir: str = "evidence/runs/scheduled"
+    scheduler_send_webhooks: bool = True
+
+    # Webhook delivery
+    webhook_urls: list[str] = []
+    webhook_timeout_seconds: float = 6.0
+    webhook_secret: str = ""
+    webhook_push_intel_alerts: bool = True
+
+    # Calibration/evaluation tracking
+    calibration_reports_dir: str = "evidence/calibration"
+
 
 @lru_cache
 def get_settings() -> Settings:

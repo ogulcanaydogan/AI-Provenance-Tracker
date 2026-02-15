@@ -1,7 +1,9 @@
 import io
+import json
 import math
 import struct
 import wave
+from pathlib import Path
 from unittest.mock import patch
 
 import httpx
@@ -74,6 +76,8 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
     assert "confidence" in payload
     assert "analysis" in payload
     assert "explanation" in payload
+    assert "consensus" in payload
+    assert payload["consensus"]["providers"][0]["provider"] == "internal"
 
 
 @pytest.mark.asyncio
@@ -363,3 +367,35 @@ async def test_dashboard_endpoint_returns_timeline(client: AsyncClient):
     assert payload["summary"]["total_analyses_window"] == 1
     assert len(payload["timeline"]) == 7
     assert "by_type_window" in payload
+
+
+@pytest.mark.asyncio
+async def test_evaluation_endpoint_returns_registered_reports(client: AsyncClient, tmp_path: Path):
+    old_dir = settings.calibration_reports_dir
+    settings.calibration_reports_dir = str(tmp_path)
+    try:
+        payload = {
+            "generated_at": "2026-02-15T12:00:00+00:00",
+            "content_type": "text",
+            "sample_count": 40,
+            "recommended_threshold": 0.55,
+            "best_metrics": {
+                "precision": 0.8,
+                "recall": 0.75,
+                "f1": 0.77,
+                "accuracy": 0.78,
+            },
+        }
+        report_path = tmp_path / "text" / "sample_report.json"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        response = await client.get("/api/v1/analyze/evaluation?days=90")
+    finally:
+        settings.calibration_reports_dir = old_dir
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_reports"] == 1
+    assert data["by_content_type"]["text"] == 1
+    assert data["latest_by_content_type"]["text"]["precision"] == 0.8

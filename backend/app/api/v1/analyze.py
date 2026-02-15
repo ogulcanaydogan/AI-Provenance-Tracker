@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from app.services.analysis_store import analysis_store
+from app.services.evaluation_store import evaluation_store
 
 router = APIRouter()
 
@@ -107,3 +108,11 @@ async def get_dashboard(days: int = Query(default=14, ge=1, le=90)) -> dict:
     and per-day timeline metrics.
     """
     return await analysis_store.get_dashboard(days=days)
+
+
+@router.get("/evaluation")
+async def get_evaluation(days: int = Query(default=90, ge=1, le=365)) -> dict:
+    """
+    Get calibration/evaluation trend metrics for dashboard.
+    """
+    return evaluation_store.get_summary(days=days)

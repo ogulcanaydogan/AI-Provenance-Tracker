@@ -28,6 +28,16 @@ def parse_args() -> argparse.Namespace:
         help="Detector modality to evaluate",
     )
     parser.add_argument("--output", default="calibration_report.json")
+    parser.add_argument(
+        "--register",
+        action="store_true",
+        help="Also copy report into registry directory for dashboard trend tracking.",
+    )
+    parser.add_argument(
+        "--registry-dir",
+        default="evidence/calibration",
+        help="Directory used to store historical calibration reports.",
+    )
     return parser.parse_args()
 
 
@@ -134,6 +144,15 @@ async def run() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote calibration report to {output_path}")
+
+    if args.register:
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        registry_path = (
+            Path(args.registry_dir).expanduser().resolve() / args.content_type / f"{timestamp}.json"
+        )
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"Registered calibration report at {registry_path}")
     return 0
 
 

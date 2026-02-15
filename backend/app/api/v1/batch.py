@@ -15,6 +15,7 @@ from app.models.detection import (
     BatchTextResultItem,
 )
 from app.services.analysis_store import analysis_store
+from app.services.provider_consensus import provider_consensus_engine
 
 router = APIRouter()
 text_detector = TextDetector()
@@ -70,6 +71,13 @@ async def batch_detect_text(request: BatchTextDetectionRequest) -> BatchTextDete
 
         try:
             detection = await text_detector.detect(text)
+            detection.consensus = await provider_consensus_engine.build_consensus(
+                content_type="text",
+                internal_probability=detection.confidence,
+                text=text,
+            )
+            detection.confidence = detection.consensus.final_probability
+            detection.is_ai_generated = detection.consensus.is_ai_generated
             detection.analysis_id = await analysis_store.save_text_result(
                 text=text,
                 result=detection,
@@ -105,4 +113,3 @@ async def batch_detect_text(request: BatchTextDetectionRequest) -> BatchTextDete
         processed_at=datetime.now(UTC),
         items=results,
     )
-

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
+from app.core.config import settings
 from app.models.x_intel import XIntelCollectionRequest, XIntelInput
+from app.services.job_scheduler import x_pipeline_scheduler
 from app.services.trust_report import generate_trust_report, generate_x_drilldown
+from app.services.webhook_dispatcher import webhook_dispatcher
 from app.services.x_intel import XDataCollectionError, XIntelCollector
 
 router = APIRouter()
@@ -44,4 +47,26 @@ async def generate_x_drilldown_view(payload: XIntelInput) -> dict:
     """
     Generate dashboard drill-down data (clusters, claims timeline, alerts).
     """
-    return generate_x_drilldown(payload)
+    drilldown = generate_x_drilldown(payload)
+    if settings.webhook_push_intel_alerts and drilldown.get("alerts"):
+        await webhook_dispatcher.dispatch(
+            "intel_drilldown_alerts",
+            {
+                "target": drilldown.get("target"),
+                "window": drilldown.get("window"),
+                "alerts": drilldown.get("alerts"),
+            },
+        )
+    return drilldown
+
+
+@router.get("/x/scheduler/status")
+async def get_scheduler_status() -> dict:
+    """Return scheduler runtime status."""
+    return x_pipeline_scheduler.status()
+
+
+@router.post("/x/scheduler/run")
+async def trigger_scheduler_run(handle: str | None = Query(default=None)) -> dict:
+    """Trigger one immediate scheduled run (single handle or configured set)."""
+    return await x_pipeline_scheduler.trigger_once(handle=handle)

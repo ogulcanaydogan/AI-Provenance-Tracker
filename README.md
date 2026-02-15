@@ -86,6 +86,12 @@ AI Provenance Tracker is an open-source platform that:
 - Deterministic talent-visa pipeline run IDs + canonical artifact checksums
 - Added threshold calibration script for labeled evaluation
 
+### Provider Consensus + Automation (Phase 3)
+- Provider adapter layer with weighted consensus (`internal`, `copyleaks`, `reality_defender`, `c2pa`)
+- Scheduler with retries for recurring X collect/report runs
+- Webhook delivery for scheduled run results and alert events
+- Dashboard evaluation trend (precision/recall/F1 over time)
+
 ---
 
 ## Quick Start
@@ -228,7 +234,7 @@ curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
 
 ```bash
 cd backend
-python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json
+python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json --register
 ```
 
 ---

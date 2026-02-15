@@ -26,7 +26,10 @@ uvicorn app.main:app --reload
 - `POST /api/v1/intel/x/collect` - Collect X data into trust-and-safety input schema
 - `POST /api/v1/intel/x/report` - Generate trust-and-safety report from normalized input
 - `POST /api/v1/intel/x/drilldown` - Build cluster/claim drill-down + alerts dataset
+- `GET /api/v1/intel/x/scheduler/status` - Check recurring job status
+- `POST /api/v1/intel/x/scheduler/run` - Trigger one immediate scheduled run
 - `GET /api/v1/analyze/dashboard` - Dashboard-ready analytics metrics
+- `GET /api/v1/analyze/evaluation` - Calibration precision/recall trend for dashboard
 - `GET /health` - Health check
 
 ## X Intelligence Collection
@@ -96,7 +99,19 @@ python scripts/run_talent_visa_pipeline.py --handle @example --window-days 90 --
 Evaluate confidence-threshold calibration on labeled data:
 
 ```bash
-python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json
+python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json --register
+```
+
+Trigger a scheduler run manually:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/intel/x/scheduler/run?handle=@example"
+```
+
+Check scheduler status:
+
+```bash
+curl "http://localhost:8000/api/v1/intel/x/scheduler/status"
 ```
 
 ## Persistence and Migrations
@@ -117,6 +132,12 @@ Configure optional API key enforcement and endpoint spend controls in `.env`:
 - `RATE_LIMIT_MEDIA_REQUESTS`
 - `RATE_LIMIT_BATCH_REQUESTS`
 - `RATE_LIMIT_INTEL_REQUESTS`
+- `CONSENSUS_ENABLED`
+- `COPYLEAKS_API_KEY`
+- `REALITY_DEFENDER_API_KEY`
+- `SCHEDULER_ENABLED`
+- `SCHEDULER_HANDLES`
+- `WEBHOOK_URLS`
 
 ## Documentation
 
