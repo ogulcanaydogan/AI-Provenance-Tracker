@@ -53,6 +53,11 @@ export default function DashboardPage() {
         .filter(([, count]) => count > 0),
     [data]
   );
+  const modelRows = useMemo(
+    () => (data?.top_models_window || []).filter((entry) => entry.count > 0),
+    [data]
+  );
+  const alerts = useMemo(() => data?.alerts_window || [], [data]);
 
   const maxTimeline = maxTimelineValue(data?.timeline || []);
   const loading = data === null && error === null;
@@ -103,6 +108,19 @@ export default function DashboardPage() {
 
       {!loading && !error && data && (
         <div className="space-y-8">
+          {alerts.length > 0 && (
+            <section className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <h2 className="text-sm font-semibold text-amber-200 mb-2">Alerts</h2>
+              <div className="space-y-1">
+                {alerts.map((alert) => (
+                  <p key={`${alert.code}-${alert.message}`} className="text-sm text-amber-100">
+                    [{alert.severity}] {alert.message}
+                  </p>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
               <div className="flex items-center gap-2 text-gray-400 text-sm">
@@ -195,6 +213,22 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Top Predicted Models</h2>
+            <div className="space-y-2">
+              {modelRows.length === 0 && <p className="text-sm text-gray-500">No model data</p>}
+              {modelRows.map((row) => (
+                <div
+                  key={`${row.model}-${row.count}`}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-gray-300">{row.model}</span>
+                  <span className="text-white font-medium">{row.count}</span>
+                </div>
+              ))}
             </div>
           </section>
 

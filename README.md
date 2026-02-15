@@ -76,6 +76,16 @@ AI Provenance Tracker is an open-source platform that:
 - Windowed totals, AI-rate, source/type breakdowns, and daily timeline
 - Frontend dashboard page at `/dashboard`
 
+### Persistent History + Controls (Phase 2)
+- Detection history/analytics persisted to database (`analysis_records`)
+- Optional API key requirement with endpoint-aware quotas
+- Daily spend-cap points to avoid runaway API usage
+
+### X Drill-Down + Alerting
+- `POST /api/v1/intel/x/drilldown` returns cluster drill-down, claim timeline, and alert list
+- Deterministic talent-visa pipeline run IDs + canonical artifact checksums
+- Added threshold calibration script for labeled evaluation
+
 ---
 
 ## Quick Start
@@ -192,6 +202,14 @@ python scripts/benchmark_x_intel.py --report ./x_trust_report.json --labels ./ev
 python scripts/build_talent_visa_evidence_pack.py --reports-glob "./x_trust_report*.json" --benchmarks-glob "./x_trust_benchmark*.json" --output-dir ./evidence
 ```
 
+### X Drill-Down Dataset
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/intel/x/drilldown" \
+  -H "Content-Type: application/json" \
+  --data-binary @./backend/x_intel_input.json
+```
+
 ### Batch Detect Text
 
 ```bash
@@ -204,6 +222,13 @@ curl -X POST "http://localhost:8000/api/v1/batch/text" \
 
 ```bash
 curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
+```
+
+### Detection Calibration Script
+
+```bash
+cd backend
+python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json
 ```
 
 ---

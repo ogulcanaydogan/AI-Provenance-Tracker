@@ -51,9 +51,23 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_requests: int = 100
     rate_limit_window_seconds: int = 60
+    rate_limit_media_requests: int = 40
+    rate_limit_batch_requests: int = 20
+    rate_limit_intel_requests: int = 20
 
     # API Keys (optional, for premium features)
+    require_api_key: bool = False
     api_key_header: str = "X-API-Key"
+    api_keys: list[str] = []
+
+    # Spend-control points (per client per day)
+    daily_spend_cap_points: int = 1000
+    spend_cost_text: int = 1
+    spend_cost_image: int = 3
+    spend_cost_audio: int = 4
+    spend_cost_video: int = 6
+    spend_cost_batch: int = 5
+    spend_cost_intel: int = 8
 
     # X (Twitter) intelligence collection
     x_bearer_token: str = ""

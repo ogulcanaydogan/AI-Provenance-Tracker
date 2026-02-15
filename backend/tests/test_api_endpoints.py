@@ -281,6 +281,32 @@ async def test_rate_limit_enforced(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_api_key_required_blocks_unauthorized_requests(client: AsyncClient):
+    old_required = settings.require_api_key
+    old_keys = list(settings.api_keys)
+    settings.require_api_key = True
+    settings.api_keys = ["test-key"]
+    rate_limiter._hits.clear()
+    rate_limiter._daily_points.clear()
+    try:
+        blocked = await client.post(
+            "/api/v1/detect/text",
+            json={"text": "API key requirement test text." * 4},
+        )
+        allowed = await client.post(
+            "/api/v1/detect/text",
+            headers={settings.api_key_header: "test-key"},
+            json={"text": "API key requirement test text." * 4},
+        )
+    finally:
+        settings.require_api_key = old_required
+        settings.api_keys = old_keys
+
+    assert blocked.status_code == 401
+    assert allowed.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_batch_text_detection_success(client: AsyncClient):
     response = await client.post(
         "/api/v1/batch/text",

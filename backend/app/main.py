@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import router as api_router
 from app.core.config import settings
+from app.db import close_database, init_database
 
 logger = structlog.get_logger()
 
@@ -17,9 +18,9 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     logger.info("Starting AI Provenance Tracker", version=settings.app_version)
-    # Initialize detection models on startup
-    # This would load ML models into memory
+    await init_database()
     yield
+    await close_database()
     logger.info("Shutting down AI Provenance Tracker")
 
 

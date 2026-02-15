@@ -25,6 +25,7 @@ uvicorn app.main:app --reload
 - `POST /api/v1/batch/text` - Batch text detection
 - `POST /api/v1/intel/x/collect` - Collect X data into trust-and-safety input schema
 - `POST /api/v1/intel/x/report` - Generate trust-and-safety report from normalized input
+- `POST /api/v1/intel/x/drilldown` - Build cluster/claim drill-down + alerts dataset
 - `GET /api/v1/analyze/dashboard` - Dashboard-ready analytics metrics
 - `GET /health` - Health check
 
@@ -58,6 +59,14 @@ Dashboard metrics:
 curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
 ```
 
+Dashboard drill-down from normalized input:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/intel/x/drilldown" \
+  -H "Content-Type: application/json" \
+  --data-binary @./x_intel_input.json
+```
+
 ## Trust Report, Benchmark, Evidence Pack
 
 Generate trust report:
@@ -83,6 +92,31 @@ Run full pipeline:
 ```bash
 python scripts/run_talent_visa_pipeline.py --handle @example --window-days 90 --max-posts 600 --query "anthropic OR claudecode OR claudeai OR usagelimits"
 ```
+
+Evaluate confidence-threshold calibration on labeled data:
+
+```bash
+python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json
+```
+
+## Persistence and Migrations
+
+Runtime analysis history is persisted in `analysis_records` (SQLite by default).
+
+```bash
+alembic upgrade head
+```
+
+## Security and Spend Controls
+
+Configure optional API key enforcement and endpoint spend controls in `.env`:
+
+- `REQUIRE_API_KEY`
+- `API_KEYS`
+- `DAILY_SPEND_CAP_POINTS`
+- `RATE_LIMIT_MEDIA_REQUESTS`
+- `RATE_LIMIT_BATCH_REQUESTS`
+- `RATE_LIMIT_INTEL_REQUESTS`
 
 ## Documentation
 
