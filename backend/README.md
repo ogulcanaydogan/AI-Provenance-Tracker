@@ -127,6 +127,22 @@ Evaluate confidence-threshold calibration on labeled data:
 
 ```bash
 python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json --register
+python scripts/evaluate_detection_calibration.py --input ./labels_audio.jsonl --content-type audio --output ./calibration_audio.json --register
+python scripts/evaluate_detection_calibration.py --input ./labels_video.jsonl --content-type video --output ./calibration_video.json --register
+```
+
+Audio/video JSONL templates: `./evidence/samples/audio_labeled_template.jsonl`, `./evidence/samples/video_labeled_template.jsonl`
+
+Weekly pipeline cycle with automatic run comparison:
+
+```bash
+python scripts/run_weekly_talent_visa_cycle.py --handle @example --window-days 7 --max-posts 60 --output-dir ./evidence/runs/weekly --comparisons-dir ./evidence/runs/comparisons --summary-output ./evidence/runs/weekly/latest_summary.json
+```
+
+Production smoke test for all detect endpoints:
+
+```bash
+python scripts/smoke_detect_prod.py --base-url https://your-api-domain --output ./evidence/smoke/prod_detect_smoke.json
 ```
 
 Trigger a scheduler run manually:

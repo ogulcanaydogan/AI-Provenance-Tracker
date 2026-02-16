@@ -1,0 +1,90 @@
+name: Weekly Talent Visa Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      handle:
+        description: "X handle to analyze (include @)"
+        required: false
+        default: "@ogulcanaydogan"
+      window_days:
+        description: "Collection window in days"
+        required: false
+        default: "7"
+      max_posts:
+        description: "Maximum collected posts"
+        required: false
+        default: "60"
+      max_pages:
+        description: "Max X pages per stream (cost control)"
+        required: false
+        default: "1"
+      max_requests_per_run:
+        description: "Hard cap for X API requests per run"
+        required: false
+        default: "4"
+  schedule:
+    - cron: "30 10 * * 1"
+
+jobs:
+  weekly-cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: weekly-talent-visa-evidence
+      cancel-in-progress: false
+    env:
+      X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+      DEFAULT_HANDLE: ${{ vars.TALENT_VISA_HANDLE || '@ogulcanaydogan' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e .
+      - name: Resolve runtime parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "handle=${{ inputs.handle }}" >> "$GITHUB_OUTPUT"
+            echo "window_days=${{ inputs.window_days }}" >> "$GITHUB_OUTPUT"
+            echo "max_posts=${{ inputs.max_posts }}" >> "$GITHUB_OUTPUT"
+            echo "max_pages=${{ inputs.max_pages }}" >> "$GITHUB_OUTPUT"
+            echo "max_requests_per_run=${{ inputs.max_requests_per_run }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "handle=${DEFAULT_HANDLE}" >> "$GITHUB_OUTPUT"
+            echo "window_days=7" >> "$GITHUB_OUTPUT"
+            echo "max_posts=60" >> "$GITHUB_OUTPUT"
+            echo "max_pages=1" >> "$GITHUB_OUTPUT"
+            echo "max_requests_per_run=4" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run weekly cycle and comparison
+        if: ${{ env.X_BEARER_TOKEN != '' }}
+        env:
+          X_MAX_PAGES: ${{ steps.params.outputs.max_pages }}
+          X_MAX_REQUESTS_PER_RUN: ${{ steps.params.outputs.max_requests_per_run }}
+        run: |
+          cd backend
+          python scripts/run_weekly_talent_visa_cycle.py \
+            --handle "${{ steps.params.outputs.handle }}" \
+            --window-days "${{ steps.params.outputs.window_days }}" \
+            --max-posts "${{ steps.params.outputs.max_posts }}" \
+            --output-dir ./evidence/runs/weekly \
+            --comparisons-dir ./evidence/runs/comparisons \
+            --summary-output ./evidence/runs/weekly/latest_summary.json
+      - name: Skip when token is not configured
+        if: ${{ env.X_BEARER_TOKEN == '' }}
+        run: echo "X_BEARER_TOKEN secret is not set; skipping weekly evidence run."
+      - name: Upload weekly artifacts
+        if: ${{ always() && env.X_BEARER_TOKEN != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-talent-visa-evidence
+          path: |
+            backend/evidence/runs/weekly/latest_summary.json
+            backend/evidence/runs/weekly/**
+            backend/evidence/runs/comparisons/**
+          retention-days: 30

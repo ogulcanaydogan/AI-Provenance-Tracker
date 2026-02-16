@@ -4,18 +4,20 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import UTC, datetime
 import json
-from pathlib import Path
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.detection.image.detector import ImageDetector
-from app.detection.text.detector import TextDetector
+from app.detection.audio.detector import AudioDetector  # noqa: E402
+from app.detection.image.detector import ImageDetector  # noqa: E402
+from app.detection.text.detector import TextDetector  # noqa: E402
+from app.detection.video.detector import VideoDetector  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,7 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", required=True, help="Path to labeled JSONL samples")
     parser.add_argument(
         "--content-type",
-        choices=["text", "image"],
+        choices=["text", "image", "audio", "video"],
         required=True,
         help="Detector modality to evaluate",
     )
@@ -77,7 +79,22 @@ def _threshold_metrics(scores: list[tuple[float, bool]], threshold: float) -> di
     }
 
 
-async def _score_samples(samples: list[dict[str, Any]], content_type: str) -> list[tuple[float, bool]]:
+def _resolve_sample_path(sample: dict[str, Any], content_type: str) -> Path | None:
+    key_candidates = {
+        "image": ("image_path", "path", "file_path"),
+        "audio": ("audio_path", "path", "file_path"),
+        "video": ("video_path", "path", "file_path"),
+    }
+    for key in key_candidates.get(content_type, ()):
+        raw_path = str(sample.get(key, "")).strip()
+        if raw_path:
+            return Path(raw_path).expanduser()
+    return None
+
+
+async def _score_samples(
+    samples: list[dict[str, Any]], content_type: str
+) -> tuple[list[tuple[float, bool]], int]:
     scores: list[tuple[float, bool]] = []
     if content_type == "text":
         detector = TextDetector()
@@ -87,17 +104,32 @@ async def _score_samples(samples: list[dict[str, Any]], content_type: str) -> li
                 continue
             result = await detector.detect(text)
             scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
-        return scores
+        return scores, len(samples) - len(scores)
 
-    detector = ImageDetector()
+    if content_type == "image":
+        detector = ImageDetector()
+    elif content_type == "audio":
+        detector = AudioDetector()
+    else:
+        detector = VideoDetector()
+
+    skipped_samples = 0
     for sample in samples:
-        image_path = Path(str(sample.get("image_path", ""))).expanduser()
-        if not image_path.exists():
+        file_path = _resolve_sample_path(sample, content_type)
+        if file_path is None or not file_path.exists():
+            skipped_samples += 1
             continue
-        image_bytes = image_path.read_bytes()
-        result = await detector.detect(image_bytes, image_path.name)
+        media_bytes = file_path.read_bytes()
+        if not media_bytes:
+            skipped_samples += 1
+            continue
+        try:
+            result = await detector.detect(media_bytes, file_path.name)
+        except ValueError:
+            skipped_samples += 1
+            continue
         scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
-    return scores
+    return scores, skipped_samples
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -122,7 +154,7 @@ async def run() -> int:
         print("No labeled samples found.")
         return 1
 
-    scores = await _score_samples(samples, args.content_type)
+    scores, skipped_samples = await _score_samples(samples, args.content_type)
     if not scores:
         print("No valid samples were scored.")
         return 1
@@ -134,7 +166,9 @@ async def run() -> int:
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "content_type": args.content_type,
+        "input_sample_count": len(samples),
         "sample_count": len(scores),
+        "skipped_samples": skipped_samples,
         "recommended_threshold": best["threshold"],
         "best_metrics": best,
         "all_thresholds": metrics,

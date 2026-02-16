@@ -238,6 +238,25 @@ curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
 ```bash
 cd backend
 python scripts/evaluate_detection_calibration.py --input ./labels_text.jsonl --content-type text --output ./calibration_text.json --register
+python scripts/evaluate_detection_calibration.py --input ./labels_audio.jsonl --content-type audio --output ./calibration_audio.json --register
+python scripts/evaluate_detection_calibration.py --input ./labels_video.jsonl --content-type video --output ./calibration_video.json --register
+```
+
+Audio/video JSONL samples should use `audio_path`/`video_path` (or `path`/`file_path`) and `label_is_ai`.
+Template files: `backend/evidence/samples/audio_labeled_template.jsonl`, `backend/evidence/samples/video_labeled_template.jsonl`.
+
+### Production Smoke Test (All Detect Endpoints)
+
+```bash
+cd backend
+python scripts/smoke_detect_prod.py --base-url https://your-api-domain --output ./evidence/smoke/prod_detect_smoke.json
+```
+
+### Weekly Evidence Cycle + Run Comparison
+
+```bash
+cd backend
+python scripts/run_weekly_talent_visa_cycle.py --handle @example --window-days 7 --max-posts 60 --output-dir ./evidence/runs/weekly --comparisons-dir ./evidence/runs/comparisons --summary-output ./evidence/runs/weekly/latest_summary.json
 ```
 
 ---
@@ -342,6 +361,8 @@ Our text detection uses multiple signals:
 - [x] Video detection (MVP scaffold)
 - [x] Batch processing
 - [x] API analytics dashboard
+- [x] Prod smoke test script (`/detect/text|image|audio|video`)
+- [x] Weekly talent-visa evidence automation + run comparison
 
 ---
 

@@ -1,0 +1,43 @@
+name: Production Smoke Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 10 * * 1"
+
+jobs:
+  detect-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+      PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+      PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e .
+      - name: Run smoke suite
+        if: ${{ env.PRODUCTION_API_URL != '' }}
+        run: |
+          cd backend
+          python scripts/smoke_detect_prod.py \
+            --base-url "${PRODUCTION_API_URL}" \
+            --api-key "${PRODUCTION_API_KEY}" \
+            --api-key-header "${PRODUCTION_API_KEY_HEADER}" \
+            --output ./evidence/smoke/prod_detect_smoke.json
+      - name: Skip when URL is not configured
+        if: ${{ env.PRODUCTION_API_URL == '' }}
+        run: echo "PRODUCTION_API_URL secret is not set; skipping smoke tests."
+      - name: Upload smoke artifact
+        if: ${{ always() && env.PRODUCTION_API_URL != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-detect-smoke
+          path: backend/evidence/smoke/prod_detect_smoke.json
+          retention-days: 14
