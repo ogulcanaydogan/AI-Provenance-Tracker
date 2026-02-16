@@ -5,6 +5,7 @@ import TextDetector from "@/components/TextDetector";
 import ImageDetector from "@/components/ImageDetector";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Link from "next/link";
 
 type Tab = "text" | "image";
 
@@ -51,6 +52,21 @@ export default function Home() {
               Image Detection
             </button>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+          <Link
+            href="/detect/audio"
+            className="px-4 py-2 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm"
+          >
+            Open Audio Detection
+          </Link>
+          <Link
+            href="/detect/video"
+            className="px-4 py-2 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm"
+          >
+            Open Video Detection
+          </Link>
         </div>
 
         {/* Detector Components */}

@@ -13,6 +13,30 @@ export default function Header() {
 
         <nav className="flex items-center gap-6">
           <Link
+            href="/detect/text"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Text
+          </Link>
+          <Link
+            href="/detect/image"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Image
+          </Link>
+          <Link
+            href="/detect/audio"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Audio
+          </Link>
+          <Link
+            href="/detect/video"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Video
+          </Link>
+          <Link
             href="/dashboard"
             className="text-gray-400 hover:text-white transition-colors"
           >

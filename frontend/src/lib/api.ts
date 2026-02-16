@@ -277,6 +277,17 @@ export async function detectAudio(file: File): Promise<DetectionResult> {
   return mapDetection(payload, "audio");
 }
 
+export async function detectVideo(file: File): Promise<DetectionResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${API_URL}/api/v1/detect/video`, {
+    method: "POST",
+    body: formData,
+  });
+  const payload = await handleResponse<BackendDetectionResponse>(response);
+  return mapDetection(payload, "video");
+}
+
 export async function getHistory(page = 1, perPage = 20): Promise<HistoryResponse> {
   const offset = (page - 1) * perPage;
   const response = await fetch(
