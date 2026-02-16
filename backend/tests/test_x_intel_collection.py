@@ -5,6 +5,8 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import settings
+from app.services.job_scheduler import XPipelineScheduler
+from app.services.x_intel import XIntelCollector
 
 
 def _json_response(url: str, payload: dict, status_code: int = 200) -> httpx.Response:
@@ -222,6 +224,103 @@ async def test_collect_x_intel_requires_token(client: AsyncClient):
 
     assert response.status_code == 400
     assert "X_BEARER_TOKEN" in response.json()["detail"]
+
+
+def test_estimate_request_plan_low_cost():
+    plan = XIntelCollector.estimate_request_plan(max_posts=60, max_pages=1)
+    assert plan["estimated_requests"] == 4
+    assert plan["worst_case_requests"] == 4
+    assert plan["page_cap"] == 1
+
+
+@pytest.mark.asyncio
+async def test_collect_x_intel_budget_guard_blocks_large_run(client: AsyncClient):
+    old_token = settings.x_bearer_token
+    old_guard_enabled = settings.x_cost_guard_enabled
+    old_max_requests = settings.x_max_requests_per_run
+    old_max_pages = settings.x_max_pages
+
+    settings.x_bearer_token = "test-token"
+    settings.x_cost_guard_enabled = True
+    settings.x_max_requests_per_run = 3
+    settings.x_max_pages = 1
+    try:
+        response = await client.post(
+            "/api/v1/intel/x/collect",
+            json={"target_handle": "@targetacct", "window_days": 7, "max_posts": 60},
+        )
+    finally:
+        settings.x_bearer_token = old_token
+        settings.x_cost_guard_enabled = old_guard_enabled
+        settings.x_max_requests_per_run = old_max_requests
+        settings.x_max_pages = old_max_pages
+
+    assert response.status_code == 400
+    assert "exceeds budget" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_collect_x_intel_estimate_endpoint(client: AsyncClient):
+    old_guard_enabled = settings.x_cost_guard_enabled
+    old_max_requests = settings.x_max_requests_per_run
+    old_max_pages = settings.x_max_pages
+
+    settings.x_cost_guard_enabled = True
+    settings.x_max_requests_per_run = 4
+    settings.x_max_pages = 1
+    try:
+        response = await client.post(
+            "/api/v1/intel/x/collect/estimate",
+            json={"window_days": 7, "max_posts": 60, "max_pages": 1},
+        )
+    finally:
+        settings.x_cost_guard_enabled = old_guard_enabled
+        settings.x_max_requests_per_run = old_max_requests
+        settings.x_max_pages = old_max_pages
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["estimated_requests"] == 4
+    assert payload["within_budget"] is True
+    assert payload["max_requests_per_run"] == 4
+    assert payload["recommended_max_posts"] >= 60
+
+
+@pytest.mark.asyncio
+async def test_scheduler_monthly_cap_activates_kill_switch(tmp_path):
+    old_usage_file = settings.scheduler_usage_file
+    old_cap = settings.scheduler_monthly_request_cap
+    old_kill = settings.scheduler_kill_switch_on_cap
+    old_scheduler_max_posts = settings.scheduler_max_posts
+    old_x_max_pages = settings.x_max_pages
+    old_send_webhooks = settings.scheduler_send_webhooks
+
+    settings.scheduler_usage_file = str(tmp_path / "scheduler_usage.json")
+    settings.scheduler_monthly_request_cap = 3
+    settings.scheduler_kill_switch_on_cap = True
+    settings.scheduler_max_posts = 60
+    settings.x_max_pages = 1
+    settings.scheduler_send_webhooks = False
+    try:
+        scheduler = XPipelineScheduler()
+        first = await scheduler.trigger_once(handle="@targetacct")
+        status = scheduler.status()
+        second = await scheduler.trigger_once(handle="@targetacct")
+    finally:
+        settings.scheduler_usage_file = old_usage_file
+        settings.scheduler_monthly_request_cap = old_cap
+        settings.scheduler_kill_switch_on_cap = old_kill
+        settings.scheduler_max_posts = old_scheduler_max_posts
+        settings.x_max_pages = old_x_max_pages
+        settings.scheduler_send_webhooks = old_send_webhooks
+
+    assert first["status"] == "blocked"
+    assert first["reason"] == "monthly_request_cap"
+    assert first.get("kill_switch_activated") is True
+    assert status["auto_disabled"] is True
+    assert status["enabled"] is False
+    assert second["status"] == "blocked"
+    assert second["reason"] == "kill_switch_active"
 
 
 @pytest.mark.asyncio

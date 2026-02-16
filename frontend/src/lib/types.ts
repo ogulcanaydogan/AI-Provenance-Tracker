@@ -224,3 +224,22 @@ export interface BackendEvaluationResponse {
   trend: BackendEvaluationTrendItem[];
   alerts: Array<{ severity: string; code: string; message: string }>;
 }
+
+export interface BackendXCollectEstimateRequest {
+  window_days: number;
+  max_posts: number;
+  max_pages?: number;
+}
+
+export interface BackendXCollectEstimateResponse {
+  estimated_requests: number;
+  worst_case_requests: number;
+  page_cap: number;
+  target_limit: number;
+  mention_limit: number;
+  interaction_limit: number;
+  guard_enabled: boolean;
+  max_requests_per_run: number;
+  within_budget: boolean;
+  recommended_max_posts: number;
+}

@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     x_api_base_url: str = "https://api.x.com/2"
     x_request_timeout_seconds: float = 20.0
     x_max_pages: int = 6
+    x_cost_guard_enabled: bool = True
+    x_max_requests_per_run: int = 8
 
     # Provider consensus layer
     consensus_enabled: bool = True
@@ -100,12 +102,19 @@ class Settings(BaseSettings):
     scheduler_retry_backoff_seconds: float = 5.0
     scheduler_output_dir: str = "evidence/runs/scheduled"
     scheduler_send_webhooks: bool = True
+    scheduler_monthly_request_cap: int = 0
+    scheduler_kill_switch_on_cap: bool = True
+    scheduler_usage_file: str = "evidence/scheduler_usage.json"
 
     # Webhook delivery
     webhook_urls: list[str] = []
     webhook_timeout_seconds: float = 6.0
     webhook_secret: str = ""
     webhook_push_intel_alerts: bool = True
+    webhook_retry_attempts: int = 3
+    webhook_retry_backoff_seconds: float = 2.0
+    webhook_queue_file: str = "evidence/webhooks/retry_queue.json"
+    webhook_dead_letter_file: str = "evidence/webhooks/dead_letter.jsonl"
 
     # Calibration/evaluation tracking
     calibration_reports_dir: str = "evidence/calibration"

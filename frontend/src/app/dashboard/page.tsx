@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Activity, Bot, CalendarDays, BarChart3, RefreshCw } from "lucide-react";
-import { getDashboard, getEvaluation } from "@/lib/api";
-import { BackendDashboardResponse, BackendEvaluationResponse } from "@/lib/types";
+import { getDashboard, getEvaluation, getXCollectEstimate } from "@/lib/api";
+import {
+  BackendDashboardResponse,
+  BackendEvaluationResponse,
+  BackendXCollectEstimateResponse,
+} from "@/lib/types";
 
 function formatPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -19,6 +23,12 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<BackendDashboardResponse | null>(null);
   const [evaluation, setEvaluation] = useState<BackendEvaluationResponse | null>(null);
+  const [estimateWindowDays, setEstimateWindowDays] = useState(14);
+  const [estimateMaxPosts, setEstimateMaxPosts] = useState(60);
+  const [estimateMaxPages, setEstimateMaxPages] = useState(1);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<BackendXCollectEstimateResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +48,29 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [days]);
+
+  const runEstimate = useCallback(async () => {
+    try {
+      setEstimateLoading(true);
+      setEstimateError(null);
+      const payload = await getXCollectEstimate({
+        window_days: estimateWindowDays,
+        max_posts: estimateMaxPosts,
+        max_pages: estimateMaxPages,
+      });
+      setEstimate(payload);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to estimate X collection cost";
+      setEstimateError(message);
+    } finally {
+      setEstimateLoading(false);
+    }
+  }, [estimateWindowDays, estimateMaxPosts, estimateMaxPages]);
+
+  useEffect(() => {
+    void runEstimate();
+  }, [runEstimate]);
 
   const typeRows = useMemo(
     () =>
@@ -185,6 +218,89 @@ export default function DashboardPage() {
                 {data.summary.total_analyses_all_time}
               </div>
             </div>
+          </section>
+
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+            <h2 className="text-lg font-semibold text-white mb-2">X Collection Cost Precheck</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Estimates API request usage before running X intelligence collection.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <label className="text-xs text-gray-400">
+                Window (days)
+                <input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={estimateWindowDays}
+                  onChange={(e) => setEstimateWindowDays(Number(e.target.value) || 1)}
+                  className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100"
+                />
+              </label>
+              <label className="text-xs text-gray-400">
+                Max posts
+                <input
+                  type="number"
+                  min={20}
+                  max={1000}
+                  value={estimateMaxPosts}
+                  onChange={(e) => setEstimateMaxPosts(Number(e.target.value) || 20)}
+                  className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100"
+                />
+              </label>
+              <label className="text-xs text-gray-400">
+                Max pages
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={estimateMaxPages}
+                  onChange={(e) => setEstimateMaxPages(Number(e.target.value) || 1)}
+                  className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100"
+                />
+              </label>
+            </div>
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => void runEstimate()}
+                disabled={estimateLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm text-gray-200 hover:border-gray-500 disabled:opacity-60"
+              >
+                {estimateLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                Recalculate
+              </button>
+            </div>
+
+            {estimateLoading && (
+              <p className="text-sm text-gray-400 flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Estimating request usage...
+              </p>
+            )}
+
+            {!estimateLoading && estimateError && (
+              <p className="text-sm text-red-300">{estimateError}</p>
+            )}
+
+            {!estimateLoading && !estimateError && estimate && (
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-200">
+                  Estimated requests:{" "}
+                  <span className="font-semibold text-white">{estimate.estimated_requests}</span>{" "}
+                  (cap {estimate.max_requests_per_run}, worst case {estimate.worst_case_requests})
+                </p>
+                <p className={estimate.within_budget ? "text-emerald-300" : "text-amber-300"}>
+                  {estimate.within_budget
+                    ? "Within current budget guard."
+                    : `Exceeds budget guard. Recommended max posts: ${estimate.recommended_max_posts}.`}
+                </p>
+                <p className="text-gray-400">
+                  Split: target {estimate.target_limit}, mentions {estimate.mention_limit}, search{" "}
+                  {estimate.interaction_limit}, page cap {estimate.page_cap}.
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-xl border border-gray-800 bg-gray-900 p-6">

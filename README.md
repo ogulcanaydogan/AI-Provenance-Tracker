@@ -89,8 +89,11 @@ AI Provenance Tracker is an open-source platform that:
 ### Provider Consensus + Automation (Phase 3)
 - Provider adapter layer with weighted consensus (`internal`, `copyleaks`, `reality_defender`, `c2pa`)
 - Scheduler with retries for recurring X collect/report runs
+- Scheduler monthly request cap + auto kill-switch (`SCHEDULER_MONTHLY_REQUEST_CAP`)
 - Webhook delivery for scheduled run results and alert events
+- Webhook retry queue + dead-letter logging
 - Dashboard evaluation trend (precision/recall/F1 over time)
+- X request budget guardrails (`X_COST_GUARD_ENABLED`, `X_MAX_REQUESTS_PER_RUN`)
 
 ---
 

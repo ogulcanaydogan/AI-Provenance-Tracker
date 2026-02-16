@@ -5,6 +5,8 @@ import {
   BackendEvaluationResponse,
   BackendHistoryItem,
   BackendHistoryResponse,
+  BackendXCollectEstimateRequest,
+  BackendXCollectEstimateResponse,
   DetectionResult,
   DetectionSignal,
   HistoryResponse,
@@ -319,4 +321,26 @@ export async function getEvaluation(days = 90): Promise<BackendEvaluationRespons
   const boundedDays = Math.max(1, Math.min(days, 365));
   const response = await fetch(`${API_URL}/api/v1/analyze/evaluation?days=${boundedDays}`);
   return handleResponse<BackendEvaluationResponse>(response);
+}
+
+export async function getXCollectEstimate(
+  payload: BackendXCollectEstimateRequest
+): Promise<BackendXCollectEstimateResponse> {
+  const boundedWindowDays = Math.max(1, Math.min(payload.window_days, 90));
+  const boundedMaxPosts = Math.max(20, Math.min(payload.max_posts, 1000));
+  const boundedMaxPages =
+    payload.max_pages === undefined
+      ? undefined
+      : Math.max(1, Math.min(payload.max_pages, 10));
+
+  const response = await fetch(`${API_URL}/api/v1/intel/x/collect/estimate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      window_days: boundedWindowDays,
+      max_posts: boundedMaxPosts,
+      ...(boundedMaxPages ? { max_pages: boundedMaxPages } : {}),
+    }),
+  });
+  return handleResponse<BackendXCollectEstimateResponse>(response);
 }

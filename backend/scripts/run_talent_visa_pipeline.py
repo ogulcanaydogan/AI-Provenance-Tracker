@@ -15,6 +15,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from app.core.config import settings
 from app.models.x_intel import UserContext
 from app.services.trust_report import generate_trust_report
 from app.services.x_intel import XDataCollectionError, XIntelCollector
@@ -53,7 +54,12 @@ def _validate_report_contract(report: dict) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run full talent-visa evidence pipeline.")
-    parser.add_argument("--handle", required=True, help="Target handle, with or without @")
+    parser.add_argument("--handle", default="", help="Target handle, with or without @")
+    parser.add_argument(
+        "--input-json",
+        default="",
+        help="Optional pre-collected x_intel_input JSON path (skips X API collection).",
+    )
     parser.add_argument("--window-days", type=int, default=90, help="Collection window in days")
     parser.add_argument("--max-posts", type=int, default=600, help="Max posts to collect")
     parser.add_argument("--query", default="", help="Optional search query for broader scope")
@@ -94,29 +100,51 @@ def _run_python_script(script: str, args: list[str]) -> None:
 
 async def run() -> int:
     args = parse_args()
-    collector = XIntelCollector()
-    user_context = UserContext(
-        sector=args.sector,
-        risk_tolerance=args.risk_tolerance,
-        preferred_language=args.preferred_language,
-        user_profile=args.user_profile,
-        legal_pr_capacity=args.legal_pr_capacity,
-        goal=args.goal,
-    )
-
-    try:
-        intel_input_model = await collector.collect(
-            target_handle=args.handle,
-            window_days=args.window_days,
-            max_posts=args.max_posts,
-            query=args.query or None,
-            user_context=user_context,
+    intel_input: dict
+    if args.input_json:
+        input_json_path = Path(args.input_json).expanduser().resolve()
+        if not input_json_path.exists():
+            print(f"Input JSON not found: {input_json_path}")
+            return 1
+        try:
+            intel_input = json.loads(input_json_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"Failed to parse input JSON: {exc}")
+            return 1
+        print(f"Using pre-collected input JSON: {input_json_path}")
+    else:
+        if not args.handle.strip():
+            print("--handle is required when --input-json is not provided.")
+            return 1
+        collector = XIntelCollector()
+        plan = collector.estimate_request_plan(max_posts=args.max_posts)
+        print(
+            "Estimated X API requests:",
+            plan["estimated_requests"],
+            f"(cap={settings.x_max_requests_per_run}, page_cap={plan['page_cap']})",
         )
-    except XDataCollectionError as exc:
-        print(f"Collection failed: {exc}")
-        return 1
+        user_context = UserContext(
+            sector=args.sector,
+            risk_tolerance=args.risk_tolerance,
+            preferred_language=args.preferred_language,
+            user_profile=args.user_profile,
+            legal_pr_capacity=args.legal_pr_capacity,
+            goal=args.goal,
+        )
 
-    intel_input = intel_input_model.model_dump(mode="json")
+        try:
+            intel_input_model = await collector.collect(
+                target_handle=args.handle,
+                window_days=args.window_days,
+                max_posts=args.max_posts,
+                query=args.query or None,
+                user_context=user_context,
+            )
+        except XDataCollectionError as exc:
+            print(f"Collection failed: {exc}")
+            return 1
+        intel_input = intel_input_model.model_dump(mode="json")
+
     run_id = _resolve_run_id(args, intel_input)
     run_dir = Path(args.output_dir).expanduser().resolve() / run_id
     if run_dir.exists() and not args.overwrite:
