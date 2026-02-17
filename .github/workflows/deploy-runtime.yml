@@ -23,6 +23,7 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: read
 
 jobs:
   prepare:
@@ -34,6 +35,8 @@ jobs:
       worker_image: ${{ steps.resolve.outputs.worker_image }}
       deploy_helm: ${{ steps.resolve.outputs.deploy_helm }}
       deploy_railway: ${{ steps.resolve.outputs.deploy_railway }}
+      runtime_target: ${{ steps.resolve.outputs.runtime_target }}
+      rollback_tag: ${{ steps.resolve.outputs.rollback_tag }}
     steps:
       - name: Resolve deployment plan
         id: resolve
@@ -42,6 +45,8 @@ jobs:
           INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
           ENABLE_HELM_DEPLOY: ${{ vars.ENABLE_HELM_DEPLOY }}
           ENABLE_RAILWAY_DEPLOY: ${{ vars.ENABLE_RAILWAY_DEPLOY }}
+          CURRENT_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -89,12 +94,31 @@ jobs:
             fi
           fi
 
+          rollback_tag=""
+          if [ "$deploy_helm" = "true" ] || [ "$deploy_railway" = "true" ]; then
+            runs_json=$(curl -fsSL \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/publish-images.yml/runs?status=success&per_page=20")
+
+            rollback_tag=$(echo "$runs_json" | jq -r \
+              --arg current_sha "$image_tag" \
+              --arg current_run_id "${CURRENT_WORKFLOW_RUN_ID:-}" \
+              '.workflow_runs
+                | map(select((.id|tostring) != $current_run_id))
+                | map(.head_sha)
+                | map(select(. != $current_sha))
+                | .[0] // ""')
+          fi
+
           {
             echo "image_tag=$image_tag"
             echo "api_image=$api_image"
             echo "worker_image=$worker_image"
             echo "deploy_helm=$deploy_helm"
             echo "deploy_railway=$deploy_railway"
+            echo "runtime_target=$runtime_target"
+            echo "rollback_tag=$rollback_tag"
           } >> "$GITHUB_OUTPUT"
 
       - name: Print deployment plan
@@ -104,15 +128,19 @@ jobs:
           echo "worker_image=${{ steps.resolve.outputs.worker_image }}"
           echo "deploy_helm=${{ steps.resolve.outputs.deploy_helm }}"
           echo "deploy_railway=${{ steps.resolve.outputs.deploy_railway }}"
+          echo "rollback_tag=${{ steps.resolve.outputs.rollback_tag }}"
           if [ "${{ steps.resolve.outputs.deploy_helm }}" != "true" ] && [ "${{ steps.resolve.outputs.deploy_railway }}" != "true" ]; then
-            echo "No runtime target enabled. Set ENABLE_HELM_DEPLOY/ENABLE_RAILWAY_DEPLOY repository variables or run manually with workflow_dispatch."
+            echo "No runtime target enabled. Set ENABLE_HELM_DEPLOY/ENABLE_RAILWAY_DEPLOY or run manually with workflow_dispatch."
           fi
 
-  deploy-helm:
+  deploy_helm:
     name: Deploy Helm Runtime
     needs: prepare
     if: ${{ needs.prepare.outputs.deploy_helm == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
     env:
       IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
       API_IMAGE: ${{ needs.prepare.outputs.api_image }}
@@ -166,11 +194,14 @@ jobs:
         run: |
           helm status "${HELM_RELEASE_NAME}" --namespace "${HELM_NAMESPACE}"
 
-  deploy-railway:
+  deploy_railway:
     name: Deploy Railway Runtime
     needs: prepare
     if: ${{ needs.prepare.outputs.deploy_railway == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
     env:
       IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
       API_IMAGE: ${{ needs.prepare.outputs.api_image }}
@@ -242,3 +273,249 @@ jobs:
             --message "ci: pin ${RAILWAY_WORKER_SERVICE} image ${IMAGE_TAG}" \
             --json
           railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
+
+  smoke_gate:
+    name: Post-Deploy Smoke Gate
+    needs: [prepare, deploy_helm, deploy_railway]
+    if: ${{ always() && (needs['deploy_helm'].result == 'success' || needs['deploy_railway'].result == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENABLE_DEPLOY_SMOKE_GATE: ${{ vars.ENABLE_DEPLOY_SMOKE_GATE || 'false' }}
+      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+      PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+      PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Skip smoke gate when disabled
+        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE != 'true' }}
+        run: echo "ENABLE_DEPLOY_SMOKE_GATE is not true; skipping smoke gate."
+
+      - name: Require URL when smoke gate enabled
+        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL == '' }}
+        run: |
+          echo "PRODUCTION_API_URL secret is required when ENABLE_DEPLOY_SMOKE_GATE=true."
+          exit 1
+
+      - name: Install backend dependencies
+        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
+        run: |
+          cd backend
+          pip install -e .
+
+      - name: Run smoke suite
+        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
+        run: |
+          cd backend
+          python scripts/smoke_detect_prod.py \
+            --base-url "${PRODUCTION_API_URL}" \
+            --api-key "${PRODUCTION_API_KEY}" \
+            --api-key-header "${PRODUCTION_API_KEY_HEADER}" \
+            --output ./evidence/smoke/prod_detect_smoke.json
+
+      - name: Upload smoke artifact
+        if: ${{ always() && env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-smoke-artifact
+          path: backend/evidence/smoke/prod_detect_smoke.json
+          retention-days: 14
+
+  rollback_helm:
+    name: Rollback Helm Runtime
+    needs: [prepare, deploy_helm, smoke_gate]
+    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_helm'].result == 'success' && needs['smoke_gate'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
+    env:
+      ROLLBACK_TAG: ${{ needs.prepare.outputs.rollback_tag }}
+      KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      HELM_RELEASE_NAME: ${{ vars.HELM_RELEASE_NAME || 'provenance' }}
+      HELM_NAMESPACE: ${{ vars.HELM_NAMESPACE || 'provenance' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        run: |
+          set -euo pipefail
+          if [ -z "${KUBE_CONFIG_DATA}" ]; then
+            echo "KUBE_CONFIG_DATA secret is required for Helm rollback."
+            exit 1
+          fi
+          mkdir -p ~/.kube
+          if echo "${KUBE_CONFIG_DATA}" | base64 --decode > ~/.kube/config 2>/dev/null; then
+            echo "Loaded kubeconfig from base64 secret"
+          else
+            printf '%s' "${KUBE_CONFIG_DATA}" > ~/.kube/config
+            echo "Loaded kubeconfig from plain-text secret"
+          fi
+          chmod 600 ~/.kube/config
+
+      - name: Pull rollback images from GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}"
+          docker pull "ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}"
+
+      - name: Roll back Helm release to previous SHA
+        run: |
+          helm upgrade --install "${HELM_RELEASE_NAME}" deploy/helm/provenance-stack \
+            --namespace "${HELM_NAMESPACE}" \
+            --create-namespace \
+            --set api.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-api" \
+            --set api.image.tag="${ROLLBACK_TAG}" \
+            --set worker.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-worker" \
+            --set worker.image.tag="${ROLLBACK_TAG}" \
+            --wait \
+            --timeout 10m
+
+  rollback_railway:
+    name: Rollback Railway Runtime
+    needs: [prepare, deploy_railway, smoke_gate]
+    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_railway'].result == 'success' && needs['smoke_gate'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
+    env:
+      ROLLBACK_TAG: ${{ needs.prepare.outputs.rollback_tag }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_WORKSPACE: ${{ vars.RAILWAY_WORKSPACE }}
+      RAILWAY_PROJECT: ${{ vars.RAILWAY_PROJECT }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
+      RAILWAY_API_SERVICE: ${{ vars.RAILWAY_API_SERVICE }}
+      RAILWAY_WORKER_SERVICE: ${{ vars.RAILWAY_WORKER_SERVICE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Require Railway rollback configuration
+        run: |
+          set -euo pipefail
+          missing=()
+          for key in RAILWAY_TOKEN RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required Railway config for rollback: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Link Railway project and environment
+        run: |
+          set -euo pipefail
+          cmd=(railway link --project "${RAILWAY_PROJECT}" --environment "${RAILWAY_ENVIRONMENT}")
+          if [ -n "${RAILWAY_WORKSPACE:-}" ]; then
+            cmd+=(--workspace "${RAILWAY_WORKSPACE}")
+          fi
+          "${cmd[@]}"
+
+      - name: Roll back Railway API service
+        run: |
+          set -euo pipefail
+          api_image="ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}"
+          railway environment edit \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --service-config "${RAILWAY_API_SERVICE}" source.image "${api_image}" \
+            --message "ci: rollback ${RAILWAY_API_SERVICE} to ${ROLLBACK_TAG}" \
+            --json
+          railway redeploy --service "${RAILWAY_API_SERVICE}" --yes --json
+
+      - name: Roll back Railway worker service (optional)
+        if: ${{ env.RAILWAY_WORKER_SERVICE != '' }}
+        run: |
+          set -euo pipefail
+          worker_image="ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}"
+          railway environment edit \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${worker_image}" \
+            --message "ci: rollback ${RAILWAY_WORKER_SERVICE} to ${ROLLBACK_TAG}" \
+            --json
+          railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
+
+  deployment-summary:
+    name: Deployment Summary
+    needs: [prepare, deploy_helm, deploy_railway, smoke_gate, rollback_helm, rollback_railway]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build deployment summary artifact
+        env:
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+          ROLLBACK_TAG: ${{ needs.prepare.outputs.rollback_tag }}
+          RUNTIME_TARGET: ${{ needs.prepare.outputs.runtime_target }}
+          DEPLOY_HELM_REQUESTED: ${{ needs.prepare.outputs.deploy_helm }}
+          DEPLOY_RAILWAY_REQUESTED: ${{ needs.prepare.outputs.deploy_railway }}
+          DEPLOY_HELM_RESULT: ${{ needs['deploy_helm'].result }}
+          DEPLOY_RAILWAY_RESULT: ${{ needs['deploy_railway'].result }}
+          SMOKE_RESULT: ${{ needs['smoke_gate'].result }}
+          ROLLBACK_HELM_RESULT: ${{ needs['rollback_helm'].result }}
+          ROLLBACK_RAILWAY_RESULT: ${{ needs['rollback_railway'].result }}
+          ENABLE_SMOKE_GATE: ${{ vars.ENABLE_DEPLOY_SMOKE_GATE || 'false' }}
+          ENABLE_AUTO_ROLLBACK: ${{ vars.ENABLE_AUTO_ROLLBACK || 'false' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+
+          cat > artifacts/deploy_runtime_summary.json <<JSON
+          {
+            "workflow": "Deploy Runtime (Pinned SHA)",
+            "repository": "${{ github.repository }}",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "trigger": "${{ github.event_name }}",
+            "runtime_target": "${RUNTIME_TARGET:-}",
+            "image_tag": "${IMAGE_TAG:-}",
+            "rollback_tag": "${ROLLBACK_TAG:-}",
+            "deploy_requested": {
+              "helm": "${DEPLOY_HELM_REQUESTED:-false}",
+              "railway": "${DEPLOY_RAILWAY_REQUESTED:-false}"
+            },
+            "job_results": {
+              "deploy_helm": "${DEPLOY_HELM_RESULT:-skipped}",
+              "deploy_railway": "${DEPLOY_RAILWAY_RESULT:-skipped}",
+              "smoke_gate": "${SMOKE_RESULT:-skipped}",
+              "rollback_helm": "${ROLLBACK_HELM_RESULT:-skipped}",
+              "rollback_railway": "${ROLLBACK_RAILWAY_RESULT:-skipped}"
+            },
+            "controls": {
+              "smoke_gate_enabled": "${ENABLE_SMOKE_GATE}",
+              "auto_rollback_enabled": "${ENABLE_AUTO_ROLLBACK}"
+            }
+          }
+          JSON
+
+          {
+            echo "## Deploy Runtime Summary"
+            echo ""
+            echo "- Image tag: \\`${IMAGE_TAG:-n/a}\\`"
+            echo "- Runtime target: \\`${RUNTIME_TARGET:-n/a}\\`"
+            echo "- Deploy Helm: \\`${DEPLOY_HELM_RESULT:-skipped}\\`"
+            echo "- Deploy Railway: \\`${DEPLOY_RAILWAY_RESULT:-skipped}\\`"
+            echo "- Smoke gate: \\`${SMOKE_RESULT:-skipped}\\`"
+            echo "- Rollback tag candidate: \\`${ROLLBACK_TAG:-none}\\`"
+            echo "- Rollback Helm: \\`${ROLLBACK_HELM_RESULT:-skipped}\\`"
+            echo "- Rollback Railway: \\`${ROLLBACK_RAILWAY_RESULT:-skipped}\\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload deployment summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-runtime-summary
+          path: artifacts/deploy_runtime_summary.json
+          retention-days: 30
