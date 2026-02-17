@@ -4,7 +4,7 @@ fullnameOverride: ""
 api:
   replicaCount: 2
   image:
-    repository: ghcr.io/ogulcanaydogan/ai-provenance-tracker-api
+    repository: ghcr.io/ogulcanaydogan/provenance-api
     tag: latest
     pullPolicy: IfNotPresent
   containerPort: 8000
@@ -25,7 +25,7 @@ worker:
   enabled: true
   replicaCount: 1
   image:
-    repository: ghcr.io/ogulcanaydogan/ai-provenance-tracker-worker
+    repository: ghcr.io/ogulcanaydogan/provenance-worker
     tag: latest
     pullPolicy: IfNotPresent
   resources: {}

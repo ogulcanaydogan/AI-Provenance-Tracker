@@ -11,9 +11,9 @@ Chart path: `deploy/helm/provenance-stack`
 ```bash
 helm upgrade --install provenance deploy/helm/provenance-stack \
   --namespace provenance --create-namespace \
-  --set api.image.repository=ghcr.io/ogulcanaydogan/ai-provenance-tracker-api \
+  --set api.image.repository=ghcr.io/ogulcanaydogan/provenance-api \
   --set api.image.tag=latest \
-  --set worker.image.repository=ghcr.io/ogulcanaydogan/ai-provenance-tracker-worker \
+  --set worker.image.repository=ghcr.io/ogulcanaydogan/provenance-worker \
   --set worker.image.tag=latest \
   --set secrets.xBearerToken="$X_BEARER_TOKEN"
 ```

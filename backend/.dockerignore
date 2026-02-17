@@ -1,0 +1,25 @@
+# Python cache and virtual env
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Local artifacts
+data/
+evidence/
+*.db
+*.sqlite
+
+# Git and docs
+.git/
+.gitignore
+README.md
+
+# Tests and local fixtures
+tests/
+
+# Env files
+.env
+.env.*
