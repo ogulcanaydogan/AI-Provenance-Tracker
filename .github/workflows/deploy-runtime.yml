@@ -248,6 +248,7 @@ jobs:
       API_IMAGE: ${{ needs.prepare.outputs.api_image }}
       WORKER_IMAGE: ${{ needs.prepare.outputs.worker_image }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
       RAILWAY_WORKSPACE: ${{ vars.RAILWAY_WORKSPACE }}
       RAILWAY_PROJECT: ${{ vars.RAILWAY_PROJECT }}
       RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
@@ -267,8 +268,12 @@ jobs:
       - name: Require Railway configuration
         run: |
           set -euo pipefail
+          token_candidate="${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}"
           missing=()
-          for key in RAILWAY_TOKEN RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
+          if [ -z "${token_candidate}" ]; then
+            missing+=("RAILWAY_API_TOKEN_OR_RAILWAY_TOKEN")
+          fi
+          for key in RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
             if [ -z "${!key:-}" ]; then
               missing+=("$key")
             fi
@@ -276,6 +281,25 @@ jobs:
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "Missing required Railway config: ${missing[*]}"
             echo "Set repository secret/variables before enabling Railway deploy."
+            exit 1
+          fi
+
+      - name: Normalize Railway token env
+        run: |
+          set -euo pipefail
+          token="${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}"
+          token="$(printf '%s' "${token}" | tr -d '\r\n')"
+          {
+            echo "RAILWAY_API_TOKEN=${token}"
+            echo "RAILWAY_TOKEN=${token}"
+          } >> "$GITHUB_ENV"
+
+      - name: Probe Railway auth
+        run: |
+          set -euo pipefail
+          if ! railway whoami --json; then
+            echo "Railway auth probe failed."
+            echo "If this is a workspace project, prefer an account-scoped API token in GitHub secret RAILWAY_API_TOKEN."
             exit 1
           fi
 
@@ -288,7 +312,7 @@ jobs:
           fi
           if ! "${cmd[@]}"; then
             echo "Railway link failed."
-            echo "Check that RAILWAY_TOKEN is a valid account/workspace token (not an OAuth token)."
+            echo "Check that your token is valid and account-scoped for workspace projects."
             echo "Check token access to project=${RAILWAY_PROJECT} environment=${RAILWAY_ENVIRONMENT} workspace=${RAILWAY_WORKSPACE:-<unset>}."
             exit 1
           fi
@@ -505,6 +529,7 @@ jobs:
     env:
       ROLLBACK_TAG: ${{ needs.prepare.outputs.rollback_tag }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
       RAILWAY_WORKSPACE: ${{ vars.RAILWAY_WORKSPACE }}
       RAILWAY_PROJECT: ${{ vars.RAILWAY_PROJECT }}
       RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
@@ -524,14 +549,37 @@ jobs:
       - name: Require Railway rollback configuration
         run: |
           set -euo pipefail
+          token_candidate="${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}"
           missing=()
-          for key in RAILWAY_TOKEN RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
+          if [ -z "${token_candidate}" ]; then
+            missing+=("RAILWAY_API_TOKEN_OR_RAILWAY_TOKEN")
+          fi
+          for key in RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
             if [ -z "${!key:-}" ]; then
               missing+=("$key")
             fi
           done
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "Missing required Railway config for rollback: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Normalize Railway token env
+        run: |
+          set -euo pipefail
+          token="${RAILWAY_API_TOKEN:-${RAILWAY_TOKEN:-}}"
+          token="$(printf '%s' "${token}" | tr -d '\r\n')"
+          {
+            echo "RAILWAY_API_TOKEN=${token}"
+            echo "RAILWAY_TOKEN=${token}"
+          } >> "$GITHUB_ENV"
+
+      - name: Probe Railway auth
+        run: |
+          set -euo pipefail
+          if ! railway whoami --json; then
+            echo "Railway auth probe failed."
+            echo "If this is a workspace project, prefer an account-scoped API token in GitHub secret RAILWAY_API_TOKEN."
             exit 1
           fi
 
@@ -544,7 +592,7 @@ jobs:
           fi
           if ! "${cmd[@]}"; then
             echo "Railway link failed during rollback."
-            echo "Check that RAILWAY_TOKEN is a valid account/workspace token (not an OAuth token)."
+            echo "Check that your token is valid and account-scoped for workspace projects."
             echo "Check token access to project=${RAILWAY_PROJECT} environment=${RAILWAY_ENVIRONMENT} workspace=${RAILWAY_WORKSPACE:-<unset>}."
             exit 1
           fi

@@ -55,7 +55,8 @@ Helm variables/secrets:
 
 Railway variables/secrets:
 
-- Secret: `RAILWAY_TOKEN`
+- Secret: `RAILWAY_API_TOKEN` (preferred)
+- Secret: `RAILWAY_TOKEN` (fallback for compatibility)
 - Variable: `RAILWAY_PROJECT` (project ID or name)
 - Variable: `RAILWAY_ENVIRONMENT` (environment ID or name)
 - Variable: `RAILWAY_API_SERVICE` (service name or ID)
@@ -66,6 +67,7 @@ Railway note:
 
 - This workflow pins each service via `source.image=ghcr.io/...@sha256:...`.
 - If your current service is GitHub-source only, switch it once to Docker-image deployment first.
+- Workflow runs `railway whoami` before deploy; if it fails, rotate token and ensure it is account-scoped for workspace projects.
 
 Manual deploy examples from GitHub Actions:
 
