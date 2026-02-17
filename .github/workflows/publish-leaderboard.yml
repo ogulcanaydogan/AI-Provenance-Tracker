@@ -36,8 +36,12 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: benchmark/leaderboard
+      - name: Deploy disabled notice
+        if: ${{ vars.ENABLE_GH_PAGES_DEPLOY != 'true' }}
+        run: echo "ENABLE_GH_PAGES_DEPLOY is not true; skipping deploy job."
 
   deploy:
+    if: ${{ vars.ENABLE_GH_PAGES_DEPLOY == 'true' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
