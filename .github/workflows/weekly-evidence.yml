@@ -61,6 +61,11 @@ jobs:
             echo "max_pages=1" >> "$GITHUB_OUTPUT"
             echo "max_requests_per_run=4" >> "$GITHUB_OUTPUT"
           fi
+      - name: Require token for manual run
+        if: ${{ github.event_name == 'workflow_dispatch' && env.X_BEARER_TOKEN == '' }}
+        run: |
+          echo "X_BEARER_TOKEN secret is not set. Configure repository secret before manual runs."
+          exit 1
       - name: Run weekly cycle and comparison
         if: ${{ env.X_BEARER_TOKEN != '' }}
         env:
