@@ -74,6 +74,12 @@ AI Provenance Tracker is an open-source platform that:
 - Trust metrics: ROC-AUC, calibration ECE, Brier, false-positive by domain
 - Static leaderboard page at `benchmark/leaderboard/index.html`
 
+### Provenance-as-a-Service Deployment (Flagship v0.1)
+- `provenance-api` and `provenance-worker` process split
+- Audit event logging + query endpoint (`GET /api/v1/analyze/audit-events`)
+- Helm chart for Kubernetes deployment (`deploy/helm/provenance-stack`)
+- Terraform AWS stack (ECS + RDS + ALB + ECR) under `deploy/terraform/aws`
+
 ### Batch Processing
 - Batch text detection endpoint: `POST /api/v1/batch/text`
 - Per-item success/error results in request order
@@ -241,6 +247,12 @@ curl -X POST "http://localhost:8000/api/v1/batch/text" \
 curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
 ```
 
+### Audit Events
+
+```bash
+curl "http://localhost:8000/api/v1/analyze/audit-events?limit=50"
+```
+
 ### Detection Calibration Script
 
 ```bash
@@ -265,6 +277,13 @@ python scripts/smoke_detect_prod.py --base-url https://your-api-domain --output 
 ```bash
 cd backend
 python scripts/run_weekly_talent_visa_cycle.py --handle @example --window-days 7 --max-posts 60 --output-dir ./evidence/runs/weekly --comparisons-dir ./evidence/runs/comparisons --summary-output ./evidence/runs/weekly/latest_summary.json
+```
+
+### Run Worker Process
+
+```bash
+cd backend
+python -m app.worker.main
 ```
 
 ### Public Benchmark + Leaderboard
@@ -387,6 +406,7 @@ Our text detection uses multiple signals:
 - [x] Prod smoke test script (`/detect/text|image|audio|video`)
 - [x] Weekly talent-visa evidence automation + run comparison
 - [x] Public benchmark + leaderboard baseline (detection/attribution/tamper)
+- [x] Deployable service scaffolding (worker split + Helm + Terraform + audit events)
 
 ---
 

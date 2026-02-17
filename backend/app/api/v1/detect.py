@@ -10,7 +10,6 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field, HttpUrl
 
 from app.core.config import settings
-
 from app.detection.audio.detector import AudioDetector
 from app.detection.image.detector import ImageDetector
 from app.detection.text.detector import TextDetector
@@ -24,6 +23,7 @@ from app.models.detection import (
     VideoDetectionResponse,
 )
 from app.services.analysis_store import analysis_store
+from app.services.audit_events import audit_event_store
 from app.services.provider_consensus import provider_consensus_engine
 
 router = APIRouter()
@@ -109,6 +109,17 @@ async def detect_text(request: TextDetectionRequest) -> TextDetectionResponse:
         text=request.text,
     )
     result.analysis_id = await analysis_store.save_text_result(request.text, result, source="api")
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="api",
+        payload={
+            "content_type": "text",
+            "analysis_id": result.analysis_id,
+            "source": "api",
+            "is_ai_generated": result.is_ai_generated,
+            "confidence": result.confidence,
+        },
+    )
     return result
 
 
@@ -160,6 +171,18 @@ async def detect_image(file: UploadFile = File(...)) -> ImageDetectionResponse:
         filename=filename,
         result=result,
         source="api",
+    )
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="api",
+        payload={
+            "content_type": "image",
+            "analysis_id": result.analysis_id,
+            "source": "api",
+            "filename": filename,
+            "is_ai_generated": result.is_ai_generated,
+            "confidence": result.confidence,
+        },
     )
     return result
 
@@ -214,6 +237,18 @@ async def detect_audio(file: UploadFile = File(...)) -> AudioDetectionResponse:
         result=result,
         source="api",
     )
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="api",
+        payload={
+            "content_type": "audio",
+            "analysis_id": result.analysis_id,
+            "source": "api",
+            "filename": filename,
+            "is_ai_generated": result.is_ai_generated,
+            "confidence": result.confidence,
+        },
+    )
     return result
 
 
@@ -267,6 +302,18 @@ async def detect_video(file: UploadFile = File(...)) -> VideoDetectionResponse:
         filename=filename,
         result=result,
         source="api",
+    )
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="api",
+        payload={
+            "content_type": "video",
+            "analysis_id": result.analysis_id,
+            "source": "api",
+            "filename": filename,
+            "is_ai_generated": result.is_ai_generated,
+            "confidence": result.confidence,
+        },
     )
     return result
 
@@ -335,6 +382,19 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
             source_url=resolved_url,
         )
         image_result.analysis_id = analysis_id
+        await audit_event_store.safe_log_event(
+            event_type="detection.completed",
+            source="url",
+            payload={
+                "content_type": "image",
+                "analysis_id": analysis_id,
+                "source": "url",
+                "source_url": resolved_url,
+                "filename": filename,
+                "is_ai_generated": image_result.is_ai_generated,
+                "confidence": image_result.confidence,
+            },
+        )
 
         return {
             "analysis_id": analysis_id,
@@ -367,6 +427,19 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
             source_url=resolved_url,
         )
         text_result.analysis_id = analysis_id
+        await audit_event_store.safe_log_event(
+            event_type="detection.completed",
+            source="url",
+            payload={
+                "content_type": "text",
+                "analysis_id": analysis_id,
+                "source": "url",
+                "source_url": resolved_url,
+                "is_ai_generated": text_result.is_ai_generated,
+                "confidence": text_result.confidence,
+                "text_length": len(extracted_text),
+            },
+        )
 
         return {
             "analysis_id": analysis_id,

@@ -102,3 +102,32 @@ REDIS_URL=redis://...          # Optional
 - Vercel Analytics: Built-in
 - Railway Logs: Dashboard → Deployments → Logs
 - API Docs: `https://your-backend/docs`
+
+## Kubernetes + AWS (Flagship Deployment Path)
+
+### Helm (Kubernetes)
+
+Chart path: `deploy/helm/provenance-stack`
+
+```bash
+helm upgrade --install provenance deploy/helm/provenance-stack \
+  --namespace provenance --create-namespace \
+  --set api.image.repository=ghcr.io/ogulcanaydogan/ai-provenance-tracker-api \
+  --set api.image.tag=latest \
+  --set worker.image.repository=ghcr.io/ogulcanaydogan/ai-provenance-tracker-worker \
+  --set worker.image.tag=latest
+```
+
+### Terraform (AWS ECS + RDS + ALB + ECR)
+
+Terraform path: `deploy/terraform/aws`
+
+```bash
+cd deploy/terraform/aws
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+Outputs include `api_base_url`, `rds_endpoint`, and ECR repository URLs.

@@ -83,3 +83,11 @@ out/
 *.onnx
 *.bin
 models/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json

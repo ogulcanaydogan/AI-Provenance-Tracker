@@ -1,0 +1,71 @@
+nameOverride: ""
+fullnameOverride: ""
+
+api:
+  replicaCount: 2
+  image:
+    repository: ghcr.io/ogulcanaydogan/ai-provenance-tracker-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  containerPort: 8000
+  service:
+    type: ClusterIP
+    port: 80
+  resources: {}
+  runSchedulerInApi: false
+  env:
+    requireApiKey: false
+    apiKeyHeader: X-API-Key
+    maxTextLength: 50000
+    maxImageSizeMb: 10
+    maxAudioSizeMb: 25
+    maxVideoSizeMb: 150
+
+worker:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ogulcanaydogan/ai-provenance-tracker-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources: {}
+  env:
+    workerEnableScheduler: true
+    workerDrainWebhookQueue: true
+    workerTickSeconds: 30
+    schedulerEnabled: true
+
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  storage:
+    size: 20Gi
+    className: ""
+  auth:
+    username: provenance
+    password: provenance-change-me
+    database: provenance
+  service:
+    port: 5432
+
+externalDatabase:
+  enabled: false
+  url: ""
+
+secrets:
+  xBearerToken: ""
+  webhookSecret: ""
+  apiKeys: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: provenance.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

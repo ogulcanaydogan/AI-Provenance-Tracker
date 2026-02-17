@@ -1,0 +1,14 @@
+aws_region   = "us-east-1"
+project_name = "provenance"
+environment  = "prod"
+
+# Build and push images first, then set these URIs.
+api_image    = "123456789012.dkr.ecr.us-east-1.amazonaws.com/provenance-prod-api:latest"
+worker_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/provenance-prod-worker:latest"
+
+db_password  = "CHANGE_ME_STRONG_PASSWORD"
+
+# Optional secrets
+x_bearer_token = ""
+webhook_secret = ""
+api_keys       = ""

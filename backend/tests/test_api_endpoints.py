@@ -399,3 +399,34 @@ async def test_evaluation_endpoint_returns_registered_reports(client: AsyncClien
     assert data["total_reports"] == 1
     assert data["by_content_type"]["text"] == 1
     assert data["latest_by_content_type"]["text"]["precision"] == 0.8
+
+
+@pytest.mark.asyncio
+async def test_audit_events_endpoint_returns_detection_event(client: AsyncClient):
+    detect_response = await client.post(
+        "/api/v1/detect/text",
+        json={"text": "Audit event verification text sample." * 6},
+    )
+    assert detect_response.status_code == 200
+
+    response = await client.get("/api/v1/analyze/audit-events?limit=20")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] >= 1
+    assert any(item["event_type"] == "detection.completed" for item in payload["items"])
+
+
+@pytest.mark.asyncio
+async def test_audit_events_filter_by_event_type(client: AsyncClient):
+    detect_response = await client.post(
+        "/api/v1/detect/text",
+        json={"text": "Audit event filter test text." * 6},
+    )
+    assert detect_response.status_code == 200
+
+    response = await client.get("/api/v1/analyze/audit-events?event_type=detection.completed")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["event_type"] == "detection.completed"
+    assert payload["total"] >= 1
+    assert all(item["event_type"] == "detection.completed" for item in payload["items"])

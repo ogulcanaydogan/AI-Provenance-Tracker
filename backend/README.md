@@ -31,6 +31,7 @@ uvicorn app.main:app --reload
 - `POST /api/v1/intel/x/scheduler/run` - Trigger one immediate scheduled run
 - `GET /api/v1/analyze/dashboard` - Dashboard-ready analytics metrics
 - `GET /api/v1/analyze/evaluation` - Calibration precision/recall trend for dashboard
+- `GET /api/v1/analyze/audit-events` - Audit log events (HTTP + detection)
 - `GET /health` - Health check
 
 ## X Intelligence Collection
@@ -75,6 +76,12 @@ Dashboard metrics:
 
 ```bash
 curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
+```
+
+Audit events:
+
+```bash
+curl "http://localhost:8000/api/v1/analyze/audit-events?limit=50"
 ```
 
 Dashboard drill-down from normalized input:
@@ -145,6 +152,12 @@ Production smoke test for all detect endpoints:
 python scripts/smoke_detect_prod.py --base-url https://your-api-domain --output ./evidence/smoke/prod_detect_smoke.json
 ```
 
+Run background worker process (scheduler + webhook retry queue):
+
+```bash
+python -m app.worker.main
+```
+
 Trigger a scheduler run manually:
 
 ```bash
@@ -160,6 +173,7 @@ curl "http://localhost:8000/api/v1/intel/x/scheduler/status"
 ## Persistence and Migrations
 
 Runtime analysis history is persisted in `analysis_records` (SQLite by default).
+Audit events are persisted in `audit_events`.
 
 ```bash
 alembic upgrade head
@@ -185,11 +199,18 @@ Configure optional API key enforcement and endpoint spend controls in `.env`:
 - `SCHEDULER_MONTHLY_REQUEST_CAP`
 - `SCHEDULER_KILL_SWITCH_ON_CAP`
 - `SCHEDULER_USAGE_FILE`
+- `RUN_SCHEDULER_IN_API`
+- `WORKER_ENABLE_SCHEDULER`
+- `WORKER_DRAIN_WEBHOOK_QUEUE`
+- `WORKER_TICK_SECONDS`
 - `WEBHOOK_URLS`
 - `WEBHOOK_RETRY_ATTEMPTS`
 - `WEBHOOK_RETRY_BACKOFF_SECONDS`
 - `WEBHOOK_QUEUE_FILE`
 - `WEBHOOK_DEAD_LETTER_FILE`
+- `AUDIT_EVENTS_ENABLED`
+- `AUDIT_LOG_HTTP_REQUESTS`
+- `AUDIT_ACTOR_HEADER`
 
 ## Documentation
 

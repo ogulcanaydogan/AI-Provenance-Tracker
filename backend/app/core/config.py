@@ -105,6 +105,7 @@ class Settings(BaseSettings):
     scheduler_monthly_request_cap: int = 0
     scheduler_kill_switch_on_cap: bool = True
     scheduler_usage_file: str = "evidence/scheduler_usage.json"
+    run_scheduler_in_api: bool = True
 
     # Webhook delivery
     webhook_urls: list[str] = []
@@ -115,6 +116,17 @@ class Settings(BaseSettings):
     webhook_retry_backoff_seconds: float = 2.0
     webhook_queue_file: str = "evidence/webhooks/retry_queue.json"
     webhook_dead_letter_file: str = "evidence/webhooks/dead_letter.jsonl"
+
+    # Worker process settings
+    worker_enable_scheduler: bool = True
+    worker_drain_webhook_queue: bool = True
+    worker_tick_seconds: int = 30
+
+    # Audit events
+    audit_events_enabled: bool = True
+    audit_log_http_requests: bool = True
+    audit_actor_header: str = "X-Actor-Id"
+    audit_events_max_items: int = 20000
 
     # Calibration/evaluation tracking
     calibration_reports_dir: str = "evidence/calibration"

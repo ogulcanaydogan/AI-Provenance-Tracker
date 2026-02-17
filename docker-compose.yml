@@ -18,6 +18,26 @@ services:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - RUN_SCHEDULER_IN_API=false
+      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-true}
+      - WORKER_ENABLE_SCHEDULER=true
+      - WORKER_DRAIN_WEBHOOK_QUEUE=true
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/provenance
+      - REDIS_URL=redis://redis:6379/0
+      - X_BEARER_TOKEN=${X_BEARER_TOKEN:-}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    command: python -m app.worker.main
+
   frontend:
     build:
       context: ./frontend

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: provenance-stack
+description: Provenance-as-a-Service stack (API + worker + optional Postgres)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

@@ -9,6 +9,7 @@ from app.detection.text import detector as text_detector_module
 from app.main import app
 from app.middleware.rate_limiter import rate_limiter
 from app.services.analysis_store import analysis_store
+from app.services.audit_events import audit_event_store
 
 
 @pytest.fixture
@@ -31,6 +32,7 @@ def _reset_runtime_state():
 
     asyncio.run(init_database())
     asyncio.run(analysis_store.reset())
+    asyncio.run(audit_event_store.reset())
     rate_limiter._hits.clear()
     rate_limiter._daily_points.clear()
 
@@ -41,6 +43,7 @@ def _reset_runtime_state():
         settings.rate_limit_requests = old_limit
         settings.rate_limit_window_seconds = old_window
         asyncio.run(analysis_store.reset())
+        asyncio.run(audit_event_store.reset())
         rate_limiter._hits.clear()
         rate_limiter._daily_points.clear()
 

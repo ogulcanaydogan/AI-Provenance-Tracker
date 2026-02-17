@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "provenance-stack.fullname" . }}-config
+  labels:
+    {{- include "provenance-stack.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: "production"
+  RUN_SCHEDULER_IN_API: {{ .Values.api.runSchedulerInApi | quote }}
+  REQUIRE_API_KEY: {{ .Values.api.env.requireApiKey | quote }}
+  API_KEY_HEADER: {{ .Values.api.env.apiKeyHeader | quote }}
+  MAX_TEXT_LENGTH: {{ .Values.api.env.maxTextLength | quote }}
+  MAX_IMAGE_SIZE_MB: {{ .Values.api.env.maxImageSizeMb | quote }}
+  MAX_AUDIO_SIZE_MB: {{ .Values.api.env.maxAudioSizeMb | quote }}
+  MAX_VIDEO_SIZE_MB: {{ .Values.api.env.maxVideoSizeMb | quote }}
+  WORKER_ENABLE_SCHEDULER: {{ .Values.worker.env.workerEnableScheduler | quote }}
+  WORKER_DRAIN_WEBHOOK_QUEUE: {{ .Values.worker.env.workerDrainWebhookQueue | quote }}
+  WORKER_TICK_SECONDS: {{ .Values.worker.env.workerTickSeconds | quote }}
+  SCHEDULER_ENABLED: {{ .Values.worker.env.schedulerEnabled | quote }}
+  AUDIT_EVENTS_ENABLED: "true"
+  AUDIT_LOG_HTTP_REQUESTS: "true"

@@ -1,0 +1,17 @@
+{{- if and .Values.postgres.enabled (not .Values.externalDatabase.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "provenance-stack.fullname" . }}-postgres
+  labels:
+    {{- include "provenance-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.service.port }}
+      targetPort: postgres
+{{- end }}

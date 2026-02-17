@@ -1,7 +1,7 @@
 """AI Provenance Tracker - Main application entry point."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI
@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import router as api_router
 from app.core.config import settings
 from app.db import close_database, init_database
+from app.middleware.audit import audit_http_request
 from app.services.job_scheduler import x_pipeline_scheduler
 
 logger = structlog.get_logger()
@@ -20,9 +21,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     logger.info("Starting AI Provenance Tracker", version=settings.app_version)
     await init_database()
-    await x_pipeline_scheduler.start()
+    if settings.run_scheduler_in_api:
+        await x_pipeline_scheduler.start()
     yield
-    await x_pipeline_scheduler.stop()
+    if settings.run_scheduler_in_api:
+        await x_pipeline_scheduler.stop()
     await close_database()
     logger.info("Shutting down AI Provenance Tracker")
 
@@ -45,6 +48,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.middleware("http")(audit_http_request)
 
 
 @app.get("/health")
