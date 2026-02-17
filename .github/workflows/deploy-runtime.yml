@@ -1,0 +1,244 @@
+name: Deploy Runtime (Pinned SHA)
+
+on:
+  workflow_run:
+    workflows: ["Publish Service Images"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      runtime_target:
+        description: "Deploy target"
+        required: true
+        type: choice
+        options:
+          - helm
+          - railway
+          - both
+        default: both
+      image_tag:
+        description: "Optional image tag override (defaults to triggering commit SHA)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  prepare:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.resolve.outputs.image_tag }}
+      api_image: ${{ steps.resolve.outputs.api_image }}
+      worker_image: ${{ steps.resolve.outputs.worker_image }}
+      deploy_helm: ${{ steps.resolve.outputs.deploy_helm }}
+      deploy_railway: ${{ steps.resolve.outputs.deploy_railway }}
+    steps:
+      - name: Resolve deployment plan
+        id: resolve
+        env:
+          INPUT_RUNTIME_TARGET: ${{ inputs.runtime_target }}
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          ENABLE_HELM_DEPLOY: ${{ vars.ENABLE_HELM_DEPLOY }}
+          ENABLE_RAILWAY_DEPLOY: ${{ vars.ENABLE_RAILWAY_DEPLOY }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            image_tag="${{ github.event.workflow_run.head_sha }}"
+            runtime_target="auto"
+          else
+            image_tag="${INPUT_IMAGE_TAG:-}"
+            runtime_target="${INPUT_RUNTIME_TARGET:-both}"
+          fi
+
+          if [ -z "$image_tag" ]; then
+            image_tag="${{ github.sha }}"
+          fi
+
+          api_image="ghcr.io/${{ github.repository_owner }}/provenance-api:${image_tag}"
+          worker_image="ghcr.io/${{ github.repository_owner }}/provenance-worker:${image_tag}"
+
+          deploy_helm=false
+          deploy_railway=false
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "$runtime_target" in
+              helm)
+                deploy_helm=true
+                ;;
+              railway)
+                deploy_railway=true
+                ;;
+              both)
+                deploy_helm=true
+                deploy_railway=true
+                ;;
+              *)
+                echo "Unsupported runtime_target: $runtime_target"
+                exit 1
+                ;;
+            esac
+          else
+            if [ "${ENABLE_HELM_DEPLOY:-false}" = "true" ]; then
+              deploy_helm=true
+            fi
+            if [ "${ENABLE_RAILWAY_DEPLOY:-false}" = "true" ]; then
+              deploy_railway=true
+            fi
+          fi
+
+          {
+            echo "image_tag=$image_tag"
+            echo "api_image=$api_image"
+            echo "worker_image=$worker_image"
+            echo "deploy_helm=$deploy_helm"
+            echo "deploy_railway=$deploy_railway"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Print deployment plan
+        run: |
+          echo "image_tag=${{ steps.resolve.outputs.image_tag }}"
+          echo "api_image=${{ steps.resolve.outputs.api_image }}"
+          echo "worker_image=${{ steps.resolve.outputs.worker_image }}"
+          echo "deploy_helm=${{ steps.resolve.outputs.deploy_helm }}"
+          echo "deploy_railway=${{ steps.resolve.outputs.deploy_railway }}"
+          if [ "${{ steps.resolve.outputs.deploy_helm }}" != "true" ] && [ "${{ steps.resolve.outputs.deploy_railway }}" != "true" ]; then
+            echo "No runtime target enabled. Set ENABLE_HELM_DEPLOY/ENABLE_RAILWAY_DEPLOY repository variables or run manually with workflow_dispatch."
+          fi
+
+  deploy-helm:
+    name: Deploy Helm Runtime
+    needs: prepare
+    if: ${{ needs.prepare.outputs.deploy_helm == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+      API_IMAGE: ${{ needs.prepare.outputs.api_image }}
+      WORKER_IMAGE: ${{ needs.prepare.outputs.worker_image }}
+      HELM_RELEASE_NAME: ${{ vars.HELM_RELEASE_NAME || 'provenance' }}
+      HELM_NAMESPACE: ${{ vars.HELM_NAMESPACE || 'provenance' }}
+      KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Require kubeconfig secret
+        run: |
+          if [ -z "${KUBE_CONFIG_DATA}" ]; then
+            echo "KUBE_CONFIG_DATA secret is required for Helm deploy."
+            exit 1
+          fi
+
+      - name: Configure kubeconfig
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.kube
+          if echo "${KUBE_CONFIG_DATA}" | base64 --decode > ~/.kube/config 2>/dev/null; then
+            echo "Loaded kubeconfig from base64 secret"
+          else
+            printf '%s' "${KUBE_CONFIG_DATA}" > ~/.kube/config
+            echo "Loaded kubeconfig from plain-text secret"
+          fi
+          chmod 600 ~/.kube/config
+
+      - name: Pull pinned images from GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "${API_IMAGE}"
+          docker pull "${WORKER_IMAGE}"
+
+      - name: Deploy pinned tag with Helm
+        run: |
+          helm upgrade --install "${HELM_RELEASE_NAME}" deploy/helm/provenance-stack \
+            --namespace "${HELM_NAMESPACE}" \
+            --create-namespace \
+            --set api.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-api" \
+            --set api.image.tag="${IMAGE_TAG}" \
+            --set worker.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-worker" \
+            --set worker.image.tag="${IMAGE_TAG}" \
+            --wait \
+            --timeout 10m
+
+      - name: Show Helm release status
+        run: |
+          helm status "${HELM_RELEASE_NAME}" --namespace "${HELM_NAMESPACE}"
+
+  deploy-railway:
+    name: Deploy Railway Runtime
+    needs: prepare
+    if: ${{ needs.prepare.outputs.deploy_railway == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+      API_IMAGE: ${{ needs.prepare.outputs.api_image }}
+      WORKER_IMAGE: ${{ needs.prepare.outputs.worker_image }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_WORKSPACE: ${{ vars.RAILWAY_WORKSPACE }}
+      RAILWAY_PROJECT: ${{ vars.RAILWAY_PROJECT }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
+      RAILWAY_API_SERVICE: ${{ vars.RAILWAY_API_SERVICE }}
+      RAILWAY_WORKER_SERVICE: ${{ vars.RAILWAY_WORKER_SERVICE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Require Railway configuration
+        run: |
+          set -euo pipefail
+          missing=()
+          for key in RAILWAY_TOKEN RAILWAY_PROJECT RAILWAY_ENVIRONMENT RAILWAY_API_SERVICE; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required Railway config: ${missing[*]}"
+            echo "Set repository secret/variables before enabling Railway deploy."
+            exit 1
+          fi
+
+      - name: Link Railway project and environment
+        run: |
+          set -euo pipefail
+          cmd=(railway link --project "${RAILWAY_PROJECT}" --environment "${RAILWAY_ENVIRONMENT}")
+          if [ -n "${RAILWAY_WORKSPACE:-}" ]; then
+            cmd+=(--workspace "${RAILWAY_WORKSPACE}")
+          fi
+          "${cmd[@]}"
+
+      - name: Pull pinned images from GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "${API_IMAGE}"
+          if [ -n "${RAILWAY_WORKER_SERVICE:-}" ]; then
+            docker pull "${WORKER_IMAGE}"
+          fi
+
+      - name: Pin and redeploy Railway API service
+        run: |
+          set -euo pipefail
+          railway environment edit \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --service-config "${RAILWAY_API_SERVICE}" source.image "${API_IMAGE}" \
+            --message "ci: pin ${RAILWAY_API_SERVICE} image ${IMAGE_TAG}" \
+            --json
+          railway redeploy --service "${RAILWAY_API_SERVICE}" --yes --json
+
+      - name: Pin and redeploy Railway worker service (optional)
+        if: ${{ env.RAILWAY_WORKER_SERVICE != '' }}
+        run: |
+          set -euo pipefail
+          railway environment edit \
+            --environment "${RAILWAY_ENVIRONMENT}" \
+            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${WORKER_IMAGE}" \
+            --message "ci: pin ${RAILWAY_WORKER_SERVICE} image ${IMAGE_TAG}" \
+            --json
+          railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
