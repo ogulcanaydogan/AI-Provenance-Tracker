@@ -286,7 +286,12 @@ jobs:
           if [ -n "${RAILWAY_WORKSPACE:-}" ]; then
             cmd+=(--workspace "${RAILWAY_WORKSPACE}")
           fi
-          "${cmd[@]}"
+          if ! "${cmd[@]}"; then
+            echo "Railway link failed."
+            echo "Check that RAILWAY_TOKEN is a valid account/workspace token (not an OAuth token)."
+            echo "Check token access to project=${RAILWAY_PROJECT} environment=${RAILWAY_ENVIRONMENT} workspace=${RAILWAY_WORKSPACE:-<unset>}."
+            exit 1
+          fi
 
       - name: Pull pinned images from GHCR
         run: |
@@ -537,7 +542,12 @@ jobs:
           if [ -n "${RAILWAY_WORKSPACE:-}" ]; then
             cmd+=(--workspace "${RAILWAY_WORKSPACE}")
           fi
-          "${cmd[@]}"
+          if ! "${cmd[@]}"; then
+            echo "Railway link failed during rollback."
+            echo "Check that RAILWAY_TOKEN is a valid account/workspace token (not an OAuth token)."
+            echo "Check token access to project=${RAILWAY_PROJECT} environment=${RAILWAY_ENVIRONMENT} workspace=${RAILWAY_WORKSPACE:-<unset>}."
+            exit 1
+          fi
 
       - name: Pull rollback images from GHCR
         run: |
