@@ -1,0 +1,25 @@
+{
+  "updated_at": "2026-02-17T18:10:27.020094+00:00",
+  "columns": [
+    "rank",
+    "model_id",
+    "detection_f1",
+    "roc_auc",
+    "attribution_accuracy",
+    "robustness_score",
+    "overall_score",
+    "updated_at"
+  ],
+  "entries": [
+    {
+      "model_id": "baseline-heuristic-v0.1",
+      "updated_at": "2026-02-17T18:10:27.020094+00:00",
+      "detection_f1": 0.8889,
+      "roc_auc": 1.0,
+      "attribution_accuracy": 0.6667,
+      "robustness_score": 0.9524,
+      "overall_score": 0.8818,
+      "rank": 1
+    }
+  ]
+}

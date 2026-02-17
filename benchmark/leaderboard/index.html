@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Provenance Public Benchmark Leaderboard</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a31;
+        --text: #dbe5ff;
+        --muted: #9cb0e7;
+        --accent: #4cc9f0;
+        --accent-2: #80ed99;
+        --border: #24345d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: radial-gradient(circle at top right, #162852 0%, var(--bg) 45%);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .hero {
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(140deg, rgba(76, 201, 240, 0.15), rgba(128, 237, 153, 0.05));
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      p {
+        margin: 6px 0;
+        color: var(--muted);
+      }
+
+      .meta {
+        margin-top: 14px;
+        color: var(--accent-2);
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        margin-top: 20px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: auto;
+        background: var(--panel);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 860px;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #1d2b50;
+        text-align: left;
+        font-size: 13px;
+      }
+
+      th {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      tbody tr:hover {
+        background: rgba(128, 237, 153, 0.08);
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(76, 201, 240, 0.2);
+        border: 1px solid rgba(76, 201, 240, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <h1>AI Provenance Public Benchmark</h1>
+        <p>Tasks: AI-vs-human detection, source attribution, tamper robustness.</p>
+        <p>Trust metrics: ROC-AUC, calibration ECE, false-positive rates by domain.</p>
+        <div class="meta" id="updated">Updated: loading...</div>
+      </section>
+
+      <section class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Model</th>
+              <th>Detection F1</th>
+              <th>ROC-AUC</th>
+              <th>Attribution Acc</th>
+              <th>Robustness</th>
+              <th>Overall</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="8">Loading leaderboard...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <p style="margin-top: 16px">Data + code: <span class="pill">benchmark/datasets</span> and <span class="pill">benchmark/eval</span></p>
+    </main>
+
+    <script>
+      async function loadLeaderboard() {
+        const updatedEl = document.getElementById("updated");
+        const rowsEl = document.getElementById("rows");
+        try {
+          const response = await fetch("./leaderboard.json", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const board = await response.json();
+          updatedEl.textContent = `Updated: ${board.updated_at || "unknown"}`;
+
+          const entries = Array.isArray(board.entries) ? board.entries : [];
+          if (!entries.length) {
+            rowsEl.innerHTML = '<tr><td colspan="8">No entries yet.</td></tr>';
+            return;
+          }
+
+          rowsEl.innerHTML = entries
+            .map(
+              (entry) => `
+                <tr>
+                  <td>${entry.rank ?? "-"}</td>
+                  <td>${entry.model_id ?? "-"}</td>
+                  <td>${entry.detection_f1 ?? "-"}</td>
+                  <td>${entry.roc_auc ?? "-"}</td>
+                  <td>${entry.attribution_accuracy ?? "-"}</td>
+                  <td>${entry.robustness_score ?? "-"}</td>
+                  <td><strong>${entry.overall_score ?? "-"}</strong></td>
+                  <td>${entry.updated_at ?? "-"}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        } catch (error) {
+          updatedEl.textContent = "Updated: failed to load";
+          rowsEl.innerHTML = `<tr><td colspan="8">Failed to load leaderboard: ${error.message}</td></tr>`;
+        }
+      }
+
+      loadLeaderboard();
+    </script>
+  </body>
+</html>

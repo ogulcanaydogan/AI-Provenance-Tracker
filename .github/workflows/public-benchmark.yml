@@ -1,0 +1,36 @@
+name: Public Provenance Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "benchmark/**"
+      - ".github/workflows/public-benchmark.yml"
+  pull_request:
+    paths:
+      - "benchmark/**"
+      - ".github/workflows/public-benchmark.yml"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run public benchmark
+        run: |
+          python benchmark/eval/run_public_benchmark.py \
+            --datasets-dir benchmark/datasets \
+            --output-dir benchmark/results/ci \
+            --leaderboard-output benchmark/results/ci/leaderboard.json \
+            --model-id baseline-heuristic-ci
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-benchmark-artifacts
+          path: benchmark/results/ci
+          retention-days: 14

@@ -66,6 +66,14 @@ AI Provenance Tracker is an open-source platform that:
 - Generates explainable trust-and-safety reports (`/api/v1/intel/x/report`)
 - Includes benchmark + talent-visa evidence pack tooling
 
+### Public Benchmark + Leaderboard (Flagship v0.1)
+- Reproducible benchmark tasks under `benchmark/datasets` + `benchmark/eval`
+- Task 1: AI-vs-human detection (multi-domain)
+- Task 2: Source attribution (model-family accuracy)
+- Task 3: Tamper robustness (paraphrase/translate/human-edit stress)
+- Trust metrics: ROC-AUC, calibration ECE, Brier, false-positive by domain
+- Static leaderboard page at `benchmark/leaderboard/index.html`
+
 ### Batch Processing
 - Batch text detection endpoint: `POST /api/v1/batch/text`
 - Per-item success/error results in request order
@@ -259,6 +267,21 @@ cd backend
 python scripts/run_weekly_talent_visa_cycle.py --handle @example --window-days 7 --max-posts 60 --output-dir ./evidence/runs/weekly --comparisons-dir ./evidence/runs/comparisons --summary-output ./evidence/runs/weekly/latest_summary.json
 ```
 
+### Public Benchmark + Leaderboard
+
+```bash
+python benchmark/eval/run_public_benchmark.py \
+  --datasets-dir benchmark/datasets \
+  --output-dir benchmark/results/latest \
+  --leaderboard-output benchmark/leaderboard/leaderboard.json \
+  --model-id baseline-heuristic-v0.1
+```
+
+Outputs:
+- `benchmark/results/latest/benchmark_results.json`
+- `benchmark/results/latest/baseline_results.md`
+- `benchmark/leaderboard/leaderboard.json`
+
 ---
 
 ## Architecture
@@ -363,6 +386,7 @@ Our text detection uses multiple signals:
 - [x] API analytics dashboard
 - [x] Prod smoke test script (`/detect/text|image|audio|video`)
 - [x] Weekly talent-visa evidence automation + run comparison
+- [x] Public benchmark + leaderboard baseline (detection/attribution/tamper)
 
 ---
 

@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-02-17T18:10:27.020094+00:00",
+  "benchmark_version": "v0.1",
+  "datasets": {
+    "detection_multidomain": 24,
+    "source_attribution": 18,
+    "tamper_robustness": 24
+  },
+  "tasks": {
+    "ai_vs_human_detection": {
+      "threshold": 0.5,
+      "samples": 24,
+      "tp": 12,
+      "fp": 3,
+      "fn": 0,
+      "tn": 9,
+      "precision": 0.8,
+      "recall": 1.0,
+      "f1": 0.8889,
+      "accuracy": 0.875,
+      "roc_auc": 1.0,
+      "calibration_ece": 0.2796,
+      "brier_score": 0.1001,
+      "false_positive_rate_by_domain": {
+        "code": 0.5,
+        "finance": 0.0,
+        "health": 0.0,
+        "legal": 0.5,
+        "news": 0.0,
+        "social": 0.5
+      }
+    },
+    "source_attribution": {
+      "samples": 18,
+      "correct": 12,
+      "accuracy": 0.6667,
+      "per_family_accuracy": {
+        "claude": 0.6667,
+        "gemini": 0.6667,
+        "gpt": 0.6667,
+        "llama": 0.6667,
+        "mistral": 0.6667,
+        "qwen": 0.6667
+      }
+    },
+    "tamper_detection": {
+      "samples": 24,
+      "per_transform": {
+        "clean": {
+          "threshold": 0.5,
+          "samples": 6,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "tn": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0
+        },
+        "human_edit": {
+          "threshold": 0.5,
+          "samples": 6,
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "tn": 2,
+          "precision": 0.75,
+          "recall": 1.0,
+          "f1": 0.8571,
+          "accuracy": 0.8333
+        },
+        "paraphrase": {
+          "threshold": 0.5,
+          "samples": 6,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "tn": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0
+        },
+        "translate": {
+          "threshold": 0.5,
+          "samples": 6,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "tn": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0
+        }
+      },
+      "clean_f1": 1.0,
+      "attacked_avg_f1": 0.9524,
+      "robustness_score": 0.9524
+    }
+  }
+}

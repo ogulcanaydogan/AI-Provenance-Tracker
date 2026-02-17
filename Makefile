@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -28,6 +28,7 @@ help:
 	@echo "  make intel-pipeline  Run collect->report->benchmark->pack"
 	@echo "  make intel-weekly-cycle  Run one weekly cycle and auto-compare with previous run"
 	@echo "  make smoke-prod      Smoke test deployed /detect endpoints"
+	@echo "  make benchmark-public Run public provenance benchmark + leaderboard artifacts"
 
 install:
 	cd backend && pip install -e .
@@ -80,3 +81,6 @@ intel-weekly-cycle:
 
 smoke-prod:
 	cd backend && python3 scripts/smoke_detect_prod.py --base-url "$${BASE_URL:?Set BASE_URL}" --api-key "$${API_KEY:-}" --api-key-header "$${API_KEY_HEADER:-X-API-Key}" --output "$${OUTPUT:-evidence/smoke/prod_detect_smoke.json}"
+
+benchmark-public:
+	python3 benchmark/eval/run_public_benchmark.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-dir "$${OUTPUT_DIR:-benchmark/results/latest}" --leaderboard-output "$${LEADERBOARD_OUTPUT:-benchmark/leaderboard/leaderboard.json}" --model-id "$${MODEL_ID:-baseline-heuristic-v0.1}"
