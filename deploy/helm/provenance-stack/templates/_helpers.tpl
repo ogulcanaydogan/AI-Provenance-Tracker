@@ -25,3 +25,14 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- printf "postgresql+asyncpg://%s:%s@%s-postgres:%d/%s" .Values.postgres.auth.username .Values.postgres.auth.password $name (.Values.postgres.service.port | int) .Values.postgres.auth.database -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "provenance-stack.imageRef" -}}
+{{- $repo := required "image.repository is required" .repository -}}
+{{- $digest := default "" .digest -}}
+{{- if $digest -}}
+{{- printf "%s@%s" $repo $digest -}}
+{{- else -}}
+{{- $tag := default "latest" .tag -}}
+{{- printf "%s:%s" $repo $tag -}}
+{{- end -}}
+{{- end -}}

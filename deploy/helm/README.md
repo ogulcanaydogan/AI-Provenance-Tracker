@@ -18,6 +18,16 @@ helm upgrade --install provenance deploy/helm/provenance-stack \
   --set secrets.xBearerToken="$X_BEARER_TOKEN"
 ```
 
+Digest pinning (recommended for production):
+```bash
+helm upgrade --install provenance deploy/helm/provenance-stack \
+  --namespace provenance --create-namespace \
+  --set api.image.repository=ghcr.io/ogulcanaydogan/provenance-api \
+  --set api.image.digest=sha256:<api-digest> \
+  --set worker.image.repository=ghcr.io/ogulcanaydogan/provenance-worker \
+  --set worker.image.digest=sha256:<worker-digest>
+```
+
 ## External Postgres
 Use managed Postgres by disabling bundled DB and setting URL:
 ```bash

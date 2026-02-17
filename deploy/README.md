@@ -15,6 +15,8 @@ CI/CD workflows:
 - `.github/workflows/deploy-runtime.yml` deploys pinned SHA images to Helm and/or Railway:
   - `ghcr.io/<owner>/provenance-api:<commit-sha>`
   - `ghcr.io/<owner>/provenance-worker:<commit-sha>`
+  - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-api@sha256:...`
+  - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-worker@sha256:...`
 
 ## Runtime Deploy Workflow Setup
 
@@ -25,6 +27,7 @@ Set repository variables to control automatic deploy target after image publish:
 - `DEPLOY_ENVIRONMENT=production` to use GitHub Environments (approval gates if configured)
 - `ENABLE_DEPLOY_SMOKE_GATE=true` to run post-deploy production smoke tests
 - `ENABLE_AUTO_ROLLBACK=true` to rollback to previous successful image SHA when smoke fails
+- `ENABLE_COSIGN_VERIFY=true` to verify image signatures before deploy/rollback
 
 Smoke gate secrets/variables:
 
@@ -37,6 +40,12 @@ Smoke + rollback behavior:
 - Smoke test uses `backend/scripts/smoke_detect_prod.py`
 - Rollback candidate is resolved from the previous successful `publish-images` workflow SHA
 - Workflow always uploads `deploy-runtime-summary` artifact with deploy/smoke/rollback results
+- Runtime deploy uses digest-pinned image refs (`@sha256`) for Helm and Railway
+- When cosign verification is enabled, unsigned/invalid images are blocked
+
+Cosign verification setup (optional):
+
+- Secret: `COSIGN_PUBLIC_KEY` (required when `ENABLE_COSIGN_VERIFY=true`)
 
 Helm variables/secrets:
 
@@ -55,7 +64,7 @@ Railway variables/secrets:
 
 Railway note:
 
-- This workflow pins each service via `source.image=ghcr.io/...:<sha>`.
+- This workflow pins each service via `source.image=ghcr.io/...@sha256:...`.
 - If your current service is GitHub-source only, switch it once to Docker-image deployment first.
 
 Manual deploy examples from GitHub Actions:

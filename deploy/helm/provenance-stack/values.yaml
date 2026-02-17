@@ -6,6 +6,7 @@ api:
   image:
     repository: ghcr.io/ogulcanaydogan/provenance-api
     tag: latest
+    digest: ""
     pullPolicy: IfNotPresent
   containerPort: 8000
   service:
@@ -27,6 +28,7 @@ worker:
   image:
     repository: ghcr.io/ogulcanaydogan/provenance-worker
     tag: latest
+    digest: ""
     pullPolicy: IfNotPresent
   resources: {}
   env:

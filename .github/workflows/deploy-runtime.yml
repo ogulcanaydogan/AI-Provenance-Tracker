@@ -141,6 +141,9 @@ jobs:
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
+    outputs:
+      api_ref: ${{ steps.resolve_digests.outputs.api_ref }}
+      worker_ref: ${{ steps.resolve_digests.outputs.worker_ref }}
     env:
       IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
       API_IMAGE: ${{ needs.prepare.outputs.api_image }}
@@ -148,6 +151,8 @@ jobs:
       HELM_RELEASE_NAME: ${{ vars.HELM_RELEASE_NAME || 'provenance' }}
       HELM_NAMESPACE: ${{ vars.HELM_NAMESPACE || 'provenance' }}
       KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
+      COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Helm
@@ -178,6 +183,37 @@ jobs:
           docker pull "${API_IMAGE}"
           docker pull "${WORKER_IMAGE}"
 
+      - name: Resolve image digests
+        id: resolve_digests
+        run: |
+          set -euo pipefail
+          api_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "${API_IMAGE}" | cut -d'@' -f2)
+          worker_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "${WORKER_IMAGE}" | cut -d'@' -f2)
+          api_ref="ghcr.io/${{ github.repository_owner }}/provenance-api@${api_digest}"
+          worker_ref="ghcr.io/${{ github.repository_owner }}/provenance-worker@${worker_digest}"
+          {
+            echo "api_digest=$api_digest"
+            echo "worker_digest=$worker_digest"
+            echo "api_ref=$api_ref"
+            echo "worker_ref=$worker_ref"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Verify image signatures
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COSIGN_PUBLIC_KEY}" ]; then
+            echo "COSIGN_PUBLIC_KEY secret is required when ENABLE_COSIGN_VERIFY=true."
+            exit 1
+          fi
+          printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+
       - name: Deploy pinned tag with Helm
         run: |
           helm upgrade --install "${HELM_RELEASE_NAME}" deploy/helm/provenance-stack \
@@ -185,8 +221,10 @@ jobs:
             --create-namespace \
             --set api.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-api" \
             --set api.image.tag="${IMAGE_TAG}" \
+            --set api.image.digest="${{ steps.resolve_digests.outputs.api_digest }}" \
             --set worker.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-worker" \
             --set worker.image.tag="${IMAGE_TAG}" \
+            --set worker.image.digest="${{ steps.resolve_digests.outputs.worker_digest }}" \
             --wait \
             --timeout 10m
 
@@ -202,6 +240,9 @@ jobs:
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
+    outputs:
+      api_ref: ${{ steps.resolve_digests.outputs.api_ref }}
+      worker_ref: ${{ steps.resolve_digests.outputs.worker_ref }}
     env:
       IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
       API_IMAGE: ${{ needs.prepare.outputs.api_image }}
@@ -212,6 +253,8 @@ jobs:
       RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
       RAILWAY_API_SERVICE: ${{ vars.RAILWAY_API_SERVICE }}
       RAILWAY_WORKER_SERVICE: ${{ vars.RAILWAY_WORKER_SERVICE }}
+      ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
+      COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -253,12 +296,48 @@ jobs:
             docker pull "${WORKER_IMAGE}"
           fi
 
+      - name: Resolve image digests
+        id: resolve_digests
+        run: |
+          set -euo pipefail
+          api_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "${API_IMAGE}" | cut -d'@' -f2)
+          api_ref="ghcr.io/${{ github.repository_owner }}/provenance-api@${api_digest}"
+
+          worker_ref=""
+          if [ -n "${RAILWAY_WORKER_SERVICE:-}" ]; then
+            worker_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "${WORKER_IMAGE}" | cut -d'@' -f2)
+            worker_ref="ghcr.io/${{ github.repository_owner }}/provenance-worker@${worker_digest}"
+          fi
+
+          {
+            echo "api_ref=$api_ref"
+            echo "worker_ref=$worker_ref"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Verify image signatures
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COSIGN_PUBLIC_KEY}" ]; then
+            echo "COSIGN_PUBLIC_KEY secret is required when ENABLE_COSIGN_VERIFY=true."
+            exit 1
+          fi
+          printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
+          if [ -n "${{ steps.resolve_digests.outputs.worker_ref }}" ]; then
+            cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+          fi
+
       - name: Pin and redeploy Railway API service
         run: |
           set -euo pipefail
           railway environment edit \
             --environment "${RAILWAY_ENVIRONMENT}" \
-            --service-config "${RAILWAY_API_SERVICE}" source.image "${API_IMAGE}" \
+            --service-config "${RAILWAY_API_SERVICE}" source.image "${{ steps.resolve_digests.outputs.api_ref }}" \
             --message "ci: pin ${RAILWAY_API_SERVICE} image ${IMAGE_TAG}" \
             --json
           railway redeploy --service "${RAILWAY_API_SERVICE}" --yes --json
@@ -269,7 +348,7 @@ jobs:
           set -euo pipefail
           railway environment edit \
             --environment "${RAILWAY_ENVIRONMENT}" \
-            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${WORKER_IMAGE}" \
+            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${{ steps.resolve_digests.outputs.worker_ref }}" \
             --message "ci: pin ${RAILWAY_WORKER_SERVICE} image ${IMAGE_TAG}" \
             --json
           railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
@@ -338,6 +417,8 @@ jobs:
       KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
       HELM_RELEASE_NAME: ${{ vars.HELM_RELEASE_NAME || 'provenance' }}
       HELM_NAMESPACE: ${{ vars.HELM_NAMESPACE || 'provenance' }}
+      ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
+      COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Helm
@@ -365,6 +446,35 @@ jobs:
           docker pull "ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}"
           docker pull "ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}"
 
+      - name: Resolve rollback digests
+        id: resolve_digests
+        run: |
+          set -euo pipefail
+          api_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}" | cut -d'@' -f2)
+          worker_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}" | cut -d'@' -f2)
+          {
+            echo "api_digest=$api_digest"
+            echo "worker_digest=$worker_digest"
+            echo "api_ref=ghcr.io/${{ github.repository_owner }}/provenance-api@${api_digest}"
+            echo "worker_ref=ghcr.io/${{ github.repository_owner }}/provenance-worker@${worker_digest}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Verify rollback image signatures
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COSIGN_PUBLIC_KEY}" ]; then
+            echo "COSIGN_PUBLIC_KEY secret is required when ENABLE_COSIGN_VERIFY=true."
+            exit 1
+          fi
+          printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+
       - name: Roll back Helm release to previous SHA
         run: |
           helm upgrade --install "${HELM_RELEASE_NAME}" deploy/helm/provenance-stack \
@@ -372,8 +482,10 @@ jobs:
             --create-namespace \
             --set api.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-api" \
             --set api.image.tag="${ROLLBACK_TAG}" \
+            --set api.image.digest="${{ steps.resolve_digests.outputs.api_digest }}" \
             --set worker.image.repository="ghcr.io/${{ github.repository_owner }}/provenance-worker" \
             --set worker.image.tag="${ROLLBACK_TAG}" \
+            --set worker.image.digest="${{ steps.resolve_digests.outputs.worker_digest }}" \
             --wait \
             --timeout 10m
 
@@ -393,6 +505,8 @@ jobs:
       RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
       RAILWAY_API_SERVICE: ${{ vars.RAILWAY_API_SERVICE }}
       RAILWAY_WORKER_SERVICE: ${{ vars.RAILWAY_WORKER_SERVICE }}
+      ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
+      COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -425,13 +539,56 @@ jobs:
           fi
           "${cmd[@]}"
 
+      - name: Pull rollback images from GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}"
+          if [ -n "${RAILWAY_WORKER_SERVICE:-}" ]; then
+            docker pull "ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}"
+          fi
+
+      - name: Resolve rollback digests
+        id: resolve_digests
+        run: |
+          set -euo pipefail
+          api_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}" | cut -d'@' -f2)
+          api_ref="ghcr.io/${{ github.repository_owner }}/provenance-api@${api_digest}"
+
+          worker_ref=""
+          if [ -n "${RAILWAY_WORKER_SERVICE:-}" ]; then
+            worker_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}" | cut -d'@' -f2)
+            worker_ref="ghcr.io/${{ github.repository_owner }}/provenance-worker@${worker_digest}"
+          fi
+
+          {
+            echo "api_ref=$api_ref"
+            echo "worker_ref=$worker_ref"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Verify rollback image signatures
+        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COSIGN_PUBLIC_KEY}" ]; then
+            echo "COSIGN_PUBLIC_KEY secret is required when ENABLE_COSIGN_VERIFY=true."
+            exit 1
+          fi
+          printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
+          cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
+          if [ -n "${{ steps.resolve_digests.outputs.worker_ref }}" ]; then
+            cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+          fi
+
       - name: Roll back Railway API service
         run: |
           set -euo pipefail
-          api_image="ghcr.io/${{ github.repository_owner }}/provenance-api:${ROLLBACK_TAG}"
           railway environment edit \
             --environment "${RAILWAY_ENVIRONMENT}" \
-            --service-config "${RAILWAY_API_SERVICE}" source.image "${api_image}" \
+            --service-config "${RAILWAY_API_SERVICE}" source.image "${{ steps.resolve_digests.outputs.api_ref }}" \
             --message "ci: rollback ${RAILWAY_API_SERVICE} to ${ROLLBACK_TAG}" \
             --json
           railway redeploy --service "${RAILWAY_API_SERVICE}" --yes --json
@@ -440,10 +597,9 @@ jobs:
         if: ${{ env.RAILWAY_WORKER_SERVICE != '' }}
         run: |
           set -euo pipefail
-          worker_image="ghcr.io/${{ github.repository_owner }}/provenance-worker:${ROLLBACK_TAG}"
           railway environment edit \
             --environment "${RAILWAY_ENVIRONMENT}" \
-            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${worker_image}" \
+            --service-config "${RAILWAY_WORKER_SERVICE}" source.image "${{ steps.resolve_digests.outputs.worker_ref }}" \
             --message "ci: rollback ${RAILWAY_WORKER_SERVICE} to ${ROLLBACK_TAG}" \
             --json
           railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
@@ -463,11 +619,16 @@ jobs:
           DEPLOY_RAILWAY_REQUESTED: ${{ needs.prepare.outputs.deploy_railway }}
           DEPLOY_HELM_RESULT: ${{ needs['deploy_helm'].result }}
           DEPLOY_RAILWAY_RESULT: ${{ needs['deploy_railway'].result }}
+          DEPLOY_HELM_API_REF: ${{ needs.deploy_helm.outputs.api_ref }}
+          DEPLOY_HELM_WORKER_REF: ${{ needs.deploy_helm.outputs.worker_ref }}
+          DEPLOY_RAILWAY_API_REF: ${{ needs.deploy_railway.outputs.api_ref }}
+          DEPLOY_RAILWAY_WORKER_REF: ${{ needs.deploy_railway.outputs.worker_ref }}
           SMOKE_RESULT: ${{ needs['smoke_gate'].result }}
           ROLLBACK_HELM_RESULT: ${{ needs['rollback_helm'].result }}
           ROLLBACK_RAILWAY_RESULT: ${{ needs['rollback_railway'].result }}
           ENABLE_SMOKE_GATE: ${{ vars.ENABLE_DEPLOY_SMOKE_GATE || 'false' }}
           ENABLE_AUTO_ROLLBACK: ${{ vars.ENABLE_AUTO_ROLLBACK || 'false' }}
+          ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
         run: |
           set -euo pipefail
           mkdir -p artifacts
@@ -486,6 +647,12 @@ jobs:
               "helm": "${DEPLOY_HELM_REQUESTED:-false}",
               "railway": "${DEPLOY_RAILWAY_REQUESTED:-false}"
             },
+            "deployed_refs": {
+              "helm_api": "${DEPLOY_HELM_API_REF:-}",
+              "helm_worker": "${DEPLOY_HELM_WORKER_REF:-}",
+              "railway_api": "${DEPLOY_RAILWAY_API_REF:-}",
+              "railway_worker": "${DEPLOY_RAILWAY_WORKER_REF:-}"
+            },
             "job_results": {
               "deploy_helm": "${DEPLOY_HELM_RESULT:-skipped}",
               "deploy_railway": "${DEPLOY_RAILWAY_RESULT:-skipped}",
@@ -495,7 +662,8 @@ jobs:
             },
             "controls": {
               "smoke_gate_enabled": "${ENABLE_SMOKE_GATE}",
-              "auto_rollback_enabled": "${ENABLE_AUTO_ROLLBACK}"
+              "auto_rollback_enabled": "${ENABLE_AUTO_ROLLBACK}",
+              "cosign_verify_enabled": "${ENABLE_COSIGN_VERIFY}"
             }
           }
           JSON
@@ -507,6 +675,8 @@ jobs:
             echo "- Runtime target: \\`${RUNTIME_TARGET:-n/a}\\`"
             echo "- Deploy Helm: \\`${DEPLOY_HELM_RESULT:-skipped}\\`"
             echo "- Deploy Railway: \\`${DEPLOY_RAILWAY_RESULT:-skipped}\\`"
+            echo "- Helm API ref: \\`${DEPLOY_HELM_API_REF:-n/a}\\`"
+            echo "- Railway API ref: \\`${DEPLOY_RAILWAY_API_REF:-n/a}\\`"
             echo "- Smoke gate: \\`${SMOKE_RESULT:-skipped}\\`"
             echo "- Rollback tag candidate: \\`${ROLLBACK_TAG:-none}\\`"
             echo "- Rollback Helm: \\`${ROLLBACK_HELM_RESULT:-skipped}\\`"
