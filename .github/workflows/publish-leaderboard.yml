@@ -1,0 +1,49 @@
+name: Publish Benchmark Leaderboard
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "benchmark/**"
+      - ".github/workflows/publish-leaderboard.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild leaderboard artifacts
+        run: |
+          python benchmark/eval/run_public_benchmark.py \
+            --datasets-dir benchmark/datasets \
+            --output-dir benchmark/results/latest \
+            --leaderboard-output benchmark/leaderboard/leaderboard.json \
+            --model-id baseline-heuristic-pages
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: benchmark/leaderboard
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

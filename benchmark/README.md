@@ -22,3 +22,7 @@ python benchmark/eval/run_public_benchmark.py \
 - `benchmark/leaderboard/leaderboard.json`
 
 Open `benchmark/leaderboard/index.html` to view leaderboard results.
+
+## Publish as public page
+- Workflow: `/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/.github/workflows/publish-leaderboard.yml`
+- It rebuilds `benchmark/leaderboard/leaderboard.json` and deploys `benchmark/leaderboard` to GitHub Pages.
