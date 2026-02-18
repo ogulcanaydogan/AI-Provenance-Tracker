@@ -6,6 +6,8 @@ This folder contains the first public benchmark slice for Provenance-as-a-Servic
 1. AI-generated vs human detection (multi-domain)
 2. Source attribution (model family)
 3. Tamper robustness (paraphrase, translation, human edits)
+4. Audio AI-vs-human detection (mini-set)
+5. Video AI-vs-human detection (mini-set)
 
 ## Run locally
 ```bash
@@ -14,11 +16,19 @@ python benchmark/eval/run_public_benchmark.py \
   --output-dir benchmark/results/latest \
   --leaderboard-output benchmark/leaderboard/leaderboard.json \
   --model-id baseline-heuristic-v0.1
+
+python benchmark/eval/check_benchmark_regression.py \
+  --current benchmark/results/latest/benchmark_results.json \
+  --baseline benchmark/baselines/public_benchmark_snapshot.json \
+  --report-json benchmark/results/latest/regression_check.json \
+  --report-md benchmark/results/latest/regression_check.md
 ```
 
 ## Outputs
 - `benchmark/results/latest/benchmark_results.json`
 - `benchmark/results/latest/baseline_results.md`
+- `benchmark/results/latest/regression_check.json`
+- `benchmark/results/latest/regression_check.md`
 - `benchmark/leaderboard/leaderboard.json`
 
 Open `benchmark/leaderboard/index.html` to view leaderboard results.

@@ -1,0 +1,12 @@
+{"sample_id":"aud-001","domain":"podcast","label_is_ai":1,"baseline_score":0.91,"source":"synthetic"}
+{"sample_id":"aud-002","domain":"podcast","label_is_ai":0,"baseline_score":0.18,"source":"human"}
+{"sample_id":"aud-003","domain":"voice_note","label_is_ai":1,"baseline_score":0.84,"source":"synthetic"}
+{"sample_id":"aud-004","domain":"voice_note","label_is_ai":0,"baseline_score":0.22,"source":"human"}
+{"sample_id":"aud-005","domain":"news_audio","label_is_ai":1,"baseline_score":0.79,"source":"synthetic"}
+{"sample_id":"aud-006","domain":"news_audio","label_is_ai":0,"baseline_score":0.31,"source":"human"}
+{"sample_id":"aud-007","domain":"call_center","label_is_ai":1,"baseline_score":0.73,"source":"synthetic"}
+{"sample_id":"aud-008","domain":"call_center","label_is_ai":0,"baseline_score":0.44,"source":"human"}
+{"sample_id":"aud-009","domain":"audiobook","label_is_ai":1,"baseline_score":0.67,"source":"synthetic"}
+{"sample_id":"aud-010","domain":"audiobook","label_is_ai":0,"baseline_score":0.49,"source":"human"}
+{"sample_id":"aud-011","domain":"assistant","label_is_ai":1,"baseline_score":0.58,"source":"synthetic"}
+{"sample_id":"aud-012","domain":"assistant","label_is_ai":0,"baseline_score":0.61,"source":"human"}

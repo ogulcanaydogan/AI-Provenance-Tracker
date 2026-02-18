@@ -66,7 +66,7 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 860px;
+        min-width: 1080px;
       }
 
       th,
@@ -100,7 +100,7 @@
     <main class="wrap">
       <section class="hero">
         <h1>AI Provenance Public Benchmark</h1>
-        <p>Tasks: AI-vs-human detection, source attribution, tamper robustness.</p>
+        <p>Tasks: text/image detection, source attribution, tamper robustness, audio/video detection.</p>
         <p>Trust metrics: ROC-AUC, calibration ECE, false-positive rates by domain.</p>
         <div class="meta" id="updated">Updated: loading...</div>
       </section>
@@ -113,6 +113,8 @@
               <th>Model</th>
               <th>Detection F1</th>
               <th>ROC-AUC</th>
+              <th>Audio F1</th>
+              <th>Video F1</th>
               <th>Attribution Acc</th>
               <th>Robustness</th>
               <th>Overall</th>
@@ -120,7 +122,7 @@
             </tr>
           </thead>
           <tbody id="rows">
-            <tr><td colspan="8">Loading leaderboard...</td></tr>
+            <tr><td colspan="10">Loading leaderboard...</td></tr>
           </tbody>
         </table>
       </section>
@@ -142,7 +144,7 @@
 
           const entries = Array.isArray(board.entries) ? board.entries : [];
           if (!entries.length) {
-            rowsEl.innerHTML = '<tr><td colspan="8">No entries yet.</td></tr>';
+            rowsEl.innerHTML = '<tr><td colspan="10">No entries yet.</td></tr>';
             return;
           }
 
@@ -154,6 +156,8 @@
                   <td>${entry.model_id ?? "-"}</td>
                   <td>${entry.detection_f1 ?? "-"}</td>
                   <td>${entry.roc_auc ?? "-"}</td>
+                  <td>${entry.audio_detection_f1 ?? "-"}</td>
+                  <td>${entry.video_detection_f1 ?? "-"}</td>
                   <td>${entry.attribution_accuracy ?? "-"}</td>
                   <td>${entry.robustness_score ?? "-"}</td>
                   <td><strong>${entry.overall_score ?? "-"}</strong></td>
@@ -164,7 +168,7 @@
             .join("");
         } catch (error) {
           updatedEl.textContent = "Updated: failed to load";
-          rowsEl.innerHTML = `<tr><td colspan="8">Failed to load leaderboard: ${error.message}</td></tr>`;
+          rowsEl.innerHTML = `<tr><td colspan="10">Failed to load leaderboard: ${error.message}</td></tr>`;
         }
       }
 

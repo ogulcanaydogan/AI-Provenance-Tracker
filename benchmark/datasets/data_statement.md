@@ -1,15 +1,19 @@
-# Public Benchmark Data Statement (v0.1)
+# Public Benchmark Data Statement (v0.2)
 
 ## Purpose
-This benchmark provides a reproducible baseline for AI provenance evaluation across three tasks:
+This benchmark provides a reproducible baseline for AI provenance evaluation across five tasks:
 1. AI-generated vs human detection (multi-domain)
 2. Source attribution (model family classification)
 3. Tamper robustness (paraphrase, translation, human edits)
+4. Audio AI-vs-human detection
+5. Video AI-vs-human detection
 
 ## Included files
 - `detection_multidomain.jsonl`
 - `source_attribution.jsonl`
 - `tamper_robustness.jsonl`
+- `audio_detection.jsonl`
+- `video_detection.jsonl`
 
 ## Schema
 ### `detection_multidomain.jsonl`
@@ -31,8 +35,22 @@ This benchmark provides a reproducible baseline for AI provenance evaluation acr
 - `label_is_ai` (0 or 1)
 - `baseline_score` (float, 0..1)
 
+### `audio_detection.jsonl`
+- `sample_id` (string)
+- `domain` (string)
+- `label_is_ai` (0 or 1)
+- `baseline_score` (float, 0..1)
+- `source` (string)
+
+### `video_detection.jsonl`
+- `sample_id` (string)
+- `domain` (string)
+- `label_is_ai` (0 or 1)
+- `baseline_score` (float, 0..1)
+- `source` (string)
+
 ## Collection and limitations
-- This v0.1 dataset is a transparent baseline seed designed for reproducibility and CI.
+- This v0.2 dataset is a transparent baseline seed designed for reproducibility and CI.
 - It is not a final production corpus and should not be used for legal or high-stakes decisions.
 - Scores are baseline outputs for evaluation plumbing and metric tracking.
 

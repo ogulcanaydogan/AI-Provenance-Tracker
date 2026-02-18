@@ -28,6 +28,13 @@ jobs:
             --output-dir benchmark/results/ci \
             --leaderboard-output benchmark/results/ci/leaderboard.json \
             --model-id baseline-heuristic-ci
+      - name: Check benchmark regressions
+        run: |
+          python benchmark/eval/check_benchmark_regression.py \
+            --current benchmark/results/ci/benchmark_results.json \
+            --baseline benchmark/baselines/public_benchmark_snapshot.json \
+            --report-json benchmark/results/ci/regression_check.json \
+            --report-md benchmark/results/ci/regression_check.md
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v4
         with:

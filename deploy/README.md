@@ -76,11 +76,19 @@ Spark workflow secrets/variables:
 - Secret: `SPARK_SSH_USER`
 - Secret: `SPARK_SSH_KEY` (private key content for deploy user)
 - Secret: `SPARK_SSH_PORT` (optional, default `22`)
+- Secret: `SPARK_SMOKE_API_KEY` (optional API key used by smoke checks)
+- Secret: `OPS_ALERT_WEBHOOK_URL` (optional failure alert webhook for smoke/deploy failures)
 - Variable: `SPARK_REMOTE_DIR` (optional, default `/home/weezboo/ogulcan/ai-provenance-tracker`)
 - Variable: `SPARK_PUBLIC_API_URL` (optional, used for frontend build-time API URL)
 - Variable: `SPARK_DEPLOY_FRONTEND` (optional `true|false`, default `false`)
+- Variable: `SPARK_RUN_SMOKE` (optional `true|false`, default `true`)
+- Variable: `SPARK_ROLLBACK_ON_SMOKE_FAILURE` (optional `true|false`, default `true`)
+- Variable: `SPARK_SMOKE_API_KEY_HEADER` (optional, default `X-API-Key`)
+- Variable: `ENABLE_SPARK_DEPLOY` (set `true` to auto-run deploy on push)
 
 Spark deploy script defaults to `docker-compose.spark.yml` (production-safe service commands and no dev bind mounts).
+Spark workflow runs smoke checks after deploy and can automatically redeploy the previous commit on smoke failure.
+If Spark is on a private network (`100.80.x.x`, Tailscale), trigger `workflow_dispatch` with `runner_type=self-hosted`.
 
 Manual deploy examples from GitHub Actions:
 

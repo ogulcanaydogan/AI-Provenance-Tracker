@@ -1,0 +1,37 @@
+{
+  "snapshot_version": "2026-02-18-v1",
+  "source_results": "benchmark/results/latest/benchmark_results.json",
+  "notes": "Baseline metrics for CI regression gating. Metrics must not drop more than max_drop.",
+  "metrics": [
+    {
+      "path": "tasks.ai_vs_human_detection.f1",
+      "baseline": 0.8889,
+      "max_drop": 0.03
+    },
+    {
+      "path": "tasks.ai_vs_human_detection.roc_auc",
+      "baseline": 1.0,
+      "max_drop": 0.01
+    },
+    {
+      "path": "tasks.source_attribution.accuracy",
+      "baseline": 0.6667,
+      "max_drop": 0.03
+    },
+    {
+      "path": "tasks.tamper_detection.robustness_score",
+      "baseline": 0.9524,
+      "max_drop": 0.03
+    },
+    {
+      "path": "tasks.audio_ai_vs_human_detection.f1",
+      "baseline": 0.9231,
+      "max_drop": 0.05
+    },
+    {
+      "path": "tasks.video_ai_vs_human_detection.f1",
+      "baseline": 0.8571,
+      "max_drop": 0.05
+    }
+  ]
+}

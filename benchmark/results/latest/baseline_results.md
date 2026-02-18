@@ -1,7 +1,7 @@
 # Public Benchmark Baseline Results
 
-- Model ID: `baseline-heuristic-v0.1`
-- Generated: `2026-02-17T18:10:27.020094+00:00`
+- Model ID: `baseline-heuristic-v0.2`
+- Generated: `2026-02-18T16:11:43.215506+00:00`
 
 ## Baseline Table
 
@@ -9,6 +9,8 @@
 | --- | --- | ---: |
 | AI vs Human Detection | F1 | 0.8889 |
 | AI vs Human Detection | ROC-AUC | 1.0 |
+| Audio AI vs Human Detection | F1 | 0.9231 |
+| Video AI vs Human Detection | F1 | 0.8571 |
 | Source Attribution | Accuracy | 0.6667 |
 | Tamper Robustness | Robustness Score | 0.9524 |
 

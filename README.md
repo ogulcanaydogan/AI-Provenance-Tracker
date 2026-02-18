@@ -223,6 +223,8 @@ graph LR
         T1["Task 1<br/>AI vs Human<br/>Detection"]
         T2["Task 2<br/>Source<br/>Attribution"]
         T3["Task 3<br/>Tamper<br/>Robustness"]
+        T4["Task 4<br/>Audio<br/>Detection"]
+        T5["Task 5<br/>Video<br/>Detection"]
     end
 
     subgraph Metrics ["Trust Metrics"]
@@ -235,6 +237,8 @@ graph LR
     T1 --> Metrics
     T2 --> Metrics
     T3 --> Metrics
+    T4 --> Metrics
+    T5 --> Metrics
     Metrics --> LB["Leaderboard"]
 
     style Tasks fill:#1a1a2e,stroke:#7B68EE,color:#fff
@@ -245,7 +249,10 @@ graph LR
 - **Task 1: AI-vs-Human Detection** — multi-domain binary classification
 - **Task 2: Source Attribution** — model-family identification accuracy
 - **Task 3: Tamper Robustness** — detection resilience against paraphrasing, translation, and human editing
+- **Task 4: Audio Detection** — AI-vs-human voice/audio mini-benchmark
+- **Task 5: Video Detection** — AI-vs-human video mini-benchmark
 - **Trust metrics** — ROC-AUC, calibration ECE, Brier score, false-positive rates by domain
+- **Regression gate** — CI fails when core AUC/F1 metrics regress beyond snapshot thresholds
 - **Static leaderboard** — published results at `benchmark/leaderboard/index.html`
 
 ### Batch Processing and Analytics
