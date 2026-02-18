@@ -154,15 +154,27 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up SSH access
+        id: ssh_prep
         run: |
           set -euo pipefail
+          keyscan_ok=true
           mkdir -p ~/.ssh
           printf '%s\n' "${SPARK_SSH_KEY}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          timeout 15 ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts || {
-            echo "Host key scan failed. If this is a private network host (for example Tailscale), use workflow_dispatch from a reachable/self-hosted runner."
-            exit 1
-          }
+          if ! timeout 15 ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts; then
+            keyscan_ok=false
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "Host key scan failed. If this is a private network host (for example Tailscale), use workflow_dispatch with runner_type=self-hosted from a reachable runner."
+              exit 1
+            fi
+            echo "Host key scan failed on push event. Spark host is not reachable from this runner; skipping remote deploy."
+          fi
+
+          if [ "${keyscan_ok}" = "false" ]; then
+            echo "keyscan_ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           cat > ~/.ssh/config <<EOF
           Host spark-ci
             HostName ${SPARK_SSH_HOST}
@@ -173,8 +185,10 @@ jobs:
             StrictHostKeyChecking yes
           EOF
           chmod 600 ~/.ssh/config
+          echo "keyscan_ok=true" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to Spark
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' }}
         run: |
           set -euo pipefail
           SPARK_HOST=spark-ci \
@@ -185,20 +199,20 @@ jobs:
           ./scripts/deploy_spark.sh
 
       - name: Set up Python for smoke test
-        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install backend dependencies for smoke test
-        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
         run: |
           cd backend
           pip install -e .
 
       - name: Run Spark smoke test
         id: smoke
-        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -211,7 +225,7 @@ jobs:
 
       - name: Roll back to previous commit after smoke failure
         id: rollback
-        if: ${{ steps.resolve.outputs.rollback_on_smoke_failure == 'true' && steps.smoke.outcome == 'failure' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.rollback_on_smoke_failure == 'true' && steps.smoke.outcome == 'failure' }}
         run: |
           set -euo pipefail
           rollback_sha="$(git rev-list --max-count=2 HEAD | tail -n 1)"
@@ -232,7 +246,7 @@ jobs:
 
       - name: Re-run smoke after rollback
         id: smoke_after_rollback
-        if: ${{ steps.rollback.outcome == 'success' && steps.resolve.outputs.smoke_base_url != '' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.rollback.outcome == 'success' && steps.resolve.outputs.smoke_base_url != '' }}
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -244,7 +258,7 @@ jobs:
             --output ./evidence/smoke/spark_detect_smoke_after_rollback.json
 
       - name: Enforce smoke gate
-        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
         run: |
           if [ "${{ steps.smoke.outcome }}" = "success" ]; then
             echo "Smoke test passed."
@@ -301,6 +315,7 @@ jobs:
             echo "- Deploy frontend: \`${{ steps.resolve.outputs.deploy_frontend }}\`"
             echo "- Runner type: \`${{ steps.resolve.outputs.runner_type || 'github-hosted' }}\`"
             echo "- Run smoke: \`${{ steps.resolve.outputs.run_smoke }}\`"
+            echo "- SSH reachable from runner: \`${{ steps.ssh_prep.outputs.keyscan_ok || 'false' }}\`"
             echo "- Smoke outcome: \`${{ steps.smoke.outcome || 'skipped' }}\`"
             echo "- Rollback outcome: \`${{ steps.rollback.outcome || 'not_triggered' }}\`"
             if [ -n "${{ steps.resolve.outputs.public_api_url }}" ]; then
