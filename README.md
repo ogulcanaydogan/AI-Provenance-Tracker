@@ -145,6 +145,17 @@ docker-compose up --build
 # Frontend available at http://localhost:3000
 ```
 
+### Deploy to DGX Spark via SSH
+
+```bash
+# Uses SSH host alias `spark` and deploys into:
+# /home/weezboo/ogulcan/ai-provenance-tracker
+./scripts/deploy_spark.sh
+
+# Optional: also start frontend on Spark
+SPARK_DEPLOY_FRONTEND=true ./scripts/deploy_spark.sh
+```
+
 ---
 
 ## API Usage
