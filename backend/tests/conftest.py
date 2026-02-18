@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -20,7 +18,7 @@ async def client():
 
 
 @pytest.fixture(autouse=True)
-def _reset_runtime_state():
+async def _reset_runtime_state():
     """Isolate stores and disable heavyweight ML loading in tests."""
     old_ml_available = text_detector_module.ML_AVAILABLE
     old_limit = settings.rate_limit_requests
@@ -30,9 +28,9 @@ def _reset_runtime_state():
     settings.rate_limit_requests = 1000
     settings.rate_limit_window_seconds = 60
 
-    asyncio.run(init_database())
-    asyncio.run(analysis_store.reset())
-    asyncio.run(audit_event_store.reset())
+    await init_database()
+    await analysis_store.reset()
+    await audit_event_store.reset()
     rate_limiter._hits.clear()
     rate_limiter._daily_points.clear()
 
@@ -42,8 +40,8 @@ def _reset_runtime_state():
         text_detector_module.ML_AVAILABLE = old_ml_available
         settings.rate_limit_requests = old_limit
         settings.rate_limit_window_seconds = old_window
-        asyncio.run(analysis_store.reset())
-        asyncio.run(audit_event_store.reset())
+        await analysis_store.reset()
+        await audit_event_store.reset()
         rate_limiter._hits.clear()
         rate_limiter._daily_points.clear()
 
