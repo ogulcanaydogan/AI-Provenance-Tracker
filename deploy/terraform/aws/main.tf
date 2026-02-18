@@ -185,9 +185,9 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
   storage_encrypted      = true
-  skip_final_snapshot    = true
+  skip_final_snapshot    = var.environment == "production" ? false : true
   backup_retention_period = 7
-  deletion_protection    = false
+  deletion_protection    = var.environment == "production" ? true : false
 
   tags = merge(local.common_tags, { Name = "${local.name}-postgres" })
 }

@@ -48,13 +48,13 @@ jobs:
         run: |
           cd backend
           pip install -e ".[dev]"
-      - name: Run tests
+      - name: Run tests with coverage
         env:
-          APT_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/provenance
-          APT_REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/provenance
+          REDIS_URL: redis://localhost:6379/0
         run: |
           cd backend
-          pytest -v --tb=short
+          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=60
 
   frontend-build:
     runs-on: ubuntu-latest
