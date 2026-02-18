@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend (Next.js)
 
-## Getting Started
+This app is the UI for the AI Provenance Tracker backend.
 
-First, run the development server:
+## Local Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd frontend
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Required Environment Variable
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `NEXT_PUBLIC_API_URL`: backend base URL used by the browser (for example `http://localhost:8000` or `http://100.80.116.20:8010`).
 
-## Learn More
+`NEXT_PUBLIC_*` values are embedded at build time by Next.js, so set this before `npm run build` or Docker image builds.
 
-To learn more about Next.js, take a look at the following resources:
+## Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The frontend Dockerfile accepts build-time `NEXT_PUBLIC_API_URL`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=http://100.80.116.20:8010 \
+  -t ai-provenance-frontend:local \
+  ./frontend
+```

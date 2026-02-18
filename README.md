@@ -154,7 +154,15 @@ docker-compose up --build
 
 # Optional: also start frontend on Spark
 SPARK_DEPLOY_FRONTEND=true ./scripts/deploy_spark.sh
+
+# Optional: override the frontend API URL injected at build time
+SPARK_PUBLIC_API_URL=http://100.80.116.20:8010 SPARK_DEPLOY_FRONTEND=true ./scripts/deploy_spark.sh
 ```
+
+Notes:
+- Spark deploy uses `docker-compose.spark.yml` (production-oriented config) instead of the dev compose file.
+- Frontend API endpoint is injected at build time via `NEXT_PUBLIC_API_URL`; set `SPARK_PUBLIC_API_URL` before deploying frontend.
+- GitHub Actions automation is available at `.github/workflows/deploy-spark.yml`.
 
 ---
 

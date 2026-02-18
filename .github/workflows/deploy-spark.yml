@@ -1,0 +1,138 @@
+name: Deploy Spark Runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: "Deploy frontend service as part of this run"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
+      remote_dir:
+        description: "Optional remote path override"
+        required: false
+        type: string
+      public_api_url:
+        description: "Optional API URL override used by frontend build"
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+      - "docker-compose.spark.yml"
+      - "scripts/deploy_spark.sh"
+      - ".github/workflows/deploy-spark.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spark-runtime-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SPARK_SSH_HOST: ${{ secrets.SPARK_SSH_HOST }}
+      SPARK_SSH_USER: ${{ secrets.SPARK_SSH_USER }}
+      SPARK_SSH_KEY: ${{ secrets.SPARK_SSH_KEY }}
+      SPARK_SSH_PORT: ${{ secrets.SPARK_SSH_PORT }}
+      SPARK_REMOTE_DIR_VAR: ${{ vars.SPARK_REMOTE_DIR }}
+      SPARK_PUBLIC_API_URL_VAR: ${{ vars.SPARK_PUBLIC_API_URL }}
+      SPARK_DEPLOY_FRONTEND_VAR: ${{ vars.SPARK_DEPLOY_FRONTEND }}
+      X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate required Spark secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in SPARK_SSH_HOST SPARK_SSH_USER SPARK_SSH_KEY; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required repository secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Resolve deploy settings
+        id: resolve
+        run: |
+          set -euo pipefail
+          remote_dir="${SPARK_REMOTE_DIR_VAR:-/home/weezboo/ogulcan/ai-provenance-tracker}"
+          public_api_url="${SPARK_PUBLIC_API_URL_VAR:-}"
+          deploy_frontend="${SPARK_DEPLOY_FRONTEND_VAR:-false}"
+          ssh_port="${SPARK_SSH_PORT:-22}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.remote_dir }}" ]; then
+              remote_dir="${{ github.event.inputs.remote_dir }}"
+            fi
+            if [ -n "${{ github.event.inputs.public_api_url }}" ]; then
+              public_api_url="${{ github.event.inputs.public_api_url }}"
+            fi
+            if [ -n "${{ github.event.inputs.deploy_frontend }}" ]; then
+              deploy_frontend="${{ github.event.inputs.deploy_frontend }}"
+            fi
+          fi
+
+          {
+            echo "remote_dir=${remote_dir}"
+            echo "public_api_url=${public_api_url}"
+            echo "deploy_frontend=${deploy_frontend}"
+            echo "ssh_port=${ssh_port}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up SSH access
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${SPARK_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host spark-ci
+            HostName ${SPARK_SSH_HOST}
+            User ${SPARK_SSH_USER}
+            Port ${{ steps.resolve.outputs.ssh_port }}
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy to Spark
+        run: |
+          set -euo pipefail
+          SPARK_HOST=spark-ci \
+          SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
+          SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
+          SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \
+          X_BEARER_TOKEN="${X_BEARER_TOKEN:-}" \
+          ./scripts/deploy_spark.sh
+
+      - name: Write deployment summary
+        run: |
+          {
+            echo "## Spark Deploy Summary"
+            echo
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Remote dir: \`${{ steps.resolve.outputs.remote_dir }}\`"
+            echo "- Deploy frontend: \`${{ steps.resolve.outputs.deploy_frontend }}\`"
+            if [ -n "${{ steps.resolve.outputs.public_api_url }}" ]; then
+              echo "- Frontend API URL: \`${{ steps.resolve.outputs.public_api_url }}\`"
+            else
+              echo "- Frontend API URL: \`(default from deploy script)\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

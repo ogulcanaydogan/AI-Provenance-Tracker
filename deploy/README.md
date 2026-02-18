@@ -17,6 +17,7 @@ CI/CD workflows:
   - `ghcr.io/<owner>/provenance-worker:<commit-sha>`
   - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-api@sha256:...`
   - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-worker@sha256:...`
+- `.github/workflows/deploy-spark.yml` deploys to Spark host over SSH using `scripts/deploy_spark.sh`
 
 ## Runtime Deploy Workflow Setup
 
@@ -68,6 +69,18 @@ Railway note:
 - This workflow pins each service via `source.image=ghcr.io/...@sha256:...`.
 - If your current service is GitHub-source only, switch it once to Docker-image deployment first.
 - Workflow runs a non-blocking `railway whoami` probe before deploy for diagnostics.
+
+Spark workflow secrets/variables:
+
+- Secret: `SPARK_SSH_HOST` (hostname or IP)
+- Secret: `SPARK_SSH_USER`
+- Secret: `SPARK_SSH_KEY` (private key content for deploy user)
+- Secret: `SPARK_SSH_PORT` (optional, default `22`)
+- Variable: `SPARK_REMOTE_DIR` (optional, default `/home/weezboo/ogulcan/ai-provenance-tracker`)
+- Variable: `SPARK_PUBLIC_API_URL` (optional, used for frontend build-time API URL)
+- Variable: `SPARK_DEPLOY_FRONTEND` (optional `true|false`, default `false`)
+
+Spark deploy script defaults to `docker-compose.spark.yml` (production-safe service commands and no dev bind mounts).
 
 Manual deploy examples from GitHub Actions:
 
