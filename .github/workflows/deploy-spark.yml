@@ -38,6 +38,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.ENABLE_SPARK_DEPLOY == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -100,7 +101,10 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${SPARK_SSH_KEY}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts
+          timeout 15 ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts || {
+            echo "Host key scan failed. If this is a private network host (for example Tailscale), use workflow_dispatch from a reachable/self-hosted runner."
+            exit 1
+          }
           cat > ~/.ssh/config <<EOF
           Host spark-ci
             HostName ${SPARK_SSH_HOST}
