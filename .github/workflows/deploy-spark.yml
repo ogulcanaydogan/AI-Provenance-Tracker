@@ -51,7 +51,6 @@ on:
     branches: [main]
     paths:
       - "backend/**"
-      - "frontend/**"
       - "docker-compose.yml"
       - "docker-compose.spark.yml"
       - "scripts/deploy_spark.sh"
@@ -66,7 +65,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || vars.ENABLE_SPARK_DEPLOY == 'true' }}
     runs-on: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 35
     env:

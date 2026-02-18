@@ -1,9 +1,6 @@
-name: Deploy Runtime (Pinned SHA)
+name: Deploy Runtime (Pinned SHA, Legacy)
 
 on:
-  workflow_run:
-    workflows: ["Publish Service Images"]
-    types: [completed]
   workflow_dispatch:
     inputs:
       runtime_target:

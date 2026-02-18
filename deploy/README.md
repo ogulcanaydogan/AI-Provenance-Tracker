@@ -12,19 +12,18 @@ CI/CD workflows:
 - `.github/workflows/publish-images.yml` publishes service images to GHCR:
   - `ghcr.io/<owner>/provenance-api:latest`
   - `ghcr.io/<owner>/provenance-worker:latest`
-- `.github/workflows/deploy-runtime.yml` deploys pinned SHA images to Helm and/or Railway:
+- `.github/workflows/deploy-spark.yml` is the primary production deploy path (SSH to Spark + docker compose).
+- `.github/workflows/deploy-runtime.yml` is legacy/manual deploy for pinned SHA images to Helm and/or Railway:
   - `ghcr.io/<owner>/provenance-api:<commit-sha>`
   - `ghcr.io/<owner>/provenance-worker:<commit-sha>`
   - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-api@sha256:...`
   - deploy phase resolves immutable refs: `ghcr.io/<owner>/provenance-worker@sha256:...`
-- `.github/workflows/deploy-spark.yml` deploys to Spark host over SSH using `scripts/deploy_spark.sh`
 
 ## Runtime Deploy Workflow Setup
 
-Set repository variables to control automatic deploy target after image publish:
+Legacy runtime workflow is manual-only (`workflow_dispatch`) and no longer auto-triggers from image publish.
+Set repository variables only if you want to use Helm/Railway via manual runtime deploy:
 
-- `ENABLE_HELM_DEPLOY=true` to enable Helm auto-deploy
-- `ENABLE_RAILWAY_DEPLOY=true` to enable Railway auto-deploy
 - `DEPLOY_ENVIRONMENT=production` to use GitHub Environments (approval gates if configured)
 - `ENABLE_DEPLOY_SMOKE_GATE=true` to run post-deploy production smoke tests
 - `ENABLE_AUTO_ROLLBACK=true` to rollback to previous successful image SHA when smoke fails
@@ -84,10 +83,10 @@ Spark workflow secrets/variables:
 - Variable: `SPARK_RUN_SMOKE` (optional `true|false`, default `true`)
 - Variable: `SPARK_ROLLBACK_ON_SMOKE_FAILURE` (optional `true|false`, default `true`)
 - Variable: `SPARK_SMOKE_API_KEY_HEADER` (optional, default `X-API-Key`)
-- Variable: `ENABLE_SPARK_DEPLOY` (set `true` to auto-run deploy on push)
 
 Spark deploy script defaults to `docker-compose.spark.yml` (production-safe service commands and no dev bind mounts).
 Spark workflow runs smoke checks after deploy and can automatically redeploy the previous commit on smoke failure.
+Spark workflow auto-runs on `main` push when backend/deploy files change.
 If Spark is on a private network (`100.80.x.x`, Tailscale), trigger `workflow_dispatch` with `runner_type=self-hosted`.
 
 Manual deploy examples from GitHub Actions:
