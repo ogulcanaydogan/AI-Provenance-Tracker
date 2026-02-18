@@ -93,7 +93,11 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                             "created_at": "2026-02-11T10:08:00.000Z",
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
-                            "public_metrics": {"like_count": 1, "retweet_count": 1, "reply_count": 0},
+                            "public_metrics": {
+                                "like_count": 1,
+                                "retweet_count": 1,
+                                "reply_count": 0,
+                            },
                             "entities": {
                                 "hashtags": [{"tag": "yapay"}],
                                 "urls": [{"expanded_url": "https://example.com/update"}],
@@ -107,7 +111,11 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                             "created_at": "2026-02-11T10:15:00.000Z",
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
-                            "public_metrics": {"like_count": 2, "retweet_count": 2, "reply_count": 0},
+                            "public_metrics": {
+                                "like_count": 2,
+                                "retweet_count": 2,
+                                "reply_count": 0,
+                            },
                             "entities": {
                                 "hashtags": [{"tag": "yapay"}],
                                 "urls": [{"expanded_url": "https://example.com/update"}],
@@ -148,7 +156,11 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                             "created_at": "2026-02-11T10:20:00.000Z",
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
-                            "public_metrics": {"like_count": 0, "retweet_count": 1, "reply_count": 0},
+                            "public_metrics": {
+                                "like_count": 0,
+                                "retweet_count": 1,
+                                "reply_count": 0,
+                            },
                             "entities": {
                                 "hashtags": [{"tag": "yapay"}],
                                 "urls": [{"expanded_url": "https://example.com/update"}],

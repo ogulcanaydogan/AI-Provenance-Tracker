@@ -60,11 +60,16 @@ def _filename_from_url(url: str) -> str:
 async def _apply_consensus(
     *,
     content_type: str,
-    result: TextDetectionResponse | ImageDetectionResponse | AudioDetectionResponse | VideoDetectionResponse,
+    result: TextDetectionResponse
+    | ImageDetectionResponse
+    | AudioDetectionResponse
+    | VideoDetectionResponse,
     text: str | None = None,
     binary: bytes | None = None,
     filename: str | None = None,
-) -> TextDetectionResponse | ImageDetectionResponse | AudioDetectionResponse | VideoDetectionResponse:
+) -> (
+    TextDetectionResponse | ImageDetectionResponse | AudioDetectionResponse | VideoDetectionResponse
+):
     consensus = await provider_consensus_engine.build_consensus(
         content_type=content_type,
         internal_probability=result.confidence,
@@ -141,8 +146,7 @@ async def detect_image(file: UploadFile = File(...)) -> ImageDetectionResponse:
     allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
     if file.content_type not in allowed_types:
         raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}"
+            status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}"
         )
 
     # Read file content
@@ -449,4 +453,6 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
             "text_length": len(extracted_text),
         }
 
-    raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}")
+    raise HTTPException(
+        status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}"
+    )

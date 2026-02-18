@@ -12,6 +12,7 @@ router = APIRouter()
 
 class AnalysisRequest(BaseModel):
     """Request for detailed analysis."""
+
     content_id: str
     include_metadata: bool = True
     include_timeline: bool = False
@@ -19,6 +20,7 @@ class AnalysisRequest(BaseModel):
 
 class AnalysisResponse(BaseModel):
     """Detailed analysis response."""
+
     content_id: str
     analysis_type: str
     details: dict

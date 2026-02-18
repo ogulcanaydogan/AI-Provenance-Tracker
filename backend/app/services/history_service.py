@@ -30,12 +30,7 @@ async def get_history(
     count_query = select(func.count()).select_from(Analysis)
     total = (await db.execute(count_query)).scalar() or 0
 
-    query = (
-        select(Analysis)
-        .order_by(Analysis.created_at.desc())
-        .offset(offset)
-        .limit(per_page)
-    )
+    query = select(Analysis).order_by(Analysis.created_at.desc()).offset(offset).limit(per_page)
     result = await db.execute(query)
     rows = result.scalars().all()
 

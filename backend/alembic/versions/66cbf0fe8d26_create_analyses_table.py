@@ -1,10 +1,11 @@
 """Create analysis records table
 
 Revision ID: 66cbf0fe8d26
-Revises: 
+Revises:
 Create Date: 2026-02-15 16:10:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

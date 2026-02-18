@@ -88,7 +88,11 @@ class WebhookDispatcher:
         try:
             response = await client.post(url, content=encoded, headers=headers)
             ok = response.status_code < 400
-            return {"ok": ok, "status_code": response.status_code, "error": None if ok else response.text[:300]}
+            return {
+                "ok": ok,
+                "status_code": response.status_code,
+                "error": None if ok else response.text[:300],
+            }
         except httpx.HTTPError as exc:
             logger.warning("webhook_delivery_error", url=url, error=str(exc))
             return {"ok": False, "status_code": None, "error": str(exc)}
@@ -124,7 +128,9 @@ class WebhookDispatcher:
                     continue
 
                 try:
-                    next_attempt_at = self._parse_iso(str(item.get("next_attempt_at", now.isoformat())))
+                    next_attempt_at = self._parse_iso(
+                        str(item.get("next_attempt_at", now.isoformat()))
+                    )
                 except ValueError:
                     next_attempt_at = now
 
@@ -133,7 +139,9 @@ class WebhookDispatcher:
                     continue
 
                 body = {"event_type": event_type, "payload": payload}
-                encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+                encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode(
+                    "utf-8"
+                )
                 signature = self._signature(encoded)
                 processed += 1
                 result = await self._deliver_once(client, url, encoded, signature)
@@ -180,7 +188,13 @@ class WebhookDispatcher:
 
     async def dispatch(self, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
         if not settings.webhook_urls:
-            return {"sent": 0, "delivered": 0, "queued": 0, "results": [], "retry_queue": {"pending": 0}}
+            return {
+                "sent": 0,
+                "delivered": 0,
+                "queued": 0,
+                "results": [],
+                "retry_queue": {"pending": 0},
+            }
 
         drained = await self.drain_retry_queue()
         body = {"event_type": event_type, "payload": payload}
@@ -253,4 +267,3 @@ class WebhookDispatcher:
 
 
 webhook_dispatcher = WebhookDispatcher()
-

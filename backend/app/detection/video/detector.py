@@ -185,4 +185,3 @@ class VideoDetector:
             f"Video appears {verdict} ({conf_label} confidence). "
             f"Key indicators: {', '.join(reasons)}."
         )
-

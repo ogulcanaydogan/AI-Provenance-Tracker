@@ -25,9 +25,7 @@ def test_frequency_scores_valid_for_different_patterns():
     detector = ImageDetector()
 
     noise = np.random.randint(0, 255, (128, 128, 3), dtype=np.uint8)
-    gradient = np.dstack(
-        [np.tile(np.arange(128, dtype=np.uint8), (128, 1)) for _ in range(3)]
-    )
+    gradient = np.dstack([np.tile(np.arange(128, dtype=np.uint8), (128, 1)) for _ in range(3)])
 
     noise_score = detector._analyze_frequency_domain(noise)
     gradient_score = detector._analyze_frequency_domain(gradient)

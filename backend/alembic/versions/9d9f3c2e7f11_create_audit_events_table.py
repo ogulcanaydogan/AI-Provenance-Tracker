@@ -5,6 +5,7 @@ Revises: 66cbf0fe8d26
 Create Date: 2026-02-17 18:20:00.000000
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -32,9 +33,15 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_audit_events_actor_id"), "audit_events", ["actor_id"], unique=False)
-    op.create_index(op.f("ix_audit_events_created_at"), "audit_events", ["created_at"], unique=False)
-    op.create_index(op.f("ix_audit_events_event_type"), "audit_events", ["event_type"], unique=False)
-    op.create_index(op.f("ix_audit_events_request_id"), "audit_events", ["request_id"], unique=False)
+    op.create_index(
+        op.f("ix_audit_events_created_at"), "audit_events", ["created_at"], unique=False
+    )
+    op.create_index(
+        op.f("ix_audit_events_event_type"), "audit_events", ["event_type"], unique=False
+    )
+    op.create_index(
+        op.f("ix_audit_events_request_id"), "audit_events", ["request_id"], unique=False
+    )
     op.create_index(op.f("ix_audit_events_severity"), "audit_events", ["severity"], unique=False)
     op.create_index(op.f("ix_audit_events_source"), "audit_events", ["source"], unique=False)
 

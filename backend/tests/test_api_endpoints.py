@@ -45,7 +45,7 @@ def _create_test_wav(duration_seconds: float = 0.6, sample_rate: int = 16000) ->
 def _create_test_mp4() -> bytes:
     # Minimal MP4-like payload with ftyp box plus synthetic media bytes.
     header = b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"
-    body = (b"\x00\x00\x00\x08free" + b"videodata12345678" * 5000)
+    body = b"\x00\x00\x00\x08free" + b"videodata12345678" * 5000
     return header + body
 
 

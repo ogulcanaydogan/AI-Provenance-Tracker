@@ -187,4 +187,3 @@ class AudioDetector:
             f"Audio appears {verdict} ({conf_label} confidence). "
             f"Key indicators: {', '.join(reasons)}."
         )
-

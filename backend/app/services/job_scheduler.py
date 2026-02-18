@@ -142,7 +142,11 @@ class XPipelineScheduler:
         if self._task and not self._task.done():
             return
         self._task = asyncio.create_task(self._run_loop())
-        logger.info("scheduler_started", handles=self._handles(), interval_minutes=settings.scheduler_interval_minutes)
+        logger.info(
+            "scheduler_started",
+            handles=self._handles(),
+            interval_minutes=settings.scheduler_interval_minutes,
+        )
 
     async def stop(self) -> None:
         if not self._task:
@@ -192,7 +196,11 @@ class XPipelineScheduler:
         results = []
         for current in self._handles():
             results.append(await self._run_for_handle(current))
-        return {"triggered": len(results), "results": results, "monthly_budget": self._monthly_budget()}
+        return {
+            "triggered": len(results),
+            "results": results,
+            "monthly_budget": self._monthly_budget(),
+        }
 
     async def _run_loop(self) -> None:
         interval_seconds = max(60, settings.scheduler_interval_minutes * 60)
@@ -232,7 +240,9 @@ class XPipelineScheduler:
                 "monthly_used": budget["used_requests"],
             }
             if settings.scheduler_kill_switch_on_cap:
-                await self._activate_kill_switch("monthly_request_cap_exceeded", self._monthly_budget())
+                await self._activate_kill_switch(
+                    "monthly_request_cap_exceeded", self._monthly_budget()
+                )
                 failure["kill_switch_activated"] = True
             self._last_runs[handle.lower()] = failure
             logger.warning("scheduler_run_blocked", **failure)
@@ -265,16 +275,25 @@ class XPipelineScheduler:
                 drilldown = generate_x_drilldown(payload)
 
                 timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-                run_dir = Path(settings.scheduler_output_dir).expanduser().resolve() / f"{slug}_{timestamp}"
+                run_dir = (
+                    Path(settings.scheduler_output_dir).expanduser().resolve()
+                    / f"{slug}_{timestamp}"
+                )
                 run_dir.mkdir(parents=True, exist_ok=True)
                 input_path = run_dir / "x_intel_input.json"
                 report_path = run_dir / "x_trust_report.json"
                 drilldown_path = run_dir / "x_drilldown.json"
                 manifest_path = run_dir / "manifest.json"
 
-                input_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-                report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-                drilldown_path.write_text(json.dumps(drilldown, ensure_ascii=False, indent=2), encoding="utf-8")
+                input_path.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                report_path.write_text(
+                    json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                drilldown_path.write_text(
+                    json.dumps(drilldown, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
 
                 requests_consumed_total += attempt_requests
                 self._record_consumed_requests(requests_consumed_total)
@@ -292,7 +311,9 @@ class XPipelineScheduler:
                     "monthly_used": budget_after["used_requests"],
                     "monthly_remaining": budget_after["remaining_requests"],
                 }
-                manifest_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+                manifest_path.write_text(
+                    json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
                 self._last_runs[handle.lower()] = result
                 logger.info("scheduler_run_success", **result)
 
@@ -360,4 +381,3 @@ class XPipelineScheduler:
 
 
 x_pipeline_scheduler = XPipelineScheduler()
-

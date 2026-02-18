@@ -42,4 +42,3 @@ async def init_database() -> None:
 async def close_database() -> None:
     """Dispose DB engine cleanly."""
     await _engine.dispose()
-

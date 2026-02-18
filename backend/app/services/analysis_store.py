@@ -181,7 +181,10 @@ class AnalysisStore:
         """Return paginated history in reverse chronological order."""
         await self._ensure_initialized()
         async with get_db_session() as session:
-            total = int((await session.execute(select(func.count()).select_from(AnalysisRecord))).scalar() or 0)
+            total = int(
+                (await session.execute(select(func.count()).select_from(AnalysisRecord))).scalar()
+                or 0
+            )
             query = (
                 select(AnalysisRecord)
                 .order_by(desc(AnalysisRecord.created_at))
@@ -197,7 +200,9 @@ class AnalysisStore:
         await self._ensure_initialized()
         records = await self._all_records()
         total = len(records)
-        ai_detected_count = sum(1 for record in records if bool(record.result.get("is_ai_generated")))
+        ai_detected_count = sum(
+            1 for record in records if bool(record.result.get("is_ai_generated"))
+        )
         average_confidence = (
             round(
                 sum(float(record.result.get("confidence", 0.0)) for record in records) / total,
@@ -229,7 +234,9 @@ class AnalysisStore:
         total_all_time = len(records)
         recent_records = [record for record in records if record.created_at >= cutoff]
         total_recent = len(recent_records)
-        ai_recent = sum(1 for record in recent_records if bool(record.result.get("is_ai_generated")))
+        ai_recent = sum(
+            1 for record in recent_records if bool(record.result.get("is_ai_generated"))
+        )
 
         by_type_recent = {"text": 0, "image": 0, "audio": 0, "video": 0}
         by_source_recent: dict[str, int] = {}
@@ -260,7 +267,8 @@ class AnalysisStore:
 
         average_confidence_recent = (
             round(
-                sum(float(record.result.get("confidence", 0.0)) for record in recent_records) / total_recent,
+                sum(float(record.result.get("confidence", 0.0)) for record in recent_records)
+                / total_recent,
                 3,
             )
             if total_recent
@@ -363,4 +371,3 @@ class AnalysisStore:
 
 
 analysis_store = AnalysisStore()
-

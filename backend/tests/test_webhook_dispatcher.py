@@ -35,7 +35,9 @@ async def test_webhook_failures_are_queued(tmp_path):
     try:
         dispatcher = WebhookDispatcher()
         with patch.object(httpx.AsyncClient, "post", new=fake_post):
-            result = await dispatcher.dispatch("scheduled_pipeline_success", {"handle": "@targetacct"})
+            result = await dispatcher.dispatch(
+                "scheduled_pipeline_success", {"handle": "@targetacct"}
+            )
     finally:
         settings.webhook_urls = old_urls
         settings.webhook_retry_attempts = old_retry_attempts
@@ -112,4 +114,3 @@ async def test_webhook_dead_letter_after_max_attempts(tmp_path):
     dead_payload = json.loads(dead_lines[0])
     assert dead_payload["event_type"] == "scheduled_pipeline_failed"
     assert dead_payload["attempts"] == 2
-

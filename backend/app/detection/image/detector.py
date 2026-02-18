@@ -52,8 +52,8 @@ class ImageDetector:
         width, height = image.size
 
         # Convert to RGB if necessary
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+        if image.mode != "RGB":
+            image = image.convert("RGB")
 
         # Convert to numpy array
         img_array = np.array(image)
@@ -125,8 +125,8 @@ class ImageDetector:
             return 0.5
 
         # High frequency region (outer ring)
-        y, x = np.ogrid[:magnitude.shape[0], :magnitude.shape[1]]
-        distance = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+        y, x = np.ogrid[: magnitude.shape[0], : magnitude.shape[1]]
+        distance = np.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
         max_dist = np.sqrt(center_x**2 + center_y**2)
 
         high_freq_mask = distance > (0.7 * max_dist)
@@ -188,7 +188,7 @@ class ImageDetector:
 
         for i in range(0, img_array.shape[0] - step, step):
             for j in range(0, img_array.shape[1] - step, step):
-                patch = img_array[i:i+step, j:j+step]
+                patch = img_array[i : i + step, j : j + step]
                 local_vars.append(np.var(patch))
 
         if local_vars:
@@ -220,7 +220,7 @@ class ImageDetector:
         flags = []
 
         # Check for EXIF data
-        exif_data = image._getexif() if hasattr(image, '_getexif') else None
+        exif_data = image._getexif() if hasattr(image, "_getexif") else None
 
         if exif_data is None:
             flags.append("missing_exif")
@@ -228,13 +228,13 @@ class ImageDetector:
             # Check for camera-specific tags
             exif_tags = {TAGS.get(k, k): v for k, v in exif_data.items()}
 
-            if 'Make' not in exif_tags and 'Model' not in exif_tags:
+            if "Make" not in exif_tags and "Model" not in exif_tags:
                 flags.append("no_camera_info")
 
-            if 'DateTimeOriginal' not in exif_tags:
+            if "DateTimeOriginal" not in exif_tags:
                 flags.append("no_capture_date")
 
-            if 'GPSInfo' not in exif_tags:
+            if "GPSInfo" not in exif_tags:
                 # Not necessarily suspicious, but noted
                 pass
 
@@ -249,9 +249,9 @@ class ImageDetector:
         # Check for software tags
         if exif_data:
             exif_tags = {TAGS.get(k, k): v for k, v in exif_data.items()}
-            software = exif_tags.get('Software', '')
+            software = exif_tags.get("Software", "")
             if isinstance(software, str):
-                ai_keywords = ['dalle', 'midjourney', 'stable', 'diffusion', 'ai']
+                ai_keywords = ["dalle", "midjourney", "stable", "diffusion", "ai"]
                 if any(kw in software.lower() for kw in ai_keywords):
                     flags.append("ai_software_tag")
 

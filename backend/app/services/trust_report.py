@@ -356,7 +356,10 @@ class TrustReportGenerator:
         claims = data.claim_clusters
         bot_scores = data.bot_scores
 
-        if any(cluster.time_burst_score >= 0.8 and cluster.text_similarity_score >= 0.7 for cluster in clusters):
+        if any(
+            cluster.time_burst_score >= 0.8 and cluster.text_similarity_score >= 0.7
+            for cluster in clusters
+        ):
             alerts.append(
                 {
                     "severity": "high",
@@ -492,11 +495,13 @@ class TrustReportGenerator:
         post_count: int,
     ) -> str:
         high_risk_claim = any(
-            claim["recommended_response"] in {"debunk", "escalate"} and claim["reach_proxy"] in {"medium", "high"}
+            claim["recommended_response"] in {"debunk", "escalate"}
+            and claim["reach_proxy"] in {"medium", "high"}
             for claim in claims
         )
         strong_cluster = any(
-            cluster["bot_likelihood"] >= 0.6 and cluster["size"] >= 20 for cluster in suspected_clusters
+            cluster["bot_likelihood"] >= 0.6 and cluster["size"] >= 20
+            for cluster in suspected_clusters
         )
 
         if strong_cluster and high_risk_claim:

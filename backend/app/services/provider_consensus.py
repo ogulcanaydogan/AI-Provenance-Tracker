@@ -43,13 +43,21 @@ class ProviderConsensusEngine:
         ]
 
         if settings.consensus_enabled:
-            votes.extend(await self._collect_external_votes(content_type, text=text, binary=binary, filename=filename))
+            votes.extend(
+                await self._collect_external_votes(
+                    content_type, text=text, binary=binary, filename=filename
+                )
+            )
 
         active_votes = [vote for vote in votes if vote.status == "ok" and vote.weight > 0]
         if active_votes:
             weighted_total = sum(vote.probability * vote.weight for vote in active_votes)
             weight_sum = sum(vote.weight for vote in active_votes)
-            final_probability = self._clip(weighted_total / weight_sum) if weight_sum > 0 else self._clip(internal_probability)
+            final_probability = (
+                self._clip(weighted_total / weight_sum)
+                if weight_sum > 0
+                else self._clip(internal_probability)
+            )
             disagreement = self._disagreement([vote.probability for vote in active_votes])
         else:
             final_probability = self._clip(internal_probability)
@@ -74,11 +82,17 @@ class ProviderConsensusEngine:
     ) -> list[ProviderConsensusVote]:
         votes: list[ProviderConsensusVote] = []
         votes.append(await self._copyleaks_vote(content_type, text=text))
-        votes.append(await self._reality_defender_vote(content_type, text=text, binary=binary, filename=filename))
+        votes.append(
+            await self._reality_defender_vote(
+                content_type, text=text, binary=binary, filename=filename
+            )
+        )
         votes.append(self._c2pa_vote(content_type, binary=binary))
         return votes
 
-    async def _copyleaks_vote(self, content_type: str, *, text: str | None) -> ProviderConsensusVote:
+    async def _copyleaks_vote(
+        self, content_type: str, *, text: str | None
+    ) -> ProviderConsensusVote:
         weight = max(0.0, self._weights["copyleaks"])
         if content_type != "text":
             return ProviderConsensusVote(
@@ -264,7 +278,9 @@ class ProviderConsensusEngine:
             )
 
         sample = binary[: min(len(binary), 256_000)].lower()
-        has_marker = any(marker in sample for marker in (b"c2pa", b"contentcredentials", b"contentauth"))
+        has_marker = any(
+            marker in sample for marker in (b"c2pa", b"contentcredentials", b"contentauth")
+        )
         probability = 0.15 if has_marker else 0.55
         rationale = (
             "Signed provenance markers detected; lowers AI-likelihood."
@@ -307,4 +323,3 @@ class ProviderConsensusEngine:
 
 
 provider_consensus_engine = ProviderConsensusEngine()
-

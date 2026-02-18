@@ -12,6 +12,7 @@ import numpy as np
 try:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False
@@ -171,18 +172,18 @@ class TextDetector:
 
     def _preprocess_text(self, text: str) -> str:
         """Clean and normalize text."""
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'[^\w\s.,!?;:\'"()-]', '', text)
+        text = re.sub(r"\s+", " ", text)
+        text = re.sub(r'[^\w\s.,!?;:\'"()-]', "", text)
         return text.strip()
 
     def _split_sentences(self, text: str) -> list[str]:
         """Split text into sentences."""
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         return [s.strip() for s in sentences if s.strip()]
 
     def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into words."""
-        words = re.findall(r'\b\w+\b', text.lower())
+        words = re.findall(r"\b\w+\b", text.lower())
         return words
 
     def _calculate_perplexity(self, text: str, words: list[str]) -> float:
@@ -202,7 +203,7 @@ class TextDetector:
             prob = count / total_words
             entropy -= prob * math.log2(prob)
 
-        perplexity = 2 ** entropy
+        perplexity = 2**entropy
         return round(perplexity, 2)
 
     def _calculate_burstiness(self, sentences: list[str]) -> float:
@@ -252,7 +253,7 @@ class TextDetector:
         if len(words) < 10:
             return 0.0
 
-        trigrams = [' '.join(words[i:i+3]) for i in range(len(words)-2)]
+        trigrams = [" ".join(words[i : i + 3]) for i in range(len(words) - 2)]
         trigram_counts = Counter(trigrams)
 
         repeated = sum(1 for count in trigram_counts.values() if count > 1)

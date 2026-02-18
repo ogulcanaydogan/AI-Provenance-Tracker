@@ -120,7 +120,9 @@ def _markdown_report(comparison: dict[str, Any]) -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Compare two talent-visa pipeline run directories.")
+    parser = argparse.ArgumentParser(
+        description="Compare two talent-visa pipeline run directories."
+    )
     parser.add_argument("--base-run-dir", required=True, help="Reference run directory")
     parser.add_argument("--candidate-run-dir", required=True, help="New run directory")
     parser.add_argument("--output-json", default="comparison.json", help="Output comparison JSON")
@@ -152,7 +154,8 @@ def run() -> int:
             "unique_accounts_delta": candidate["unique_accounts"] - base["unique_accounts"],
             "timeline_days_delta": candidate["timeline_days"] - base["timeline_days"],
             "narrative_topics_delta": candidate["narrative_topics"] - base["narrative_topics"],
-            "suspected_clusters_delta": candidate["suspected_clusters"] - base["suspected_clusters"],
+            "suspected_clusters_delta": candidate["suspected_clusters"]
+            - base["suspected_clusters"],
             "risk_change": _risk_delta(base["risk_level"], candidate["risk_level"]),
             "confidence_change": _confidence_delta(
                 base["confidence_overall"], candidate["confidence_overall"]
@@ -175,4 +178,3 @@ def run() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(run())
-

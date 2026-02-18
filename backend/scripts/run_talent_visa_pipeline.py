@@ -204,15 +204,9 @@ async def run() -> int:
             "evidence_pack_md": str(run_dir / "talent_visa_evidence_pack.md"),
         },
         "checksums_sha256": {
-            "x_intel_input.canonical.json": _sha256_bytes(
-                input_canonical_path.read_bytes()
-            ),
-            "x_trust_report.canonical.json": _sha256_bytes(
-                report_canonical_path.read_bytes()
-            ),
-            "x_trust_benchmark.json": _sha256_bytes(
-                benchmark_path.read_bytes()
-            ),
+            "x_intel_input.canonical.json": _sha256_bytes(input_canonical_path.read_bytes()),
+            "x_trust_report.canonical.json": _sha256_bytes(report_canonical_path.read_bytes()),
+            "x_trust_benchmark.json": _sha256_bytes(benchmark_path.read_bytes()),
         },
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

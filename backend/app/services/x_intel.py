@@ -193,7 +193,10 @@ class XIntelCollector:
         self._request_count = 0
         self._max_requests_per_run = max(1, int(settings.x_max_requests_per_run))
         plan = self.estimate_request_plan(max_posts=max_posts)
-        if settings.x_cost_guard_enabled and plan["estimated_requests"] > self._max_requests_per_run:
+        if (
+            settings.x_cost_guard_enabled
+            and plan["estimated_requests"] > self._max_requests_per_run
+        ):
             raise XBudgetExceededError(
                 "Estimated X API request usage exceeds budget "
                 f"({plan['estimated_requests']} > {self._max_requests_per_run}). "
@@ -333,7 +336,9 @@ class XIntelCollector:
     async def _safe_fetch(
         self,
         label: str,
-        task: Awaitable[tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]],
+        task: Awaitable[
+            tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]
+        ],
         notes: list[str],
     ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         try:
@@ -428,7 +433,9 @@ class XIntelCollector:
         if response.status_code >= 400:
             detail = self._extract_error_detail(response)
             if response.status_code in {401, 403}:
-                raise XDataCollectionError(f"X API auth error ({response.status_code}): {detail}", 401)
+                raise XDataCollectionError(
+                    f"X API auth error ({response.status_code}): {detail}", 401
+                )
             if response.status_code == 404:
                 raise XDataCollectionError(f"X API endpoint not found: {detail}", 404)
             if response.status_code == 429:
@@ -503,7 +510,9 @@ class XIntelCollector:
     @staticmethod
     def _merge_fetch_results(
         target_user: dict[str, Any],
-        results: list[tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]],
+        results: list[
+            tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]
+        ],
         max_posts: int,
     ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         posts_by_id: dict[str, dict[str, Any]] = {}
@@ -601,7 +610,11 @@ class XIntelCollector:
 
     @staticmethod
     def _extract_hashtags(entities: dict[str, Any]) -> list[str]:
-        return [str(item.get("tag", "")).lower() for item in entities.get("hashtags", []) if item.get("tag")]
+        return [
+            str(item.get("tag", "")).lower()
+            for item in entities.get("hashtags", [])
+            if item.get("tag")
+        ]
 
     @staticmethod
     def _extract_mentions(entities: dict[str, Any]) -> list[str]:
@@ -612,7 +625,9 @@ class XIntelCollector:
         ]
 
     @staticmethod
-    def _extract_media_urls(raw_post: dict[str, Any], media_by_key: dict[str, dict[str, Any]]) -> list[str]:
+    def _extract_media_urls(
+        raw_post: dict[str, Any], media_by_key: dict[str, dict[str, Any]]
+    ) -> list[str]:
         media_urls: list[str] = []
         media_keys = (raw_post.get("attachments") or {}).get("media_keys", [])
         for media_key in media_keys:
@@ -809,7 +824,9 @@ class XIntelCollector:
             elif bridge_handle and handle == bridge_handle:
                 role = "bridge"
 
-            exemplar = next(item.post for item in posts if item.post.author.handle.lower() == handle)
+            exemplar = next(
+                item.post for item in posts if item.post.author.handle.lower() == handle
+            )
             top_accounts.append(
                 ClusterTopAccount(
                     user_id=exemplar.author.user_id,
@@ -1036,7 +1053,9 @@ class XIntelCollector:
                     marker_hits += 1
 
             sentence_lengths = [
-                len(segment.split()) for segment in re.split(r"[.!?]+", post.text) if segment.strip()
+                len(segment.split())
+                for segment in re.split(r"[.!?]+", post.text)
+                if segment.strip()
             ]
             sentence_std = self._std_dev(sentence_lengths)
 

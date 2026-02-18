@@ -66,7 +66,9 @@ class InMemoryRateLimiter:
 def _path_bucket(path: str) -> str:
     if path.endswith("/detect/text"):
         return "text"
-    if "/detect/" in path and any(path.endswith(suffix) for suffix in ("/image", "/audio", "/video", "/url")):
+    if "/detect/" in path and any(
+        path.endswith(suffix) for suffix in ("/image", "/audio", "/video", "/url")
+    ):
         return "media"
     if "/batch/" in path:
         return "batch"
@@ -131,4 +133,3 @@ async def rate_limit(request: Request) -> None:
         daily_points=usage["daily_points"],
         window_limit=usage["limit"],
     )
-

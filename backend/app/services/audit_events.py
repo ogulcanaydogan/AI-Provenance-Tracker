@@ -142,13 +142,18 @@ class AuditEventStore:
 
             total = int((await session.execute(count_query)).scalar() or 0)
             rows = (
-                await session.execute(
-                    base_query
-                    .order_by(desc(AuditEventRecord.created_at), desc(AuditEventRecord.id))
-                    .offset(offset)
-                    .limit(limit)
+                (
+                    await session.execute(
+                        base_query.order_by(
+                            desc(AuditEventRecord.created_at), desc(AuditEventRecord.id)
+                        )
+                        .offset(offset)
+                        .limit(limit)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
         items = [self._to_item(row) for row in rows]
         return items, total
