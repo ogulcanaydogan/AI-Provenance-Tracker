@@ -19,6 +19,34 @@ on:
         description: "Optional API URL override used by frontend build"
         required: false
         type: string
+      smoke_base_url:
+        description: "Optional smoke test API URL override"
+        required: false
+        type: string
+      run_smoke:
+        description: "Run smoke tests after deploy"
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+      rollback_on_smoke_failure:
+        description: "Attempt rollback to previous commit when smoke fails"
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+      runner_type:
+        description: "Runner type for this deploy"
+        required: true
+        type: choice
+        options:
+          - "github-hosted"
+          - "self-hosted"
+        default: "github-hosted"
   push:
     branches: [main]
     paths:
@@ -39,7 +67,7 @@ concurrency:
 jobs:
   deploy:
     if: ${{ github.event_name == 'workflow_dispatch' || vars.ENABLE_SPARK_DEPLOY == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 35
     env:
       SPARK_SSH_HOST: ${{ secrets.SPARK_SSH_HOST }}
@@ -49,9 +77,17 @@ jobs:
       SPARK_REMOTE_DIR_VAR: ${{ vars.SPARK_REMOTE_DIR }}
       SPARK_PUBLIC_API_URL_VAR: ${{ vars.SPARK_PUBLIC_API_URL }}
       SPARK_DEPLOY_FRONTEND_VAR: ${{ vars.SPARK_DEPLOY_FRONTEND }}
+      SPARK_RUNNER_TYPE_VAR: ${{ vars.SPARK_RUNNER_TYPE }}
+      SPARK_RUN_SMOKE_VAR: ${{ vars.SPARK_RUN_SMOKE }}
+      SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR: ${{ vars.SPARK_ROLLBACK_ON_SMOKE_FAILURE }}
       X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+      SPARK_SMOKE_API_KEY: ${{ secrets.SPARK_SMOKE_API_KEY }}
+      SPARK_SMOKE_API_KEY_HEADER: ${{ vars.SPARK_SMOKE_API_KEY_HEADER || 'X-API-Key' }}
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Validate required Spark secrets
         run: |
@@ -74,6 +110,10 @@ jobs:
           remote_dir="${SPARK_REMOTE_DIR_VAR:-/home/weezboo/ogulcan/ai-provenance-tracker}"
           public_api_url="${SPARK_PUBLIC_API_URL_VAR:-}"
           deploy_frontend="${SPARK_DEPLOY_FRONTEND_VAR:-false}"
+          runner_type="${SPARK_RUNNER_TYPE_VAR:-github-hosted}"
+          smoke_base_url="${SPARK_PUBLIC_API_URL_VAR:-}"
+          run_smoke="${SPARK_RUN_SMOKE_VAR:-true}"
+          rollback_on_smoke_failure="${SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR:-true}"
           ssh_port="${SPARK_SSH_PORT:-22}"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -83,15 +123,35 @@ jobs:
             if [ -n "${{ github.event.inputs.public_api_url }}" ]; then
               public_api_url="${{ github.event.inputs.public_api_url }}"
             fi
+            if [ -n "${{ github.event.inputs.smoke_base_url }}" ]; then
+              smoke_base_url="${{ github.event.inputs.smoke_base_url }}"
+            fi
             if [ -n "${{ github.event.inputs.deploy_frontend }}" ]; then
               deploy_frontend="${{ github.event.inputs.deploy_frontend }}"
             fi
+            if [ -n "${{ github.event.inputs.run_smoke }}" ]; then
+              run_smoke="${{ github.event.inputs.run_smoke }}"
+            fi
+            if [ -n "${{ github.event.inputs.rollback_on_smoke_failure }}" ]; then
+              rollback_on_smoke_failure="${{ github.event.inputs.rollback_on_smoke_failure }}"
+            fi
+            if [ -n "${{ github.event.inputs.runner_type }}" ]; then
+              runner_type="${{ github.event.inputs.runner_type }}"
+            fi
+          fi
+
+          if [ -z "${smoke_base_url}" ]; then
+            smoke_base_url="${public_api_url}"
           fi
 
           {
             echo "remote_dir=${remote_dir}"
             echo "public_api_url=${public_api_url}"
             echo "deploy_frontend=${deploy_frontend}"
+            echo "runner_type=${runner_type}"
+            echo "smoke_base_url=${smoke_base_url}"
+            echo "run_smoke=${run_smoke}"
+            echo "rollback_on_smoke_failure=${rollback_on_smoke_failure}"
             echo "ssh_port=${ssh_port}"
           } >> "$GITHUB_OUTPUT"
 
@@ -126,7 +186,114 @@ jobs:
           X_BEARER_TOKEN="${X_BEARER_TOKEN:-}" \
           ./scripts/deploy_spark.sh
 
+      - name: Set up Python for smoke test
+        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies for smoke test
+        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        run: |
+          cd backend
+          pip install -e .
+
+      - name: Run Spark smoke test
+        id: smoke
+        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cd backend
+          python scripts/smoke_detect_prod.py \
+            --base-url "${{ steps.resolve.outputs.smoke_base_url }}" \
+            --api-key "${SPARK_SMOKE_API_KEY:-}" \
+            --api-key-header "${SPARK_SMOKE_API_KEY_HEADER}" \
+            --output ./evidence/smoke/spark_detect_smoke.json
+
+      - name: Roll back to previous commit after smoke failure
+        id: rollback
+        if: ${{ steps.resolve.outputs.rollback_on_smoke_failure == 'true' && steps.smoke.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          rollback_sha="$(git rev-list --max-count=2 HEAD | tail -n 1)"
+          if [ -z "${rollback_sha}" ]; then
+            echo "Rollback commit not found."
+            exit 1
+          fi
+          echo "Rolling back to ${rollback_sha}"
+          git checkout --detach "${rollback_sha}"
+          SPARK_HOST=spark-ci \
+          SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
+          SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
+          SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \
+          X_BEARER_TOKEN="${X_BEARER_TOKEN:-}" \
+          ./scripts/deploy_spark.sh
+          git checkout --detach "${GITHUB_SHA}"
+          echo "rollback_sha=${rollback_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Re-run smoke after rollback
+        id: smoke_after_rollback
+        if: ${{ steps.rollback.outcome == 'success' && steps.resolve.outputs.smoke_base_url != '' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cd backend
+          python scripts/smoke_detect_prod.py \
+            --base-url "${{ steps.resolve.outputs.smoke_base_url }}" \
+            --api-key "${SPARK_SMOKE_API_KEY:-}" \
+            --api-key-header "${SPARK_SMOKE_API_KEY_HEADER}" \
+            --output ./evidence/smoke/spark_detect_smoke_after_rollback.json
+
+      - name: Enforce smoke gate
+        if: ${{ steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
+        run: |
+          if [ "${{ steps.smoke.outcome }}" = "success" ]; then
+            echo "Smoke test passed."
+            exit 0
+          fi
+
+          if [ "${{ steps.resolve.outputs.rollback_on_smoke_failure }}" = "true" ] && [ "${{ steps.rollback.outcome }}" = "success" ]; then
+            echo "Smoke failed and rollback was attempted (sha: ${{ steps.rollback.outputs.rollback_sha }})."
+            if [ "${{ steps.smoke_after_rollback.outcome }}" = "success" ]; then
+              echo "Post-rollback smoke is healthy."
+            fi
+          fi
+
+          echo "Smoke gate failed."
+          exit 1
+
+      - name: Upload Spark smoke artifacts
+        if: ${{ always() && steps.resolve.outputs.run_smoke == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: spark-deploy-smoke
+          path: backend/evidence/smoke
+          retention-days: 14
+
+      - name: Send failure alert webhook
+        if: ${{ always() && failure() && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        run: |
+          set -euo pipefail
+          payload="$(cat <<JSON
+          {
+            "event": "spark_deploy_failure",
+            "repository": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "smoke_outcome": "${{ steps.smoke.outcome }}",
+            "rollback_outcome": "${{ steps.rollback.outcome }}"
+          }
+          JSON
+          )"
+          curl -fsS -X POST "${OPS_ALERT_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            --data "${payload}"
+
       - name: Write deployment summary
+        if: ${{ always() }}
         run: |
           {
             echo "## Spark Deploy Summary"
@@ -134,9 +301,16 @@ jobs:
             echo "- Commit: \`${{ github.sha }}\`"
             echo "- Remote dir: \`${{ steps.resolve.outputs.remote_dir }}\`"
             echo "- Deploy frontend: \`${{ steps.resolve.outputs.deploy_frontend }}\`"
+            echo "- Runner type: \`${{ steps.resolve.outputs.runner_type || 'github-hosted' }}\`"
+            echo "- Run smoke: \`${{ steps.resolve.outputs.run_smoke }}\`"
+            echo "- Smoke outcome: \`${{ steps.smoke.outcome || 'skipped' }}\`"
+            echo "- Rollback outcome: \`${{ steps.rollback.outcome || 'not_triggered' }}\`"
             if [ -n "${{ steps.resolve.outputs.public_api_url }}" ]; then
               echo "- Frontend API URL: \`${{ steps.resolve.outputs.public_api_url }}\`"
             else
               echo "- Frontend API URL: \`(default from deploy script)\`"
+            fi
+            if [ -n "${{ steps.resolve.outputs.smoke_base_url }}" ]; then
+              echo "- Smoke base URL: \`${{ steps.resolve.outputs.smoke_base_url }}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

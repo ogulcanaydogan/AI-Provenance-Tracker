@@ -1,10 +1,12 @@
 {
-  "updated_at": "2026-02-17T18:10:27.020094+00:00",
+  "updated_at": "2026-02-18T16:11:43.215506+00:00",
   "columns": [
     "rank",
     "model_id",
     "detection_f1",
     "roc_auc",
+    "audio_detection_f1",
+    "video_detection_f1",
     "attribution_accuracy",
     "robustness_score",
     "overall_score",
@@ -12,13 +14,15 @@
   ],
   "entries": [
     {
-      "model_id": "baseline-heuristic-v0.1",
-      "updated_at": "2026-02-17T18:10:27.020094+00:00",
+      "model_id": "baseline-heuristic-v0.2",
+      "updated_at": "2026-02-18T16:11:43.215506+00:00",
       "detection_f1": 0.8889,
       "roc_auc": 1.0,
+      "audio_detection_f1": 0.9231,
+      "video_detection_f1": 0.8571,
       "attribution_accuracy": 0.6667,
       "robustness_score": 0.9524,
-      "overall_score": 0.8818,
+      "overall_score": 0.8814,
       "rank": 1
     }
   ]

@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-02-18T16:12:00.672084+00:00",
+  "baseline_snapshot": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/benchmark/baselines/public_benchmark_snapshot.json",
+  "current_benchmark": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/benchmark/results/latest/benchmark_results.json",
+  "total_checks": 6,
+  "failed_checks": 0,
+  "passed": true,
+  "checks": [
+    {
+      "path": "tasks.ai_vs_human_detection.f1",
+      "baseline": 0.8889,
+      "current": 0.8889,
+      "max_drop": 0.03,
+      "min_allowed": 0.8589,
+      "delta": 0.0,
+      "passed": true
+    },
+    {
+      "path": "tasks.ai_vs_human_detection.roc_auc",
+      "baseline": 1.0,
+      "current": 1.0,
+      "max_drop": 0.01,
+      "min_allowed": 0.99,
+      "delta": 0.0,
+      "passed": true
+    },
+    {
+      "path": "tasks.source_attribution.accuracy",
+      "baseline": 0.6667,
+      "current": 0.6667,
+      "max_drop": 0.03,
+      "min_allowed": 0.6366999999999999,
+      "delta": 0.0,
+      "passed": true
+    },
+    {
+      "path": "tasks.tamper_detection.robustness_score",
+      "baseline": 0.9524,
+      "current": 0.9524,
+      "max_drop": 0.03,
+      "min_allowed": 0.9224,
+      "delta": 0.0,
+      "passed": true
+    },
+    {
+      "path": "tasks.audio_ai_vs_human_detection.f1",
+      "baseline": 0.9231,
+      "current": 0.9231,
+      "max_drop": 0.05,
+      "min_allowed": 0.8731,
+      "delta": 0.0,
+      "passed": true
+    },
+    {
+      "path": "tasks.video_ai_vs_human_detection.f1",
+      "baseline": 0.8571,
+      "current": 0.8571,
+      "max_drop": 0.05,
+      "min_allowed": 0.8070999999999999,
+      "delta": 0.0,
+      "passed": true
+    }
+  ]
+}

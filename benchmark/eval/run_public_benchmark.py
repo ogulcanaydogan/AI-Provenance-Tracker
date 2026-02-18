@@ -60,6 +60,12 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _load_optional_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return _load_jsonl(path)
+
+
 def _roc_auc(labels: list[int], scores: list[float]) -> float:
     positives = [score for label, score in zip(labels, scores, strict=False) if label == 1]
     negatives = [score for label, score in zip(labels, scores, strict=False) if label == 0]
@@ -242,6 +248,8 @@ def _write_markdown_summary(path: Path, results: dict[str, Any], model_id: str) 
     detection = results["tasks"]["ai_vs_human_detection"]
     attribution = results["tasks"]["source_attribution"]
     tamper = results["tasks"]["tamper_detection"]
+    audio_detection = results["tasks"].get("audio_ai_vs_human_detection", {})
+    video_detection = results["tasks"].get("video_ai_vs_human_detection", {})
 
     lines = [
         "# Public Benchmark Baseline Results",
@@ -255,6 +263,8 @@ def _write_markdown_summary(path: Path, results: dict[str, Any], model_id: str) 
         "| --- | --- | ---: |",
         f"| AI vs Human Detection | F1 | {detection['f1']} |",
         f"| AI vs Human Detection | ROC-AUC | {detection['roc_auc']} |",
+        f"| Audio AI vs Human Detection | F1 | {audio_detection.get('f1', 'n/a')} |",
+        f"| Video AI vs Human Detection | F1 | {video_detection.get('f1', 'n/a')} |",
         f"| Source Attribution | Accuracy | {attribution['accuracy']} |",
         f"| Tamper Robustness | Robustness Score | {tamper['robustness_score']} |",
         "",
@@ -275,12 +285,18 @@ def _upsert_leaderboard_entry(
     detection = results["tasks"]["ai_vs_human_detection"]
     attribution = results["tasks"]["source_attribution"]
     tamper = results["tasks"]["tamper_detection"]
+    audio_detection = results["tasks"].get("audio_ai_vs_human_detection", {})
+    video_detection = results["tasks"].get("video_ai_vs_human_detection", {})
+    audio_f1 = float(audio_detection.get("f1", 0.0))
+    video_f1 = float(video_detection.get("f1", 0.0))
 
     overall = (
-        0.4 * float(detection["f1"])
-        + 0.25 * float(detection["roc_auc"])
-        + 0.2 * float(attribution["accuracy"])
-        + 0.15 * float(tamper["robustness_score"])
+        0.34 * float(detection["f1"])
+        + 0.2 * float(detection["roc_auc"])
+        + 0.18 * float(attribution["accuracy"])
+        + 0.16 * float(tamper["robustness_score"])
+        + 0.06 * audio_f1
+        + 0.06 * video_f1
     )
 
     entry = {
@@ -288,6 +304,8 @@ def _upsert_leaderboard_entry(
         "updated_at": results["generated_at"],
         "detection_f1": detection["f1"],
         "roc_auc": detection["roc_auc"],
+        "audio_detection_f1": _round(audio_f1),
+        "video_detection_f1": _round(video_f1),
         "attribution_accuracy": attribution["accuracy"],
         "robustness_score": tamper["robustness_score"],
         "overall_score": _round(overall),
@@ -303,6 +321,8 @@ def _upsert_leaderboard_entry(
                 "model_id",
                 "detection_f1",
                 "roc_auc",
+                "audio_detection_f1",
+                "video_detection_f1",
                 "attribution_accuracy",
                 "robustness_score",
                 "overall_score",
@@ -311,7 +331,26 @@ def _upsert_leaderboard_entry(
             "entries": [],
         }
 
-    existing = [item for item in board.get("entries", []) if item.get("model_id") != model_id]
+    board["columns"] = [
+        "rank",
+        "model_id",
+        "detection_f1",
+        "roc_auc",
+        "audio_detection_f1",
+        "video_detection_f1",
+        "attribution_accuracy",
+        "robustness_score",
+        "overall_score",
+        "updated_at",
+    ]
+
+    existing = [
+        item
+        for item in board.get("entries", [])
+        if item.get("model_id") != model_id
+        and "audio_detection_f1" in item
+        and "video_detection_f1" in item
+    ]
     existing.append(entry)
     existing.sort(key=lambda item: float(item.get("overall_score", 0.0)), reverse=True)
 
@@ -337,14 +376,18 @@ def run() -> int:
     detection_rows = _load_jsonl(datasets_dir / "detection_multidomain.jsonl")
     attribution_rows = _load_jsonl(datasets_dir / "source_attribution.jsonl")
     tamper_rows = _load_jsonl(datasets_dir / "tamper_robustness.jsonl")
+    audio_rows = _load_optional_jsonl(datasets_dir / "audio_detection.jsonl")
+    video_rows = _load_optional_jsonl(datasets_dir / "video_detection.jsonl")
 
     results = {
         "generated_at": datetime.now(UTC).isoformat(),
-        "benchmark_version": "v0.1",
+        "benchmark_version": "v0.2",
         "datasets": {
             "detection_multidomain": len(detection_rows),
             "source_attribution": len(attribution_rows),
             "tamper_robustness": len(tamper_rows),
+            "audio_detection": len(audio_rows),
+            "video_detection": len(video_rows),
         },
         "tasks": {
             "ai_vs_human_detection": _evaluate_detection(
@@ -352,6 +395,16 @@ def run() -> int:
             ),
             "source_attribution": _evaluate_attribution(attribution_rows),
             "tamper_detection": _evaluate_tamper(tamper_rows, threshold=args.decision_threshold),
+            "audio_ai_vs_human_detection": _evaluate_detection(
+                audio_rows, threshold=args.decision_threshold
+            )
+            if audio_rows
+            else {"status": "not_available", "samples": 0},
+            "video_ai_vs_human_detection": _evaluate_detection(
+                video_rows, threshold=args.decision_threshold
+            )
+            if video_rows
+            else {"status": "not_available", "samples": 0},
         },
     }
 

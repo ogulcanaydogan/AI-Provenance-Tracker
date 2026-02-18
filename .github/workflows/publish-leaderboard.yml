@@ -32,6 +32,13 @@ jobs:
             --output-dir benchmark/results/latest \
             --leaderboard-output benchmark/leaderboard/leaderboard.json \
             --model-id baseline-heuristic-pages
+      - name: Check benchmark regressions
+        run: |
+          python benchmark/eval/check_benchmark_regression.py \
+            --current benchmark/results/latest/benchmark_results.json \
+            --baseline benchmark/baselines/public_benchmark_snapshot.json \
+            --report-json benchmark/results/latest/regression_check.json \
+            --report-md benchmark/results/latest/regression_check.md
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

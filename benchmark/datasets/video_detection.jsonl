@@ -1,0 +1,12 @@
+{"sample_id":"vid-001","domain":"short_form","label_is_ai":1,"baseline_score":0.88,"source":"synthetic"}
+{"sample_id":"vid-002","domain":"short_form","label_is_ai":0,"baseline_score":0.14,"source":"human"}
+{"sample_id":"vid-003","domain":"interview","label_is_ai":1,"baseline_score":0.81,"source":"synthetic"}
+{"sample_id":"vid-004","domain":"interview","label_is_ai":0,"baseline_score":0.24,"source":"human"}
+{"sample_id":"vid-005","domain":"news_clip","label_is_ai":1,"baseline_score":0.74,"source":"synthetic"}
+{"sample_id":"vid-006","domain":"news_clip","label_is_ai":0,"baseline_score":0.36,"source":"human"}
+{"sample_id":"vid-007","domain":"gaming","label_is_ai":1,"baseline_score":0.69,"source":"synthetic"}
+{"sample_id":"vid-008","domain":"gaming","label_is_ai":0,"baseline_score":0.42,"source":"human"}
+{"sample_id":"vid-009","domain":"webcam","label_is_ai":1,"baseline_score":0.64,"source":"synthetic"}
+{"sample_id":"vid-010","domain":"webcam","label_is_ai":0,"baseline_score":0.53,"source":"human"}
+{"sample_id":"vid-011","domain":"animation","label_is_ai":1,"baseline_score":0.57,"source":"synthetic"}
+{"sample_id":"vid-012","domain":"animation","label_is_ai":0,"baseline_score":0.59,"source":"human"}

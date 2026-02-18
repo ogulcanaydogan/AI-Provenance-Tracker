@@ -1,10 +1,12 @@
 {
-  "generated_at": "2026-02-17T18:10:27.020094+00:00",
-  "benchmark_version": "v0.1",
+  "generated_at": "2026-02-18T16:11:43.215506+00:00",
+  "benchmark_version": "v0.2",
   "datasets": {
     "detection_multidomain": 24,
     "source_attribution": 18,
-    "tamper_robustness": 24
+    "tamper_robustness": 24,
+    "audio_detection": 12,
+    "video_detection": 12
   },
   "tasks": {
     "ai_vs_human_detection": {
@@ -98,6 +100,52 @@
       "clean_f1": 1.0,
       "attacked_avg_f1": 0.9524,
       "robustness_score": 0.9524
+    },
+    "audio_ai_vs_human_detection": {
+      "threshold": 0.5,
+      "samples": 12,
+      "tp": 6,
+      "fp": 1,
+      "fn": 0,
+      "tn": 5,
+      "precision": 0.8571,
+      "recall": 1.0,
+      "f1": 0.9231,
+      "accuracy": 0.9167,
+      "roc_auc": 0.9722,
+      "calibration_ece": 0.2558,
+      "brier_score": 0.1182,
+      "false_positive_rate_by_domain": {
+        "assistant": 1.0,
+        "audiobook": 0.0,
+        "call_center": 0.0,
+        "news_audio": 0.0,
+        "podcast": 0.0,
+        "voice_note": 0.0
+      }
+    },
+    "video_ai_vs_human_detection": {
+      "threshold": 0.5,
+      "samples": 12,
+      "tp": 6,
+      "fp": 2,
+      "fn": 0,
+      "tn": 4,
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571,
+      "accuracy": 0.8333,
+      "roc_auc": 0.9722,
+      "calibration_ece": 0.2575,
+      "brier_score": 0.1284,
+      "false_positive_rate_by_domain": {
+        "animation": 1.0,
+        "gaming": 0.0,
+        "interview": 0.0,
+        "news_clip": 0.0,
+        "short_form": 0.0,
+        "webcam": 1.0
+      }
     }
   }
 }

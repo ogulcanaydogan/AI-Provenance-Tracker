@@ -3,7 +3,11 @@ name: Production Smoke Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 10 * * 1"
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   detect-smoke:
@@ -13,6 +17,7 @@ jobs:
       PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +33,9 @@ jobs:
           echo "PRODUCTION_API_URL secret is not set. Configure repository secret before manual runs."
           exit 1
       - name: Run smoke suite
+        id: smoke
         if: ${{ env.PRODUCTION_API_URL != '' }}
+        continue-on-error: true
         run: |
           cd backend
           python scripts/smoke_detect_prod.py \
@@ -46,3 +53,49 @@ jobs:
           name: prod-detect-smoke
           path: backend/evidence/smoke/prod_detect_smoke.json
           retention-days: 14
+      - name: Send smoke failure alert webhook
+        if: ${{ always() && env.PRODUCTION_API_URL != '' && steps.smoke.outcome == 'failure' && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        run: |
+          set -euo pipefail
+          payload="$(cat <<JSON
+          {
+            "event": "production_smoke_failed",
+            "repository": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "base_url": "${PRODUCTION_API_URL}"
+          }
+          JSON
+          )"
+          curl -fsS -X POST "${OPS_ALERT_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            --data "${payload}"
+      - name: Open tracking issue on smoke failure
+        if: ${{ always() && env.PRODUCTION_API_URL != '' && steps.smoke.outcome == 'failure' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `[ops] Production smoke failed (${new Date().toISOString().slice(0, 10)})`;
+            const body = [
+              "Production smoke checks failed.",
+              "",
+              `- Workflow run: ${runUrl}`,
+              `- API URL: ${process.env.PRODUCTION_API_URL}`,
+              "",
+              "Please investigate backend health and detection endpoints.",
+            ].join("\n");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body
+            });
+      - name: Enforce smoke gate
+        if: ${{ env.PRODUCTION_API_URL != '' }}
+        run: |
+          if [ "${{ steps.smoke.outcome }}" != "success" ]; then
+            echo "Production smoke failed."
+            exit 1
+          fi
