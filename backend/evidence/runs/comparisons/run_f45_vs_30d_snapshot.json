@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-02-16T08:38:30.805883+00:00",
+  "base": {
+    "run_dir": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340",
+    "run_id": "run_f45db14e6340",
+    "window": "2026-02-01/2026-02-15",
+    "post_count": 0,
+    "unique_accounts": 0,
+    "risk_level": "low",
+    "confidence_overall": "low",
+    "timeline_days": 0,
+    "suspected_clusters": 0,
+    "narrative_topics": 0,
+    "benchmark_summary": {
+      "risk_level": "low",
+      "confidence_overall": "low",
+      "timeline_days": 0,
+      "suspected_clusters": 0,
+      "narrative_topics": 0,
+      "spike_days": 0,
+      "top_spike_markers": 0
+    }
+  },
+  "candidate": {
+    "run_dir": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_30d_input/run_30d_snapshot",
+    "run_id": "run_30d_snapshot",
+    "window": "2026-01-16/2026-02-15",
+    "post_count": 2,
+    "unique_accounts": 1,
+    "risk_level": "low",
+    "confidence_overall": "low",
+    "timeline_days": 1,
+    "suspected_clusters": 0,
+    "narrative_topics": 1,
+    "benchmark_summary": {
+      "risk_level": "low",
+      "confidence_overall": "low",
+      "timeline_days": 1,
+      "suspected_clusters": 0,
+      "narrative_topics": 1,
+      "spike_days": 0,
+      "top_spike_markers": 0
+    }
+  },
+  "delta": {
+    "post_count_delta": 2,
+    "unique_accounts_delta": 1,
+    "timeline_days_delta": 1,
+    "narrative_topics_delta": 1,
+    "suspected_clusters_delta": 0,
+    "risk_change": {
+      "direction": "same",
+      "delta": 0
+    },
+    "confidence_change": {
+      "direction": "same",
+      "delta": 0
+    }
+  }
+}

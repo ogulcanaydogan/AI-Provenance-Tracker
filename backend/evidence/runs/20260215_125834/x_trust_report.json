@@ -1,0 +1,359 @@
+{
+  "executive_summary": {
+    "risk_level": "medium",
+    "what_is_happening": "Collected 124 posts for @ogulcanaydogan. Observed narrative-driven discussion with probabilistic bot/AI signals.",
+    "why_now": "Volume spike centered on 2026-02-15 based on collected in-window activity.",
+    "top_3_findings": [
+      "post_count=124; unique_accounts=111",
+      "coordinated_clusters=0",
+      "max_bot_probability=0.45"
+    ],
+    "risk_rationale": [
+      "All bot/AI judgments are probabilistic and evidence-based.",
+      "Confidence depends on sample size, network coverage, and provenance availability."
+    ]
+  },
+  "timeline": [
+    {
+      "date": "2025-12-29",
+      "events": [
+        "1 posts observed in scope."
+      ],
+      "spikes": []
+    },
+    {
+      "date": "2025-12-30",
+      "events": [
+        "1 posts observed in scope."
+      ],
+      "spikes": []
+    },
+    {
+      "date": "2026-01-31",
+      "events": [
+        "2 posts observed in scope."
+      ],
+      "spikes": []
+    },
+    {
+      "date": "2026-02-15",
+      "events": [
+        "120 posts observed in scope."
+      ],
+      "spikes": [
+        "post_volume=120"
+      ]
+    }
+  ],
+  "bot_activity": {
+    "overall_assessment": "No strong coordinated bot activity detected in this sample.",
+    "suspected_clusters": []
+  },
+  "ai_generated_content": {
+    "overall_assessment": "AI-content signals are low-to-moderate and remain probabilistic.",
+    "notable_items": [
+      {
+        "tweet_id": "2017739287920275731",
+        "ai_probability_text": 0.08,
+        "ai_probability_image": 0.2,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.08",
+          "ai_image_probability=0.2",
+          "Media exists but original binary provenance not verified in this pass."
+        ],
+        "provenance_notes": [
+          "X API does not expose original file provenance/C2PA metadata.",
+          "Media URLs are present, but original binaries were not downloaded in this pass."
+        ],
+        "impact": "low",
+        "confidence": "medium"
+      },
+      {
+        "tweet_id": "2023017465102422217",
+        "ai_probability_text": 0.08,
+        "ai_probability_image": 0.2,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.08",
+          "ai_image_probability=0.2",
+          "Media exists but original binary provenance not verified in this pass."
+        ],
+        "provenance_notes": [
+          "X API does not expose original file provenance/C2PA metadata.",
+          "Media URLs are present, but original binaries were not downloaded in this pass."
+        ],
+        "impact": "low",
+        "confidence": "low"
+      },
+      {
+        "tweet_id": "2023017698582794371",
+        "ai_probability_text": 0.08,
+        "ai_probability_image": 0.2,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.08",
+          "ai_image_probability=0.2",
+          "Media exists but original binary provenance not verified in this pass."
+        ],
+        "provenance_notes": [
+          "X API does not expose original file provenance/C2PA metadata.",
+          "Media URLs are present, but original binaries were not downloaded in this pass."
+        ],
+        "impact": "low",
+        "confidence": "low"
+      },
+      {
+        "tweet_id": "2023018450440933439",
+        "ai_probability_text": 0.08,
+        "ai_probability_image": 0.2,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.08",
+          "ai_image_probability=0.2",
+          "Media exists but original binary provenance not verified in this pass."
+        ],
+        "provenance_notes": [
+          "X API does not expose original file provenance/C2PA metadata.",
+          "Media URLs are present, but original binaries were not downloaded in this pass."
+        ],
+        "impact": "low",
+        "confidence": "medium"
+      },
+      {
+        "tweet_id": "2023018514081313278",
+        "ai_probability_text": 0.08,
+        "ai_probability_image": 0.2,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.08",
+          "ai_image_probability=0.2",
+          "Media exists but original binary provenance not verified in this pass."
+        ],
+        "provenance_notes": [
+          "X API does not expose original file provenance/C2PA metadata.",
+          "Media URLs are present, but original binaries were not downloaded in this pass."
+        ],
+        "impact": "low",
+        "confidence": "low"
+      }
+    ],
+    "limitations": [
+      "AI probability is heuristic/model-based and not legal proof.",
+      "Provenance (C2PA/original binary chain) may be unavailable from API-only collection.",
+      "High-confidence decisions require independent verification."
+    ]
+  },
+  "claims_and_narratives": [
+    {
+      "topic_label": "pentagon",
+      "representative_claims": [
+        "The Pentagon is considering ending its relationship with Anthropic, the developer of the Claude AI model, following a dispute over limitations the company seeks to impose on military applications of its technology. https://t.co/4owbYoRsVE",
+        "RT @Pirat_Nation: The Pentagon is considering ending its partnership with Anthropic due to the company's refusal to relax AI safeguards for…"
+      ],
+      "reach_proxy": "medium",
+      "harm_assessment": "Narrative may influence reputation and should be monitored.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 14",
+        "sentiment=positive"
+      ]
+    },
+    {
+      "topic_label": "legally",
+      "representative_claims": [
+        "RT @iamnotlucymoon: i am legally obliged to disclose if i received a lip gloss for free in an IG story yet rishi sunak can write a column f…"
+      ],
+      "reach_proxy": "medium",
+      "harm_assessment": "Narrative may influence reputation and should be monitored.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 14",
+        "sentiment=neutral"
+      ]
+    },
+    {
+      "topic_label": "anthropic",
+      "representative_claims": [
+        "RT @SmallCapSnipa: Anthropic CEO Dario Amodei on the AI energy buildout: “The amount of compute the industry is building goes up by 3x eac…",
+        "この点 Anthropic は画像・音楽生成はやらないと弁えてるので偉いと思う。それでも批判は喰らってますけどね https://t.co/vodZLHnJ17"
+      ],
+      "reach_proxy": "medium",
+      "harm_assessment": "Narrative may influence reputation and should be monitored.",
+      "recommended_response": "clarify",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 13",
+        "sentiment=negative"
+      ]
+    },
+    {
+      "topic_label": "chatgpt",
+      "representative_claims": [
+        "RT @JaisitoL: CHATGPT ES PASADO: En este video te muestro algunas de las IAs que están destacando en 2026 y cómo están evolucionando: • C…"
+      ],
+      "reach_proxy": "medium",
+      "harm_assessment": "Narrative may influence reputation and should be monitored.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 10",
+        "sentiment=neutral"
+      ]
+    },
+    {
+      "topic_label": "thanks",
+      "representative_claims": [
+        "@Pow3ja @sama @Google @Gemini @GoogleDeepMind @OpenAI @xai @AnthropicAI @claudeai @ChatGPTapp Thanks for the link—intriguing vision of the Silicon Cathedral as a steward for AI, using Moltbook to foster cooperative evolution and God Codex for environmental safeguards. Integrating",
+        "@BuildFastWithAI @MiniMax_AI @claudeai @Zai_org @Kimi_Moonshot Thanks for sharing the challenge!"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 3",
+        "sentiment=positive"
+      ]
+    },
+    {
+      "topic_label": "today",
+      "representative_claims": [
+        "RT @MrinankSharma: Today is my last day at Anthropic. I resigned. Here is the letter I shared with my colleagues, explaining my decision.…"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 3",
+        "sentiment=neutral"
+      ]
+    },
+    {
+      "topic_label": "same",
+      "representative_claims": [
+        "RT @EJShone93: Same is true for newspapers etc Rishi Sunak joined Anthropic and Microsoft last October. A few weeks later he became a Time…"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 2",
+        "sentiment=neutral"
+      ]
+    },
+    {
+      "topic_label": "true",
+      "representative_claims": [
+        "@thesayannayak @claudeai @Kimi_Moonshot True, but the max plan of 100 a month is totally worth it",
+        "🚨IF THIS IS TRUE WE HAVE A BIG PROBLEM!!!! During safety testing, Anthropic’s Claude AI was told it was about to be shut down. It did not take that lightly. In some simulations, it tried to blackmail the person about to turn it off. In others, it made choices that could https://t"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 2",
+        "sentiment=positive"
+      ]
+    },
+    {
+      "topic_label": "think",
+      "representative_claims": [
+        "RT @renegadesilicon: @ch402 I think the issue, poorly articulated by many tbf, is that Amanda has been shoved into an Atlas-like position b…",
+        "I think AIs still do some mistakes and a human should control some decisions because they lack of common sense for edge cases. It was pointed out in an experiment Anthropic released last year that AIs can be manipulated. What if a client reported a bug with the message below? htt"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 2",
+        "sentiment=negative"
+      ]
+    },
+    {
+      "topic_label": "ai",
+      "representative_claims": [
+        "RT @m_kumagai: 今、話題のClaude Codeは3種類あるのご存知でしたか？😊 １）Web版 ２）アプリ版 ３）ターミナル版 それぞれのメリデメはこの表で👇️ アクセス方法はリプ欄に👇 #AI #ClaudeCode #GMOインターネットグループ ht…",
+        "So, I'm building an #AI powered #SAAS product that: - Helps the user analyse his resume/cv based on Job Description. - It also provide improved bullet points - And various insightful suggestions to improve ¿Can you guys validate this idea?? #ChatGPT #ClaudeCode #Startup"
+      ],
+      "reach_proxy": "low",
+      "harm_assessment": "Limited observed spread in current sample.",
+      "recommended_response": "ignore",
+      "response_rationale": [
+        "spread_over_time=2026-02-15: 2",
+        "sentiment=neutral"
+      ]
+    }
+  ],
+  "recommended_strategy": {
+    "next_24h": [
+      {
+        "action": "Publish one source-backed clarification for top active narrative.",
+        "why": "Protect brand trust with fast clarifications and source-backed updates.",
+        "impact": "Reduces ambiguity and rumor spread.",
+        "cost": "low"
+      },
+      {
+        "action": "Activate keyword watchlist and alert thresholds for sudden volume spikes.",
+        "why": "Early detection prevents delayed responses.",
+        "impact": "Improves response speed.",
+        "cost": "low"
+      }
+    ],
+    "next_7d": [
+      {
+        "action": "Track daily claim deltas, repeated-text ratio, and shared-URL bursts.",
+        "why": "Separates organic discussion from coordinated amplification.",
+        "impact": "Improves decision quality.",
+        "cost": "med"
+      },
+      {
+        "action": "Create reusable FAQ snippets for recurring claims.",
+        "why": "Ensures consistent messaging quality.",
+        "impact": "Lowers operational load.",
+        "cost": "med"
+      }
+    ],
+    "next_30d": [
+      {
+        "action": "Add media provenance checks (hashing + metadata chain) for high-impact posts.",
+        "why": "Raises confidence in AI-image assertions.",
+        "impact": "Higher-quality moderation outcomes.",
+        "cost": "med"
+      },
+      {
+        "action": "Benchmark thresholds against historical baselines and labeled samples.",
+        "why": "Reduces false positives and improves calibration.",
+        "impact": "Higher analyst confidence.",
+        "cost": "med"
+      }
+    ],
+    "platform_actions": [
+      "report_spam",
+      "report_impersonation",
+      "mute_block",
+      "label_with_sources",
+      "monitor_keywords"
+    ],
+    "communications_playbook": [
+      {
+        "scenario": "Unverified claim with medium reach",
+        "do": "Clarify with timestamps and primary sources.",
+        "dont": "Use definitive language without evidence."
+      },
+      {
+        "scenario": "Rapid rumor spike",
+        "do": "Debunk once with canonical evidence and pin the update.",
+        "dont": "Repeat rumor framing in headlines."
+      }
+    ],
+    "response_templates": [
+      {
+        "channel": "X",
+        "template": "We are monitoring this topic and sharing only evidence-backed updates with source links and timestamps."
+      },
+      {
+        "channel": "statement",
+        "template": "Our monitoring detected increased discussion. We are validating claims and will publish verified findings transparently."
+      }
+    ]
+  },
+  "data_gaps": [
+    "Original media provenance artifacts (C2PA/original binary chain).",
+    "Cross-platform corroboration outside X.",
+    "Ground-truth labels for bot/non-bot calibration."
+  ],
+  "confidence_overall": "medium"
+}

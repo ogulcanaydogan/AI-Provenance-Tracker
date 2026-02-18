@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-02-15T17:00:18.566331+00:00",
+  "report_count": 1,
+  "benchmark_count": 1,
+  "reports": [
+    {
+      "file": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_20260215_170018/x_trust_report.json",
+      "risk_level": "medium",
+      "confidence_overall": "medium",
+      "timeline_days": 4,
+      "claim_topics": 10,
+      "top_findings": [
+        "post_count=124; unique_accounts=113",
+        "coordinated_clusters=0",
+        "max_bot_probability=0.35"
+      ]
+    }
+  ],
+  "benchmarks": [
+    {
+      "file": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_20260215_170018/x_trust_benchmark.json",
+      "bot_f1": 0.0,
+      "bot_precision": 0.0,
+      "bot_recall": 0.0,
+      "claim_accuracy": 0.0
+    }
+  ]
+}

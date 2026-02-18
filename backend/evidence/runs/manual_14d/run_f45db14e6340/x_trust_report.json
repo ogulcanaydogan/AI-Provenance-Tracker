@@ -1,0 +1,126 @@
+{
+  "executive_summary": {
+    "risk_level": "low",
+    "what_is_happening": "Collected 0 posts for @ogulcanaydogan. Observed narrative-driven discussion with probabilistic bot/AI signals.",
+    "why_now": "No posts were collected in the selected window.",
+    "top_3_findings": [
+      "post_count=0; unique_accounts=0",
+      "coordinated_clusters=0",
+      "max_bot_probability=0.0"
+    ],
+    "risk_rationale": [
+      "All bot/AI judgments are probabilistic and evidence-based.",
+      "Confidence depends on sample size, network coverage, and provenance availability."
+    ]
+  },
+  "timeline": [],
+  "bot_activity": {
+    "overall_assessment": "No strong coordinated bot activity detected in this sample.",
+    "suspected_clusters": []
+  },
+  "ai_generated_content": {
+    "overall_assessment": "AI-content signals are low-to-moderate and remain probabilistic.",
+    "notable_items": [
+      {
+        "tweet_id": "unavailable",
+        "ai_probability_text": 0.0,
+        "ai_probability_image": 0.0,
+        "why_it_looks_ai": [
+          "ai_text_probability=0.0",
+          "ai_image_probability=0.0"
+        ],
+        "provenance_notes": [
+          "No posts were collected in the selected window; AI content scoring is unavailable."
+        ],
+        "impact": "low",
+        "confidence": "low"
+      }
+    ],
+    "limitations": [
+      "AI probability is heuristic/model-based and not legal proof.",
+      "Provenance (C2PA/original binary chain) may be unavailable from API-only collection.",
+      "High-confidence decisions require independent verification."
+    ]
+  },
+  "claims_and_narratives": [],
+  "recommended_strategy": {
+    "next_24h": [
+      {
+        "action": "Publish one source-backed clarification for top active narrative.",
+        "why": "Protect brand trust with fast clarifications and source-backed updates.",
+        "impact": "Reduces ambiguity and rumor spread.",
+        "cost": "low"
+      },
+      {
+        "action": "Activate keyword watchlist and alert thresholds for sudden volume spikes.",
+        "why": "Early detection prevents delayed responses.",
+        "impact": "Improves response speed.",
+        "cost": "low"
+      }
+    ],
+    "next_7d": [
+      {
+        "action": "Track daily claim deltas, repeated-text ratio, and shared-URL bursts.",
+        "why": "Separates organic discussion from coordinated amplification.",
+        "impact": "Improves decision quality.",
+        "cost": "med"
+      },
+      {
+        "action": "Create reusable FAQ snippets for recurring claims.",
+        "why": "Ensures consistent messaging quality.",
+        "impact": "Lowers operational load.",
+        "cost": "med"
+      }
+    ],
+    "next_30d": [
+      {
+        "action": "Add media provenance checks (hashing + metadata chain) for high-impact posts.",
+        "why": "Raises confidence in AI-image assertions.",
+        "impact": "Higher-quality moderation outcomes.",
+        "cost": "med"
+      },
+      {
+        "action": "Benchmark thresholds against historical baselines and labeled samples.",
+        "why": "Reduces false positives and improves calibration.",
+        "impact": "Higher analyst confidence.",
+        "cost": "med"
+      }
+    ],
+    "platform_actions": [
+      "report_spam",
+      "report_impersonation",
+      "mute_block",
+      "label_with_sources",
+      "monitor_keywords"
+    ],
+    "communications_playbook": [
+      {
+        "scenario": "Unverified claim with medium reach",
+        "do": "Clarify with timestamps and primary sources.",
+        "dont": "Use definitive language without evidence."
+      },
+      {
+        "scenario": "Rapid rumor spike",
+        "do": "Debunk once with canonical evidence and pin the update.",
+        "dont": "Repeat rumor framing in headlines."
+      }
+    ],
+    "response_templates": [
+      {
+        "channel": "X",
+        "template": "We are monitoring this topic and sharing only evidence-backed updates with source links and timestamps."
+      },
+      {
+        "channel": "statement",
+        "template": "Our monitoring detected increased discussion. We are validating claims and will publish verified findings transparently."
+      }
+    ]
+  },
+  "data_gaps": [
+    "Original media provenance artifacts (C2PA/original binary chain).",
+    "Cross-platform corroboration outside X.",
+    "Ground-truth labels for bot/non-bot calibration.",
+    "Larger sample size needed for stronger coordination confidence."
+  ],
+  "confidence_overall": "low"
+}

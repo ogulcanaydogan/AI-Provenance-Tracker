@@ -1,1 +1,5 @@
-"""Video detection module (coming soon)."""
+"""Video detection module."""
+
+from app.detection.video.detector import VideoDetector
+
+__all__ = ["VideoDetector"]

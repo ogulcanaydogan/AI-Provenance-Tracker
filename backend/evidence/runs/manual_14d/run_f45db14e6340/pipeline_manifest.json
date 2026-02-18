@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-02-15T22:01:48.326330+00:00",
+  "run_id": "run_f45db14e6340",
+  "run_dir": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340",
+  "artifacts": {
+    "input": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/x_intel_input.json",
+    "input_canonical": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/x_intel_input.canonical.json",
+    "report": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/x_trust_report.json",
+    "report_canonical": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/x_trust_report.canonical.json",
+    "benchmark": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/x_trust_benchmark.json",
+    "evidence_pack_json": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/talent_visa_evidence_pack.json",
+    "evidence_pack_md": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/manual_14d/run_f45db14e6340/talent_visa_evidence_pack.md"
+  },
+  "checksums_sha256": {
+    "x_intel_input.canonical.json": "f45db14e6340753fb475e2d363075af0e899be025c77ab00f150b9f0ca9e97f6",
+    "x_trust_report.canonical.json": "38070e784166f680ac8712943fe77cc44778ef3b85d45fe8bd239296b40d2e61",
+    "x_trust_benchmark.json": "263c974674eb7467aa06b074f63b5859782a5e4e7f83ddf6586d78d4d39b38a7"
+  }
+}

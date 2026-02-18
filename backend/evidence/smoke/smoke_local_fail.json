@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-02-16T10:24:53.862981+00:00",
+  "base_url": "http://127.0.0.1:9",
+  "checks_total": 4,
+  "checks_passed": 0,
+  "checks_failed": 4,
+  "checks": [
+    {
+      "endpoint": "/api/v1/detect/text",
+      "ok": false,
+      "status_code": 0,
+      "latency_ms": 1.32,
+      "errors": [
+        "http_status:0",
+        "response_body_not_json"
+      ],
+      "parse_error": "request_error:[Errno 61] Connection refused"
+    },
+    {
+      "endpoint": "/api/v1/detect/image",
+      "ok": false,
+      "status_code": 0,
+      "latency_ms": 0.38,
+      "errors": [
+        "http_status:0",
+        "response_body_not_json"
+      ],
+      "parse_error": "request_error:[Errno 61] Connection refused"
+    },
+    {
+      "endpoint": "/api/v1/detect/audio",
+      "ok": false,
+      "status_code": 0,
+      "latency_ms": 0.25,
+      "errors": [
+        "http_status:0",
+        "response_body_not_json"
+      ],
+      "parse_error": "request_error:[Errno 61] Connection refused"
+    },
+    {
+      "endpoint": "/api/v1/detect/video",
+      "ok": false,
+      "status_code": 0,
+      "latency_ms": 0.22,
+      "errors": [
+        "http_status:0",
+        "response_body_not_json"
+      ],
+      "parse_error": "request_error:[Errno 61] Connection refused"
+    }
+  ]
+}

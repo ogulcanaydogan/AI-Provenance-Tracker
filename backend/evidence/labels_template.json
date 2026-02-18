@@ -1,0 +1,23 @@
+{
+  "bot_labels": [
+    {
+      "handle": "example_account_1",
+      "is_bot": false
+    },
+    {
+      "handle": "example_account_2",
+      "is_bot": true
+    }
+  ],
+  "claim_labels": [
+    {
+      "topic_label": "anthropic",
+      "recommended_response": "clarify"
+    },
+    {
+      "topic_label": "breaking",
+      "recommended_response": "debunk"
+    }
+  ]
+}
+
