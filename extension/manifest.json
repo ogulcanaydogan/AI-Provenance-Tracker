@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "AI Provenance Tracker",
+  "description": "Analyze the current page text for AI-generated content.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "AI Provenance Tracker",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"]
+}

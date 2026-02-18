@@ -1,0 +1,48 @@
+{
+  "target": "@ogulcanaydogan",
+  "window": "2026-02-01/2026-02-15",
+  "posts": [],
+  "network_signals": {
+    "coordinated_clusters": [],
+    "amplification_graph_metrics": {
+      "density": 0.0,
+      "modularity": 0.0,
+      "central_accounts": []
+    }
+  },
+  "bot_scores": [
+    {
+      "user_id": "2938590202",
+      "handle": "OgulcanAydogan",
+      "bot_probability": 0.0,
+      "top_features": [
+        {
+          "feature": "data_availability",
+          "value": "insufficient",
+          "why_it_matters": "Bot probability could not be computed because no posts were collected."
+        }
+      ],
+      "confidence": "low"
+    }
+  ],
+  "ai_content_scores": [
+    {
+      "tweet_id": "unavailable",
+      "ai_text_probability": 0.0,
+      "ai_image_probability": 0.0,
+      "provenance_notes": [
+        "No posts were collected in the selected window; AI content scoring is unavailable."
+      ],
+      "confidence": "low"
+    }
+  ],
+  "claim_clusters": [],
+  "user_context": {
+    "sector": "unknown",
+    "risk_tolerance": "medium",
+    "preferred_language": "tr",
+    "user_profile": "brand",
+    "legal_pr_capacity": "basic",
+    "goal": "reputation_protection"
+  }
+}

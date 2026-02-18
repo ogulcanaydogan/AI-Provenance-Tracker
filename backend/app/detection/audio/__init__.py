@@ -1,1 +1,5 @@
-"""Audio detection module (coming soon)."""
+"""Audio detection module."""
+
+from app.detection.audio.detector import AudioDetector
+
+__all__ = ["AudioDetector"]

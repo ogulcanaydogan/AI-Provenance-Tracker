@@ -1,0 +1,74 @@
+{
+  "target": "@ogulcanaydogan",
+  "window": "2025-11-17/2026-02-15",
+  "clusters": [],
+  "claim_timeline": [
+    {
+      "date": "2025-12-29",
+      "total_mentions": 0,
+      "topics": []
+    },
+    {
+      "date": "2025-12-30",
+      "total_mentions": 0,
+      "topics": []
+    },
+    {
+      "date": "2026-01-31",
+      "total_mentions": 5,
+      "topics": [
+        {
+          "topic_label": "anthropic",
+          "count": 2
+        },
+        {
+          "topic_label": "anthropicは",
+          "count": 2
+        },
+        {
+          "topic_label": "claude",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-02-15",
+      "total_mentions": 198,
+      "topics": [
+        {
+          "topic_label": "anthropic",
+          "count": 59
+        },
+        {
+          "topic_label": "anthropicは",
+          "count": 59
+        },
+        {
+          "topic_label": "claude",
+          "count": 23
+        },
+        {
+          "topic_label": "legally",
+          "count": 18
+        },
+        {
+          "topic_label": "pentagon",
+          "count": 14
+        },
+        {
+          "topic_label": "chatgpt",
+          "count": 14
+        },
+        {
+          "topic_label": "breaking",
+          "count": 4
+        },
+        {
+          "topic_label": "instead",
+          "count": 4
+        }
+      ]
+    }
+  ],
+  "alerts": []
+}

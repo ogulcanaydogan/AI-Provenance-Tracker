@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-02-16T10:24:00.320007+00:00",
+  "report_count": 2,
+  "benchmark_count": 1,
+  "reports": [
+    {
+      "file": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/weekly_smoke/testweekly_20260216_102400/x_trust_report.canonical.json",
+      "risk_level": "low",
+      "confidence_overall": "low",
+      "timeline_days": 0,
+      "claim_topics": 0,
+      "top_findings": [
+        "post_count=0; unique_accounts=0",
+        "coordinated_clusters=0",
+        "max_bot_probability=0.0"
+      ]
+    },
+    {
+      "file": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/weekly_smoke/testweekly_20260216_102400/x_trust_report.json",
+      "risk_level": "low",
+      "confidence_overall": "low",
+      "timeline_days": 0,
+      "claim_topics": 0,
+      "top_findings": [
+        "post_count=0; unique_accounts=0",
+        "coordinated_clusters=0",
+        "max_bot_probability=0.0"
+      ]
+    }
+  ],
+  "benchmarks": [
+    {
+      "file": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/weekly_smoke/testweekly_20260216_102400/x_trust_benchmark.json",
+      "bot_f1": 0.0,
+      "bot_precision": 0.0,
+      "bot_recall": 0.0,
+      "claim_accuracy": 0.0
+    }
+  ]
+}

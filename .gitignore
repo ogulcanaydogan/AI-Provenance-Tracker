@@ -91,3 +91,7 @@ models/
 crash.log
 *.tfvars
 *.tfvars.json
+
+# X intelligence data (personal/collected data)
+backend/x_intel_input*.json
+backend/x_trust_report*.json

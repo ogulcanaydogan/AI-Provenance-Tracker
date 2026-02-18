@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-02-15T17:00:18.527735+00:00",
+  "report_summary": {
+    "risk_level": "medium",
+    "confidence_overall": "medium",
+    "timeline_days": 4,
+    "suspected_clusters": 0,
+    "narrative_topics": 10,
+    "spike_days": 1,
+    "top_spike_markers": 1
+  },
+  "metrics": {
+    "bot_detection": {
+      "evaluated_accounts": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "note": "No bot_labels provided."
+    },
+    "claim_response": {
+      "evaluated_topics": 0,
+      "accuracy": 0.0,
+      "note": "No claim_labels provided."
+    }
+  }
+}

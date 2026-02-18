@@ -1,0 +1,8 @@
+{
+  "generated_at": "2026-02-16T10:24:00.402003+00:00",
+  "run_id": "testweekly_20260216_102400",
+  "current_run_dir": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/weekly_smoke/testweekly_20260216_102400",
+  "previous_run_dir": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/weekly_smoke/testweekly_20260216_102350",
+  "comparison_json": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/comparisons_smoke/testweekly_20260216_102350_vs_testweekly_20260216_102400.json",
+  "comparison_md": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/ai-provenance-tracker/backend/evidence/runs/comparisons_smoke/testweekly_20260216_102350_vs_testweekly_20260216_102400.md"
+}
