@@ -67,7 +67,7 @@ Railway note:
 
 - This workflow pins each service via `source.image=ghcr.io/...@sha256:...`.
 - If your current service is GitHub-source only, switch it once to Docker-image deployment first.
-- Workflow runs `railway whoami` before deploy; if it fails, rotate token and ensure it is account-scoped for workspace projects.
+- Workflow runs a non-blocking `railway whoami` probe before deploy for diagnostics.
 
 Manual deploy examples from GitHub Actions:
 

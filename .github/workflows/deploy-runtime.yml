@@ -294,13 +294,12 @@ jobs:
             echo "RAILWAY_TOKEN=${token}"
           } >> "$GITHUB_ENV"
 
-      - name: Probe Railway auth
+      - name: Probe Railway auth (non-blocking)
         run: |
           set -euo pipefail
           if ! railway whoami --json; then
-            echo "Railway auth probe failed."
-            echo "If this is a workspace project, prefer an account-scoped API token in GitHub secret RAILWAY_API_TOKEN."
-            exit 1
+            echo "Railway auth probe failed (non-blocking)."
+            echo "Continuing to link/deploy because workspace/project scoped tokens may not support whoami."
           fi
 
       - name: Link Railway project and environment
@@ -574,13 +573,12 @@ jobs:
             echo "RAILWAY_TOKEN=${token}"
           } >> "$GITHUB_ENV"
 
-      - name: Probe Railway auth
+      - name: Probe Railway auth (non-blocking)
         run: |
           set -euo pipefail
           if ! railway whoami --json; then
-            echo "Railway auth probe failed."
-            echo "If this is a workspace project, prefer an account-scoped API token in GitHub secret RAILWAY_API_TOKEN."
-            exit 1
+            echo "Railway auth probe failed (non-blocking)."
+            echo "Continuing to link/rollback because workspace/project scoped tokens may not support whoami."
           fi
 
       - name: Link Railway project and environment
