@@ -303,6 +303,8 @@ jobs:
           fi
 
       - name: Link Railway project and environment
+        id: railway_link
+        continue-on-error: ${{ github.event_name == 'workflow_run' }}
         run: |
           set -euo pipefail
           cmd=(railway link --project "${RAILWAY_PROJECT}" --environment "${RAILWAY_ENVIRONMENT}")
@@ -316,7 +318,15 @@ jobs:
             exit 1
           fi
 
+      - name: Skip automatic Railway deploy when link/auth fails
+        if: ${{ github.event_name == 'workflow_run' && steps.railway_link.outcome == 'failure' }}
+        run: |
+          echo "Skipping Railway pin/redeploy for this automatic run."
+          echo "Reason: Railway token cannot link to configured project/environment."
+          echo "Fix token/permissions and run this workflow manually if you need immediate deploy."
+
       - name: Pull pinned images from GHCR
+        if: ${{ steps.railway_link.outcome == 'success' }}
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker pull "${API_IMAGE}"
@@ -326,6 +336,7 @@ jobs:
 
       - name: Resolve image digests
         id: resolve_digests
+        if: ${{ steps.railway_link.outcome == 'success' }}
         run: |
           set -euo pipefail
           api_digest=$(docker image inspect --format='{{index .RepoDigests 0}}' "${API_IMAGE}" | cut -d'@' -f2)
@@ -343,11 +354,11 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Install cosign
-        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        if: ${{ steps.railway_link.outcome == 'success' && env.ENABLE_COSIGN_VERIFY == 'true' }}
         uses: sigstore/cosign-installer@v3.6.0
 
       - name: Verify image signatures
-        if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
+        if: ${{ steps.railway_link.outcome == 'success' && env.ENABLE_COSIGN_VERIFY == 'true' }}
         run: |
           set -euo pipefail
           if [ -z "${COSIGN_PUBLIC_KEY}" ]; then
@@ -361,6 +372,7 @@ jobs:
           fi
 
       - name: Pin and redeploy Railway API service
+        if: ${{ steps.railway_link.outcome == 'success' }}
         run: |
           set -euo pipefail
           railway environment edit \
@@ -371,7 +383,7 @@ jobs:
           railway redeploy --service "${RAILWAY_API_SERVICE}" --yes --json
 
       - name: Pin and redeploy Railway worker service (optional)
-        if: ${{ env.RAILWAY_WORKER_SERVICE != '' }}
+        if: ${{ steps.railway_link.outcome == 'success' && env.RAILWAY_WORKER_SERVICE != '' }}
         run: |
           set -euo pipefail
           railway environment edit \
