@@ -24,10 +24,20 @@ Optional fields:
 - `predicted_model_family_baseline` (heuristic attribution baseline)
 
 ## Run locally (single command)
-Start backend first, then run:
+`make benchmark-public` now auto-starts a local backend (`127.0.0.1:8000`) when needed:
 
 ```bash
 make benchmark-public
+```
+
+Useful overrides:
+
+```bash
+# Use an already-running remote backend
+BACKEND_URL=https://your-api.example.com AUTO_START_BACKEND=false make benchmark-public
+
+# Skip regression gate for quick smoke checks
+SKIP_REGRESSION_CHECK=true make benchmark-public
 ```
 
 Equivalent explicit command:

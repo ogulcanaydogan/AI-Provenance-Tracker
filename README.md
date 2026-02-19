@@ -20,6 +20,7 @@ Analyses text and images in production mode, with audio/video detection exposed 
 - C2PA verification works only when signed manifests are present and verifiable.
 - Confidence is not certainty. Output from this project is **not legal proof** and must not be the sole basis for high-stakes decisions.
 - Detailed methodology caveats: `docs/METHODOLOGY_LIMITATIONS.md`.
+- Delivery/progress tracker: `docs/ROADMAP_STATUS.md`.
 
 ### Do / Don't Use
 
