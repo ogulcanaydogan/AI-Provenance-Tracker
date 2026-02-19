@@ -277,7 +277,7 @@ jobs:
 
       - name: Upload Spark smoke artifacts
         if: ${{ always() && steps.resolve.outputs.run_smoke == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: spark-deploy-smoke
           path: backend/evidence/smoke

@@ -85,7 +85,7 @@ jobs:
         run: echo "X_BEARER_TOKEN secret is not set; skipping weekly evidence run."
       - name: Upload weekly artifacts
         if: ${{ always() && env.X_BEARER_TOKEN != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: weekly-talent-visa-evidence
           path: |

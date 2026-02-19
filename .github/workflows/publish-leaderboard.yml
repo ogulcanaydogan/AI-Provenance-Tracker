@@ -77,7 +77,7 @@ jobs:
             kill "$(cat benchmark/results/latest/backend.pid)" || true
           fi
       - name: Upload benchmark run artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-run-artifacts
           path: |

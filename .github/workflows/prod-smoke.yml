@@ -48,7 +48,7 @@ jobs:
         run: echo "PRODUCTION_API_URL secret is not set; skipping smoke tests."
       - name: Upload smoke artifact
         if: ${{ always() && env.PRODUCTION_API_URL != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: prod-detect-smoke
           path: backend/evidence/smoke/prod_detect_smoke.json
