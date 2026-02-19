@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import DateTime, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -16,6 +16,10 @@ class AnalysisRecord(Base):
     """Persisted detection result with metadata."""
 
     __tablename__ = "analysis_records"
+    __table_args__ = (
+        Index("ix_analysis_type_created", "content_type", "created_at"),
+        Index("ix_analysis_source_created", "source", "created_at"),
+    )
 
     analysis_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     content_type: Mapped[str] = mapped_column(String(16), index=True)
@@ -36,6 +40,11 @@ class AuditEventRecord(Base):
     """Persisted audit event for security/compliance observability."""
 
     __tablename__ = "audit_events"
+    __table_args__ = (
+        Index("ix_audit_type_created", "event_type", "created_at"),
+        Index("ix_audit_actor_created", "actor_id", "created_at"),
+        Index("ix_audit_severity_created", "severity", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(

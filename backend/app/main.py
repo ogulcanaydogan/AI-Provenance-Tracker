@@ -11,6 +11,7 @@ from app.api.v1 import router as api_router
 from app.core.config import settings
 from app.db import close_database, init_database
 from app.middleware.audit import audit_http_request
+from app.middleware.cache_headers import cache_control_middleware
 from app.middleware.error_handlers import register_error_handlers
 from app.services.job_scheduler import x_pipeline_scheduler
 
@@ -77,15 +78,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(audit_http_request)
+app.middleware("http")(cache_control_middleware)
 
 # Global error handlers (structured JSON errors with request IDs)
 register_error_handlers(app)
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
-    """Health check endpoint."""
-    return {"status": "healthy", "version": settings.app_version}
+async def health_check(deep: bool = False) -> dict:
+    """Health check endpoint.
+
+    Pass ?deep=true to verify database and Redis connectivity.
+    """
+    result: dict = {"status": "healthy", "version": settings.app_version}
+
+    if not deep:
+        return result
+
+    checks: dict[str, str] = {}
+
+    # Database connectivity
+    try:
+        from app.db.session import get_db_session
+        from sqlalchemy import text
+
+        async with get_db_session() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:
+        checks["database"] = f"error: {exc}"
+        result["status"] = "degraded"
+
+    # Redis connectivity (optional — Redis may not be deployed)
+    try:
+        import redis.asyncio as aioredis
+
+        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=2)
+        await r.ping()
+        await r.aclose()
+        checks["redis"] = "ok"
+    except Exception as exc:
+        checks["redis"] = f"unavailable: {exc}"
+        # Redis is optional so this is non-fatal
+
+    result["checks"] = checks
+    return result
 
 
 @app.get("/")
