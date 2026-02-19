@@ -7,9 +7,22 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "ogulcanaydogan"
+      time: "05:00"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 2
+    rebase-strategy: "disabled"
+    groups:
+      pip-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      pip-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     labels:
       - "dependencies"
       - "python"
@@ -23,9 +36,22 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "ogulcanaydogan"
+      time: "05:15"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 2
+    rebase-strategy: "disabled"
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     labels:
       - "dependencies"
       - "javascript"
@@ -39,9 +65,22 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
-    reviewers:
-      - "ogulcanaydogan"
+      time: "05:30"
+      timezone: "Europe/Istanbul"
+    open-pull-requests-limit: 2
+    rebase-strategy: "disabled"
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      actions-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     labels:
       - "dependencies"
       - "ci"
