@@ -1,0 +1,49 @@
+name: Dependabot Backlog Cleanup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/dependabot.yml"
+      - ".github/workflows/dependabot-backlog-cleanup.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  close-dependabot-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close open Dependabot PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const dependabotPulls = pulls.filter((pr) => pr.user?.login === "dependabot[bot]");
+            core.info(`Open Dependabot PR count: ${dependabotPulls.length}`);
+
+            for (const pr of dependabotPulls) {
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: pr.number,
+                state: "closed",
+              });
+              core.info(`Closed PR #${pr.number}: ${pr.title}`);
+            }
+
+            core.summary
+              .addHeading("Dependabot Backlog Cleanup")
+              .addRaw(`Closed PR count: ${dependabotPulls.length}`)
+              .write();
