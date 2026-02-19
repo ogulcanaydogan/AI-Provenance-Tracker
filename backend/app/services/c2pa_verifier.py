@@ -29,7 +29,9 @@ class C2PAVerificationResult:
 class C2PAVerifier:
     """Verifies media provenance manifest and signature using c2patool."""
 
-    def verify_bytes(self, media_bytes: bytes, filename: str | None = None) -> C2PAVerificationResult:
+    def verify_bytes(
+        self, media_bytes: bytes, filename: str | None = None
+    ) -> C2PAVerificationResult:
         if not media_bytes:
             return C2PAVerificationResult(
                 status="unsupported",
@@ -117,7 +119,9 @@ class C2PAVerifier:
 
     def _parse_payload(self, payload: dict[str, Any]) -> C2PAVerificationResult:
         manifest_present = bool(
-            self._first(payload, ("active_manifest", "manifest_store.active_manifest", "claim_generator"))
+            self._first(
+                payload, ("active_manifest", "manifest_store.active_manifest", "claim_generator")
+            )
             or self._first(payload, ("manifests",))
         )
 

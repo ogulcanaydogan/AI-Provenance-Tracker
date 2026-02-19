@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import re
 from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, HttpUrl
 
 from app.core.config import settings
@@ -41,9 +44,7 @@ class UrlDetectionRequest(BaseModel):
     url: HttpUrl = Field(..., description="Public URL to fetch and analyze")
 
     model_config = {
-        "json_schema_extra": {
-            "examples": [{"url": "https://example.com/article-to-check"}]
-        }
+        "json_schema_extra": {"examples": [{"url": "https://example.com/article-to-check"}]}
     }
 
 
@@ -61,6 +62,11 @@ def _filename_from_url(url: str) -> str:
         return "downloaded_image"
     filename = path.split("/")[-1]
     return filename or "downloaded_image"
+
+
+def _format_sse(event: str, payload: dict) -> str:
+    """Serialize one SSE event."""
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
 async def _apply_consensus(
@@ -132,6 +138,103 @@ async def detect_text(request: TextDetectionRequest) -> TextDetectionResponse:
         },
     )
     return result
+
+
+@router.post("/stream/text")
+async def detect_text_stream(request: TextDetectionRequest) -> StreamingResponse:
+    """Stream text detection progress and final result over SSE."""
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+    if len(request.text) > settings.max_text_length:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Text exceeds maximum length of {settings.max_text_length:,} characters",
+        )
+
+    async def event_stream():
+        text = request.text
+        yield _format_sse(
+            "started",
+            {
+                "stage": "started",
+                "text_length": len(text),
+            },
+        )
+
+        try:
+            internal_result = await text_detector.detect(text)
+            yield _format_sse(
+                "internal",
+                {
+                    "stage": "internal_scored",
+                    "confidence": internal_result.confidence,
+                    "is_ai_generated": internal_result.is_ai_generated,
+                    "model_prediction": internal_result.model_prediction.value
+                    if internal_result.model_prediction
+                    else None,
+                },
+            )
+            await asyncio.sleep(0)
+
+            final_result = await _apply_consensus(
+                content_type="text",
+                result=internal_result,
+                text=text,
+            )
+            final_result.analysis_id = await analysis_store.save_text_result(
+                text, final_result, source="api_stream"
+            )
+            await audit_event_store.safe_log_event(
+                event_type="detection.completed",
+                source="api_stream",
+                payload={
+                    "content_type": "text",
+                    "analysis_id": final_result.analysis_id,
+                    "source": "api_stream",
+                    "is_ai_generated": final_result.is_ai_generated,
+                    "confidence": final_result.confidence,
+                },
+            )
+
+            if final_result.consensus:
+                yield _format_sse(
+                    "consensus",
+                    {
+                        "stage": "consensus_complete",
+                        "final_probability": final_result.consensus.final_probability,
+                        "threshold": final_result.consensus.threshold,
+                        "is_ai_generated": final_result.consensus.is_ai_generated,
+                        "disagreement": final_result.consensus.disagreement,
+                    },
+                )
+
+            yield _format_sse(
+                "result",
+                final_result.model_dump(mode="json"),
+            )
+            yield _format_sse(
+                "done",
+                {
+                    "stage": "done",
+                    "analysis_id": final_result.analysis_id,
+                },
+            )
+        except Exception as exc:  # pragma: no cover - defensive stream safety
+            yield _format_sse(
+                "error",
+                {
+                    "stage": "error",
+                    "detail": str(exc),
+                },
+            )
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=headers)
 
 
 @router.post("/image", response_model=ImageDetectionResponse)

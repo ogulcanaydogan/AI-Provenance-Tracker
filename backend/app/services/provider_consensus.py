@@ -21,6 +21,7 @@ class ProviderConsensusEngine:
             "internal": settings.provider_internal_weight,
             "copyleaks": settings.provider_copyleaks_weight,
             "reality_defender": settings.provider_reality_defender_weight,
+            "hive": settings.provider_hive_weight,
             "c2pa": settings.provider_c2pa_weight,
         }
 
@@ -90,6 +91,9 @@ class ProviderConsensusEngine:
             await self._reality_defender_vote(
                 content_type, text=text, binary=binary, filename=filename
             )
+        )
+        votes.append(
+            await self._hive_vote(content_type, text=text, binary=binary, filename=filename)
         )
         votes.append(self._c2pa_vote(content_type, binary=binary, filename=filename))
         return votes
@@ -295,6 +299,114 @@ class ProviderConsensusEngine:
             verification_status="verified",
         )
 
+    async def _hive_vote(
+        self,
+        content_type: str,
+        *,
+        text: str | None,
+        binary: bytes | None,
+        filename: str | None,
+    ) -> ProviderConsensusVote:
+        weight = max(0.0, self._weights["hive"])
+        if not settings.hive_api_key:
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="unavailable",
+                rationale="Missing HIVE_API_KEY.",
+                evidence_type="external_api",
+                verification_status="unverified",
+            )
+
+        if content_type == "text" and not text:
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="unsupported",
+                rationale="No text payload provided.",
+                evidence_type="external_api",
+                verification_status="unsupported",
+            )
+        if content_type != "text" and not binary:
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="unsupported",
+                rationale="No binary payload provided.",
+                evidence_type="external_api",
+                verification_status="unsupported",
+            )
+
+        try:
+            async with httpx.AsyncClient(timeout=settings.provider_timeout_seconds) as client:
+                headers = {"Authorization": f"Token {settings.hive_api_key}"}
+                if content_type == "text":
+                    response = await self._post_with_retry(
+                        client,
+                        settings.hive_api_url,
+                        headers=headers,
+                        json_body={"input": {"text": text}},
+                    )
+                else:
+                    response = await self._post_with_retry(
+                        client,
+                        settings.hive_api_url,
+                        headers=headers,
+                        data={"modality": content_type},
+                        files={"media": (filename or f"{content_type}.bin", binary)},
+                    )
+        except RuntimeError as exc:
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="error",
+                rationale=str(exc),
+                evidence_type="external_api",
+                verification_status="error",
+            )
+
+        if response.status_code >= 400:
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="error",
+                rationale=f"HTTP {response.status_code}",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
+            )
+
+        payload = response.json()
+        probability, field_path = self._extract_hive_probability(payload)
+        if probability is None:
+            keys = sorted(payload.keys()) if isinstance(payload, dict) else []
+            return self._vote(
+                provider="hive",
+                probability=0.5,
+                weight=weight,
+                status="error",
+                rationale=f"Unsupported response schema: top-level keys={keys}",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
+            )
+
+        return self._vote(
+            provider="hive",
+            probability=self._clip(probability),
+            weight=weight,
+            status="ok",
+            rationale=f"External multimodal detector vote ({field_path}).",
+            evidence_type="external_api",
+            evidence_ref=self._request_id(response),
+            verification_status="verified",
+        )
+
     def _c2pa_vote(
         self, content_type: str, *, binary: bytes | None, filename: str | None
     ) -> ProviderConsensusVote:
@@ -413,9 +525,62 @@ class ProviderConsensusEngine:
                 return float(value), path
         return None, ""
 
+    def _extract_hive_probability(self, payload: Any) -> tuple[float | None, str]:
+        if not isinstance(payload, dict):
+            return None, ""
+
+        direct_candidates = (
+            ("score", payload.get("score")),
+            ("ai_probability", payload.get("ai_probability")),
+            ("result.score", self._path_value(payload, "result.score")),
+            ("result.ai_probability", self._path_value(payload, "result.ai_probability")),
+            ("output.score", self._path_value(payload, "output.score")),
+            ("output.ai_probability", self._path_value(payload, "output.ai_probability")),
+        )
+        for path, value in direct_candidates:
+            if isinstance(value, (int, float)):
+                return float(value), path
+
+        # Hive-like schema: status[0].response.output[0].classes=[{class,score}, ...]
+        classes = self._path_value(payload, "status.0.response.output.0.classes")
+        class_probability = self._collect_hive_class_score(classes)
+        if class_probability is not None:
+            return class_probability, "status.0.response.output.0.classes"
+
+        return None, ""
+
+    def _collect_hive_class_score(self, classes: Any) -> float | None:
+        if not isinstance(classes, list):
+            return None
+
+        best_score: float | None = None
+        for item in classes:
+            if not isinstance(item, dict):
+                continue
+            raw_label = item.get("class")
+            raw_score = item.get("score")
+            if not isinstance(raw_label, str) or not isinstance(raw_score, (int, float)):
+                continue
+            label = raw_label.lower()
+            if "ai" not in label and "synthetic" not in label and "deepfake" not in label:
+                continue
+            score = float(raw_score)
+            if best_score is None or score > best_score:
+                best_score = score
+        return best_score
+
     def _path_value(self, payload: dict[str, Any], path: str) -> Any:
         node: Any = payload
         for key in path.split("."):
+            if isinstance(node, list):
+                try:
+                    index = int(key)
+                except ValueError:
+                    return None
+                if index < 0 or index >= len(node):
+                    return None
+                node = node[index]
+                continue
             if not isinstance(node, dict) or key not in node:
                 return None
             node = node[key]

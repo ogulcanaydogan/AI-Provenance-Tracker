@@ -1,0 +1,26 @@
+{
+  "version": "v1.0-expanded-corpus",
+  "source": "benchmark/datasets + benchmark/samples/text",
+  "sample_count": 330,
+  "decision_threshold": 0.47,
+  "ml_weight": 0.38,
+  "weights": {
+    "perplexity": 0.28,
+    "burstiness": 0.24,
+    "vocabulary_richness": 0.16,
+    "repetition": 0.20,
+    "sentence_length": 0.12
+  },
+  "ranges": {
+    "perplexity_low": 8.0,
+    "perplexity_high": 42.0,
+    "burstiness_low": 0.12,
+    "burstiness_high": 0.72,
+    "vocab_richness_low": 0.20,
+    "vocab_richness_high": 0.95,
+    "repetition_low": 0.01,
+    "repetition_high": 0.30,
+    "sentence_len_low": 8.0,
+    "sentence_len_high": 28.0
+  }
+}

@@ -1,31 +1,27 @@
 #!/usr/bin/env python3
-"""Optional live smoke test for Reality Defender adapter contract."""
+"""Optional live smoke test for Hive adapter contract."""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
 
 import httpx
 
 
 def main() -> int:
-    api_key = os.getenv("REALITY_DEFENDER_API_KEY", "").strip()
+    api_key = os.getenv("HIVE_API_KEY", "").strip()
     if not api_key:
-        print("REALITY_DEFENDER_API_KEY is empty; skipping smoke.")
+        print("HIVE_API_KEY is empty; skipping smoke.")
         return 0
 
-    url = (
-        os.getenv("REALITY_DEFENDER_API_URL", "").strip()
-        or "https://api.realitydefender.com/v1/detect"
-    )
-    payload = {"modality": "text", "text": "Reality Defender adapter smoke test payload."}
+    url = os.getenv("HIVE_API_URL", "").strip() or "https://api.thehive.ai/api/v2/task/sync"
+    payload = {"input": {"text": "Hive adapter smoke test payload."}}
 
     try:
         response = httpx.post(
             url,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": f"Token {api_key}"},
             json=payload,
             timeout=10.0,
         )
@@ -52,7 +48,7 @@ def main() -> int:
         print("Smoke response JSON is not an object")
         return 1
 
-    print("Reality Defender live smoke succeeded.")
+    print("Hive live smoke succeeded.")
     print(f"Top-level keys: {sorted(parsed.keys())}")
     return 0
 

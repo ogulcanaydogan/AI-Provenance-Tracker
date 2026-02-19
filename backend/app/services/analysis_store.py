@@ -193,11 +193,7 @@ class AnalysisStore:
                 count_base = count_base.where(AnalysisRecord.content_type == content_type)
 
             total = int((await session.execute(count_base)).scalar() or 0)
-            query = (
-                base.order_by(desc(AnalysisRecord.created_at))
-                .offset(offset)
-                .limit(limit)
-            )
+            query = base.order_by(desc(AnalysisRecord.created_at)).offset(offset).limit(limit)
             rows = (await session.execute(query)).scalars().all()
         items = [self._to_history_item(self._to_stored_analysis(row)) for row in rows]
         return items, total

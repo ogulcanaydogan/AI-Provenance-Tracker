@@ -261,7 +261,12 @@ async def test_audit_middleware_skips_health_endpoint(client: AsyncClient):
 
     events, total = await audit_event_store.list_events(limit=10, offset=0)
     # Health endpoint is in _SKIP_PREFIXES, so no event should be recorded
-    http_events = [e for e in events if e.get("event_type") == "http.request" and "/health" in str(e.get("payload", {}).get("path", ""))]
+    http_events = [
+        e
+        for e in events
+        if e.get("event_type") == "http.request"
+        and "/health" in str(e.get("payload", {}).get("path", ""))
+    ]
     assert len(http_events) == 0
 
 

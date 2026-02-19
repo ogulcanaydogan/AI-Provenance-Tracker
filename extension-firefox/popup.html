@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Provenance Tracker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <header class="header">
+        <h1>AI Provenance Tracker</h1>
+        <p>Analyze current page text with your API.</p>
+      </header>
+
+      <section class="section">
+        <label for="api-url">API Base URL</label>
+        <input id="api-url" type="url" placeholder="http://localhost:8000" />
+      </section>
+
+      <section class="section">
+        <button id="analyze-btn" type="button">Analyze This Page</button>
+      </section>
+
+      <section class="section">
+        <p id="status" class="status status-info">Ready.</p>
+      </section>
+
+      <section id="result" class="section result hidden">
+        <div class="row">
+          <span class="label">Verdict</span>
+          <span id="verdict" class="value"></span>
+        </div>
+        <div class="row">
+          <span class="label">Confidence</span>
+          <span id="confidence" class="value"></span>
+        </div>
+        <div class="row">
+          <span class="label">Model</span>
+          <span id="model" class="value"></span>
+        </div>
+        <div class="row">
+          <span class="label">Text Length</span>
+          <span id="text-length" class="value"></span>
+        </div>
+        <div class="row row-block">
+          <span class="label">Explanation</span>
+          <p id="explanation" class="explanation"></p>
+        </div>
+        <div class="row row-block">
+          <span class="label">Source</span>
+          <p id="source-url" class="source-url"></p>
+        </div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

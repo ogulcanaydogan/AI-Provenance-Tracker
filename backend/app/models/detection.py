@@ -73,7 +73,7 @@ class DetectionAnalysis(BaseModel):
 
 class ProviderConsensusVote(BaseModel):
       """Per-provider vote used in weighted consensus."""
-      provider: Literal["internal", "copyleaks", "reality_defender", "c2pa"]
+      provider: Literal["internal", "copyleaks", "reality_defender", "hive", "c2pa"]
       probability: float = Field(..., ge=0, le=1)
       weight: float = Field(..., ge=0)
       status: Literal["ok", "unavailable", "unsupported", "error"]

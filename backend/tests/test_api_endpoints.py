@@ -81,6 +81,34 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_text_detection_stream_sse_returns_progress_and_result(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/detect/stream/text",
+        json={"text": "This is a sufficiently long sample text for SSE testing." * 4},
+    )
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+
+    body = response.text
+    assert "event: started" in body
+    assert "event: internal" in body
+    assert "event: result" in body
+    assert "event: done" in body
+
+    payload_by_event: dict[str, dict] = {}
+    current_event = None
+    for line in body.splitlines():
+        if line.startswith("event: "):
+            current_event = line.replace("event: ", "", 1).strip()
+        elif line.startswith("data: ") and current_event:
+            payload_by_event[current_event] = json.loads(line.replace("data: ", "", 1))
+
+    assert payload_by_event["started"]["stage"] == "started"
+    assert payload_by_event["done"]["stage"] == "done"
+    assert payload_by_event["result"]["analysis_id"]
+
+
+@pytest.mark.asyncio
 async def test_image_detection_no_file(client: AsyncClient):
     response = await client.post("/api/v1/detect/image")
     assert response.status_code == 422

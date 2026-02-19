@@ -36,7 +36,6 @@ export default function HistoryPage() {
   const perPage = 20;
 
   useEffect(() => {
-    setLoading(true);
     getHistory(page, perPage, contentType || undefined)
       .then((data) => {
         setItems(data.items);
@@ -77,6 +76,7 @@ export default function HistoryPage() {
           <select
             value={contentType}
             onChange={(e) => {
+              setLoading(true);
               setContentType(e.target.value);
               setPage(1);
             }}

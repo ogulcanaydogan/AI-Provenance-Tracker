@@ -7,7 +7,7 @@ import { useTextDetection } from "@/hooks/useTextDetection";
 import { AlertCircle } from "lucide-react";
 
 export default function TextDetectionPage() {
-  const { status, result, error, analyze, reset } = useTextDetection();
+  const { status, result, error, progressMessage, analyze, reset } = useTextDetection();
 
   return (
     <main
@@ -26,7 +26,12 @@ export default function TextDetectionPage() {
       <TextInput onAnalyze={analyze} isLoading={status === "loading"} />
 
       <div className="mt-8" aria-live="polite" aria-atomic="true">
-        {status === "loading" && <AnalysisLoader />}
+        {status === "loading" && (
+          <div className="space-y-3">
+            <AnalysisLoader />
+            {progressMessage && <p className="text-sm text-gray-400">{progressMessage}</p>}
+          </div>
+        )}
 
         {status === "error" && error && (
           <div

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "AI Provenance Tracker (Firefox)",
+  "description": "Analyze the current page text for AI-generated content.",
+  "version": "0.1.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ai-provenance-tracker@ogulcan.dev",
+      "strict_min_version": "121.0"
+    }
+  },
+  "action": {
+    "default_title": "AI Provenance Tracker",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"]
+}

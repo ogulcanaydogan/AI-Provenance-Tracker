@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     # Detection settings
     text_detection_model: str = "roberta-base"
     image_detection_model: str = "resnet50"
+    text_calibration_profile_path: str = "app/detection/text/calibration_profile.json"
     max_text_length: int = 50000
     max_image_size_mb: int = 10
     max_audio_size_mb: int = 25
@@ -84,6 +85,7 @@ class Settings(BaseSettings):
     provider_internal_weight: float = 0.6
     provider_copyleaks_weight: float = 0.15
     provider_reality_defender_weight: float = 0.15
+    provider_hive_weight: float = 0.1
     provider_c2pa_weight: float = 0.1
     provider_retry_attempts: int = 3
     provider_retry_backoff_seconds: float = 0.5
@@ -91,6 +93,8 @@ class Settings(BaseSettings):
     copyleaks_api_url: str = "https://api.copyleaks.com/v1/ai-content/detect"
     reality_defender_api_key: str = ""
     reality_defender_api_url: str = "https://api.realitydefender.com/v1/detect"
+    hive_api_key: str = ""
+    hive_api_url: str = "https://api.thehive.ai/api/v2/task/sync"
     c2pa_enabled: bool = True
     c2pa_cli_path: str = "c2patool"
     c2pa_verify_timeout_seconds: float = 8.0

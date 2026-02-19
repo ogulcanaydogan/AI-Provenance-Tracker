@@ -12,9 +12,7 @@ _CACHEABLE_PREFIXES = (
 )
 
 # Long-lived static-ish content.
-_LONG_CACHE_PREFIXES = (
-    "/openapi.json",
-)
+_LONG_CACHE_PREFIXES = ("/openapi.json",)
 
 
 async def cache_control_middleware(request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]

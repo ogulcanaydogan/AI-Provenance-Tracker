@@ -35,9 +35,7 @@ def _error_body(
     }
 
 
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     """Handle FastAPI/Starlette HTTP exceptions with a consistent shape."""
     rid = _request_id(request)
     body = _error_body(
@@ -73,14 +71,10 @@ async def validation_exception_handler(
         detail=errors,
         path=str(request.url.path),
     )
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=body
-    )
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=body)
 
 
-async def unhandled_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all for unexpected server errors — log and return 500."""
     rid = _request_id(request)
     logger.exception(
@@ -97,9 +91,7 @@ async def unhandled_exception_handler(
         detail="An unexpected error occurred. Please try again or contact support.",
         path=str(request.url.path),
     )
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=body
-    )
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=body)
 
 
 def register_error_handlers(app: FastAPI) -> None:

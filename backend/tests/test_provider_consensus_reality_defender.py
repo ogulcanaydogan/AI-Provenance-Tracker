@@ -10,7 +10,9 @@ from app.services.provider_consensus import ProviderConsensusEngine
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict[str, Any], headers: dict[str, str] | None = None):
+    def __init__(
+        self, status_code: int, payload: dict[str, Any], headers: dict[str, str] | None = None
+    ):
         self.status_code = status_code
         self._payload = payload
         self.headers = headers or {}
