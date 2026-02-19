@@ -1,0 +1,28 @@
+name: Vercel Comment Noise Guard
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remove-vercel-bot-comment:
+    if: ${{ github.event.issue.pull_request && github.event.comment.user.login == 'vercel[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Vercel bot PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const commentId = context.payload.comment.id;
+            await github.rest.issues.deleteComment({
+              owner,
+              repo,
+              comment_id: commentId,
+            });
+            core.info(`Deleted Vercel bot comment id=${commentId}`);
