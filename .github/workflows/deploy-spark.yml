@@ -222,11 +222,10 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           if ! timeout 15 ssh-keyscan -H -p "${{ steps.resolve.outputs.ssh_port }}" "${SPARK_SSH_HOST}" >> ~/.ssh/known_hosts; then
             keyscan_ok=false
+            echo "Host key scan failed. Spark host is not reachable from this runner; remote deploy will be skipped."
             if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "Host key scan failed. If this is a private network host (for example Tailscale), use workflow_dispatch with runner_type=self-hosted from a reachable runner."
-              exit 1
+              echo "Tip: if this host is private (for example Tailscale), run workflow_dispatch with runner_type=self-hosted from a reachable runner."
             fi
-            echo "Host key scan failed on push event. Spark host is not reachable from this runner; skipping remote deploy."
           fi
 
           if [ "${keyscan_ok}" = "false" ]; then
