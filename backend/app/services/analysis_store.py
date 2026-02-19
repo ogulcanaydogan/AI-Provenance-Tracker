@@ -177,17 +177,24 @@ class AnalysisStore:
                 return None
             return self._to_stored_analysis(row)
 
-    async def get_history(self, limit: int, offset: int) -> tuple[list[dict[str, Any]], int]:
+    async def get_history(
+        self,
+        limit: int,
+        offset: int,
+        content_type: str | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
         """Return paginated history in reverse chronological order."""
         await self._ensure_initialized()
         async with get_db_session() as session:
-            total = int(
-                (await session.execute(select(func.count()).select_from(AnalysisRecord))).scalar()
-                or 0
-            )
+            base = select(AnalysisRecord)
+            count_base = select(func.count()).select_from(AnalysisRecord)
+            if content_type:
+                base = base.where(AnalysisRecord.content_type == content_type)
+                count_base = count_base.where(AnalysisRecord.content_type == content_type)
+
+            total = int((await session.execute(count_base)).scalar() or 0)
             query = (
-                select(AnalysisRecord)
-                .order_by(desc(AnalysisRecord.created_at))
+                base.order_by(desc(AnalysisRecord.created_at))
                 .offset(offset)
                 .limit(limit)
             )

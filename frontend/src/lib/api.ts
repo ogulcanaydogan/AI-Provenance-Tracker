@@ -288,10 +288,20 @@ export async function detectVideo(file: File): Promise<DetectionResult> {
   return mapDetection(payload, "video");
 }
 
-export async function getHistory(page = 1, perPage = 20): Promise<HistoryResponse> {
+export async function getHistory(
+  page = 1,
+  perPage = 20,
+  contentType?: string,
+): Promise<HistoryResponse> {
   const offset = (page - 1) * perPage;
+  const params = new URLSearchParams({
+    limit: String(perPage),
+    offset: String(offset),
+  });
+  if (contentType) params.set("content_type", contentType);
+
   const response = await fetch(
-    `${API_URL}/api/v1/analyze/history?limit=${perPage}&offset=${offset}`
+    `${API_URL}/api/v1/analyze/history?${params.toString()}`
   );
   const payload = await handleResponse<BackendHistoryResponse>(response);
 
@@ -301,6 +311,18 @@ export async function getHistory(page = 1, perPage = 20): Promise<HistoryRespons
     page,
     per_page: perPage,
   };
+}
+
+export function getExportUrl(
+  endpoint: "history" | "dashboard",
+  format: "csv" | "json",
+  options?: { days?: number; contentType?: string },
+): string {
+  const base = `${API_URL}/api/v1/analyze/${endpoint}/export`;
+  const params = new URLSearchParams({ format });
+  if (options?.days) params.set("days", String(options.days));
+  if (options?.contentType) params.set("content_type", options.contentType);
+  return `${base}?${params.toString()}`;
 }
 
 export async function getAnalysis(id: string): Promise<DetectionResult> {

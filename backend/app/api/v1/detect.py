@@ -40,6 +40,12 @@ class UrlDetectionRequest(BaseModel):
 
     url: HttpUrl = Field(..., description="Public URL to fetch and analyze")
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{"url": "https://example.com/article-to-check"}]
+        }
+    }
+
 
 def _extract_text_from_html(html: str) -> str:
     """Extract readable text from raw HTML."""

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import statistics
 from typing import Any
 
@@ -9,6 +10,7 @@ import httpx
 
 from app.core.config import settings
 from app.models.detection import ConsensusSummary, ProviderConsensusVote
+from app.services.c2pa_verifier import c2pa_verifier
 
 
 class ProviderConsensusEngine:
@@ -33,12 +35,14 @@ class ProviderConsensusEngine:
     ) -> ConsensusSummary:
         """Collect provider votes and compute a weighted final probability."""
         votes: list[ProviderConsensusVote] = [
-            ProviderConsensusVote(
+            self._vote(
                 provider="internal",
                 probability=self._clip(internal_probability),
                 weight=max(0.0, self._weights["internal"]),
                 status="ok",
-                rationale="Local detector probability",
+                rationale="Local detector probability.",
+                evidence_type="heuristic",
+                verification_status="verified",
             )
         ]
 
@@ -87,7 +91,7 @@ class ProviderConsensusEngine:
                 content_type, text=text, binary=binary, filename=filename
             )
         )
-        votes.append(self._c2pa_vote(content_type, binary=binary))
+        votes.append(self._c2pa_vote(content_type, binary=binary, filename=filename))
         return votes
 
     async def _copyleaks_vote(
@@ -95,74 +99,92 @@ class ProviderConsensusEngine:
     ) -> ProviderConsensusVote:
         weight = max(0.0, self._weights["copyleaks"])
         if content_type != "text":
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="unsupported",
-                rationale="Provider adapter enabled for text content only in this build.",
+                rationale="Copyleaks adapter is enabled for text content only.",
+                evidence_type="external_api",
+                verification_status="unsupported",
             )
         if not settings.copyleaks_api_key:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="unavailable",
                 rationale="Missing COPYLEAKS_API_KEY.",
+                evidence_type="external_api",
+                verification_status="unverified",
             )
         if not text:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="unsupported",
                 rationale="No text payload provided.",
+                evidence_type="external_api",
+                verification_status="unsupported",
             )
 
         try:
             async with httpx.AsyncClient(timeout=settings.provider_timeout_seconds) as client:
-                response = await client.post(
+                response = await self._post_with_retry(
+                    client,
                     settings.copyleaks_api_url,
                     headers={
                         "Authorization": f"Bearer {settings.copyleaks_api_key}",
                         "Content-Type": "application/json",
                     },
-                    json={"text": text},
+                    json_body={"text": text},
                 )
-        except httpx.HTTPError as exc:
-            return ProviderConsensusVote(
+        except RuntimeError as exc:
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="error",
-                rationale=f"HTTP error: {exc}",
+                rationale=str(exc),
+                evidence_type="external_api",
+                verification_status="error",
             )
 
         if response.status_code >= 400:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="error",
                 rationale=f"HTTP {response.status_code}",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
             )
 
         probability = self._extract_probability(response.json())
         if probability is None:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="copyleaks",
                 probability=0.5,
                 weight=weight,
                 status="error",
-                rationale="No probability field in provider response.",
+                rationale="Missing probability field in provider response.",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
             )
 
-        return ProviderConsensusVote(
+        return self._vote(
             provider="copyleaks",
             probability=self._clip(probability),
             weight=weight,
             status="ok",
             rationale="External text detector vote.",
+            evidence_type="external_api",
+            evidence_ref=self._request_id(response),
+            verification_status="verified",
         )
 
     async def _reality_defender_vote(
@@ -175,125 +197,229 @@ class ProviderConsensusEngine:
     ) -> ProviderConsensusVote:
         weight = max(0.0, self._weights["reality_defender"])
         if not settings.reality_defender_api_key:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="reality_defender",
                 probability=0.5,
                 weight=weight,
                 status="unavailable",
                 rationale="Missing REALITY_DEFENDER_API_KEY.",
+                evidence_type="external_api",
+                verification_status="unverified",
+            )
+
+        if content_type == "text" and not text:
+            return self._vote(
+                provider="reality_defender",
+                probability=0.5,
+                weight=weight,
+                status="unsupported",
+                rationale="No text payload provided.",
+                evidence_type="external_api",
+                verification_status="unsupported",
+            )
+        if content_type != "text" and not binary:
+            return self._vote(
+                provider="reality_defender",
+                probability=0.5,
+                weight=weight,
+                status="unsupported",
+                rationale="No binary payload provided.",
+                evidence_type="external_api",
+                verification_status="unsupported",
             )
 
         try:
             async with httpx.AsyncClient(timeout=settings.provider_timeout_seconds) as client:
                 if content_type == "text":
-                    if not text:
-                        return ProviderConsensusVote(
-                            provider="reality_defender",
-                            probability=0.5,
-                            weight=weight,
-                            status="unsupported",
-                            rationale="No text payload provided.",
-                        )
-                    response = await client.post(
+                    response = await self._post_with_retry(
+                        client,
                         settings.reality_defender_api_url,
                         headers={"Authorization": f"Bearer {settings.reality_defender_api_key}"},
-                        json={"modality": "text", "text": text},
+                        json_body={"modality": "text", "text": text},
                     )
                 else:
-                    if not binary:
-                        return ProviderConsensusVote(
-                            provider="reality_defender",
-                            probability=0.5,
-                            weight=weight,
-                            status="unsupported",
-                            rationale="No binary payload provided.",
-                        )
-                    response = await client.post(
+                    response = await self._post_with_retry(
+                        client,
                         settings.reality_defender_api_url,
                         headers={"Authorization": f"Bearer {settings.reality_defender_api_key}"},
                         data={"modality": content_type},
                         files={"file": (filename or f"{content_type}.bin", binary)},
                     )
-        except httpx.HTTPError as exc:
-            return ProviderConsensusVote(
+        except RuntimeError as exc:
+            return self._vote(
                 provider="reality_defender",
                 probability=0.5,
                 weight=weight,
                 status="error",
-                rationale=f"HTTP error: {exc}",
+                rationale=str(exc),
+                evidence_type="external_api",
+                verification_status="error",
             )
 
         if response.status_code >= 400:
-            return ProviderConsensusVote(
+            status_label = "rate_limited" if response.status_code == 429 else "error"
+            return self._vote(
                 provider="reality_defender",
                 probability=0.5,
                 weight=weight,
                 status="error",
-                rationale=f"HTTP {response.status_code}",
+                rationale=f"{status_label}: HTTP {response.status_code}",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
             )
 
-        probability = self._extract_probability(response.json())
+        payload = response.json()
+        probability, field_path = self._extract_reality_defender_probability(payload)
         if probability is None:
-            return ProviderConsensusVote(
+            keys = sorted(payload.keys()) if isinstance(payload, dict) else []
+            return self._vote(
                 provider="reality_defender",
                 probability=0.5,
                 weight=weight,
                 status="error",
-                rationale="No probability field in provider response.",
+                rationale=f"Unsupported response schema: top-level keys={keys}",
+                evidence_type="external_api",
+                evidence_ref=self._request_id(response),
+                verification_status="error",
             )
 
-        return ProviderConsensusVote(
+        return self._vote(
             provider="reality_defender",
             probability=self._clip(probability),
             weight=weight,
             status="ok",
-            rationale="External multimodal detector vote.",
+            rationale=f"External multimodal detector vote ({field_path}).",
+            evidence_type="external_api",
+            evidence_ref=self._request_id(response),
+            verification_status="verified",
         )
 
-    def _c2pa_vote(self, content_type: str, *, binary: bytes | None) -> ProviderConsensusVote:
+    def _c2pa_vote(
+        self, content_type: str, *, binary: bytes | None, filename: str | None
+    ) -> ProviderConsensusVote:
         weight = max(0.0, self._weights["c2pa"])
         if not settings.c2pa_enabled:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="c2pa",
                 probability=0.5,
                 weight=weight,
                 status="unavailable",
-                rationale="C2PA adapter disabled in configuration.",
+                rationale="C2PA verifier disabled in configuration.",
+                evidence_type="c2pa_manifest",
+                verification_status="unverified",
             )
         if content_type not in {"image", "video"}:
-            return ProviderConsensusVote(
+            return self._vote(
                 provider="c2pa",
                 probability=0.5,
                 weight=weight,
                 status="unsupported",
-                rationale="C2PA applies to signed media assets, not text/audio payloads.",
-            )
-        if not binary:
-            return ProviderConsensusVote(
-                provider="c2pa",
-                probability=0.5,
-                weight=weight,
-                status="unsupported",
-                rationale="No media bytes to inspect for provenance markers.",
+                rationale="C2PA applies to signed image/video assets, not text/audio payloads.",
+                evidence_type="c2pa_manifest",
+                verification_status="unsupported",
             )
 
-        sample = binary[: min(len(binary), 256_000)].lower()
-        has_marker = any(
-            marker in sample for marker in (b"c2pa", b"contentcredentials", b"contentauth")
+        verification = c2pa_verifier.verify_bytes(binary or b"", filename=filename)
+        if verification.status == "verified":
+            probability = 0.15
+            status = "ok"
+            verification_status = "verified"
+        elif verification.status == "unverified":
+            probability = 0.52 if verification.manifest_present else 0.58
+            status = "ok"
+            verification_status = "unverified"
+        elif verification.status == "unsupported":
+            probability = 0.5
+            status = "unsupported"
+            verification_status = "unsupported"
+        elif verification.status == "unavailable":
+            probability = 0.5
+            status = "unavailable"
+            verification_status = "unverified"
+        else:
+            probability = 0.5
+            status = "error"
+            verification_status = "error"
+
+        issuer_text = f"; issuer={verification.issuer}" if verification.issuer else ""
+        assertions_text = (
+            f"; assertions={','.join(verification.assertions[:3])}"
+            if verification.assertions
+            else ""
         )
-        probability = 0.15 if has_marker else 0.55
-        rationale = (
-            "Signed provenance markers detected; lowers AI-likelihood."
-            if has_marker
-            else "No C2PA marker detected; provenance unverified."
-        )
-        return ProviderConsensusVote(
+        return self._vote(
             provider="c2pa",
             probability=probability,
             weight=weight,
-            status="ok",
-            rationale=rationale,
+            status=status,
+            rationale=f"{verification.rationale}{issuer_text}{assertions_text}",
+            evidence_type="c2pa_manifest",
+            evidence_ref=verification.manifest_id,
+            verification_status=verification_status,
         )
+
+    async def _post_with_retry(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+    ) -> httpx.Response:
+        attempts = max(1, int(settings.provider_retry_attempts))
+        backoff = max(0.0, float(settings.provider_retry_backoff_seconds))
+        last_error = ""
+
+        for attempt in range(1, attempts + 1):
+            try:
+                response = await client.post(
+                    url,
+                    headers=headers,
+                    json=json_body,
+                    data=data,
+                    files=files,
+                )
+            except httpx.HTTPError as exc:
+                last_error = f"HTTP error: {exc}"
+                if attempt < attempts:
+                    await asyncio.sleep(backoff * attempt)
+                    continue
+                raise RuntimeError(last_error) from exc
+
+            if response.status_code >= 500 and attempt < attempts:
+                await asyncio.sleep(backoff * attempt)
+                continue
+            return response
+
+        raise RuntimeError(last_error or "Provider request failed after retries.")
+
+    def _extract_reality_defender_probability(self, payload: Any) -> tuple[float | None, str]:
+        if not isinstance(payload, dict):
+            return None, ""
+
+        candidates = (
+            ("result.score", self._path_value(payload, "result.score")),
+            ("result.ai_probability", self._path_value(payload, "result.ai_probability")),
+            ("prediction.ai_probability", self._path_value(payload, "prediction.ai_probability")),
+            ("prediction.score", self._path_value(payload, "prediction.score")),
+            ("data.ai_probability", self._path_value(payload, "data.ai_probability")),
+            ("data.score", self._path_value(payload, "data.score")),
+        )
+        for path, value in candidates:
+            if isinstance(value, (int, float)):
+                return float(value), path
+        return None, ""
+
+    def _path_value(self, payload: dict[str, Any], path: str) -> Any:
+        node: Any = payload
+        for key in path.split("."):
+            if not isinstance(node, dict) or key not in node:
+                return None
+            node = node[key]
+        return node
 
     def _disagreement(self, probabilities: list[float]) -> float:
         if len(probabilities) <= 1:
@@ -304,8 +430,11 @@ class ProviderConsensusEngine:
     def _clip(value: float) -> float:
         return max(0.0, min(float(value), 1.0))
 
-    def _extract_probability(self, payload: dict[str, Any]) -> float | None:
+    def _extract_probability(self, payload: Any) -> float | None:
         """Best-effort extraction across common provider response shapes."""
+        if not isinstance(payload, dict):
+            return None
+
         direct_keys = ("probability", "ai_probability", "score", "confidence")
         for key in direct_keys:
             value = payload.get(key)
@@ -315,11 +444,40 @@ class ProviderConsensusEngine:
         nested_keys = ("result", "data", "prediction")
         for key in nested_keys:
             nested = payload.get(key)
-            if isinstance(nested, dict):
-                value = self._extract_probability(nested)
-                if value is not None:
-                    return value
+            value = self._extract_probability(nested)
+            if value is not None:
+                return value
         return None
+
+    def _request_id(self, response: httpx.Response) -> str | None:
+        for key in ("x-request-id", "request-id", "x-correlation-id"):
+            value = response.headers.get(key)
+            if value:
+                return value
+        return None
+
+    def _vote(
+        self,
+        *,
+        provider: str,
+        probability: float,
+        weight: float,
+        status: str,
+        rationale: str,
+        evidence_type: str | None = None,
+        evidence_ref: str | None = None,
+        verification_status: str | None = None,
+    ) -> ProviderConsensusVote:
+        return ProviderConsensusVote(
+            provider=provider,  # type: ignore[arg-type]
+            probability=self._clip(probability),
+            weight=max(0.0, weight),
+            status=status,  # type: ignore[arg-type]
+            rationale=rationale,
+            evidence_type=evidence_type,  # type: ignore[arg-type]
+            evidence_ref=evidence_ref,
+            verification_status=verification_status,  # type: ignore[arg-type]
+        )
 
 
 provider_consensus_engine = ProviderConsensusEngine()

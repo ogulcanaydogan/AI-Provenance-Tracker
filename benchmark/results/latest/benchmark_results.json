@@ -1,122 +1,186 @@
 {
-  "generated_at": "2026-02-18T16:11:43.215506+00:00",
-  "benchmark_version": "v0.2",
+  "generated_at": "2026-02-18T22:01:28.661667+00:00",
+  "benchmark_version": "v1.0-live",
+  "live_mode": true,
+  "backend_url": "http://127.0.0.1:8000",
+  "run_metadata": {
+    "model_id": "baseline-heuristic-v1.0-live",
+    "decision_threshold": 0.45,
+    "git_commit_sha": "3003e008c285701b0f28edfd7672ad7dd1459a7e",
+    "run_command": "python benchmark/eval/run_public_benchmark.py --datasets-dir benchmark/datasets --output-dir benchmark/results/latest --leaderboard-output benchmark/leaderboard/leaderboard.json --model-id baseline-heuristic-v1.0-live --decision-threshold 0.45 --backend-url http://127.0.0.1:8000 --live-mode true"
+  },
   "datasets": {
-    "detection_multidomain": 24,
-    "source_attribution": 18,
-    "tamper_robustness": 24,
-    "audio_detection": 12,
-    "video_detection": 12
+    "detection_multidomain": 220,
+    "source_attribution": 100,
+    "tamper_robustness": 120,
+    "audio_detection": 30,
+    "video_detection": 30
+  },
+  "dataset_hashes": {
+    "detection_multidomain": "20fcb66481ad04f46300a92354f72a43fb8587309ac69a121f32b28133a3cae4",
+    "source_attribution": "fbb72fc728911b498921cbbd84d4b203256125bcaceb8a3fa6dae470d91883f7",
+    "tamper_robustness": "bb90cb59b6e8db02db9f2a008ce2d0267eaf554f188884e20aa9137d0c023eb4",
+    "audio_detection": "d4ca0a938736310aae386ca94d4f60d551b02f3a9fe4b3a42868baaf8dd2fd66",
+    "video_detection": "851382df8f42351191eec5b469d517ea65e649173f68c4ebe03278f4963cad68"
   },
   "tasks": {
     "ai_vs_human_detection": {
-      "threshold": 0.5,
-      "samples": 24,
-      "tp": 12,
-      "fp": 3,
+      "threshold": 0.45,
+      "samples": 220,
+      "tp": 110,
+      "fp": 80,
       "fn": 0,
-      "tn": 9,
-      "precision": 0.8,
+      "tn": 30,
+      "precision": 0.5789,
       "recall": 1.0,
-      "f1": 0.8889,
-      "accuracy": 0.875,
+      "f1": 0.7333,
+      "accuracy": 0.6364,
+      "evaluated_samples": 220,
+      "failed_samples": 0,
       "roc_auc": 1.0,
-      "calibration_ece": 0.2796,
-      "brier_score": 0.1001,
+      "calibration_ece": 0.1222,
+      "brier_score": 0.2195,
       "false_positive_rate_by_domain": {
-        "code": 0.5,
-        "finance": 0.0,
-        "health": 0.0,
-        "legal": 0.5,
-        "news": 0.0,
-        "social": 0.5
+        "code": 0.7143,
+        "finance": 0.7407,
+        "legal": 0.7143,
+        "science": 0.7407
       }
     },
     "source_attribution": {
-      "samples": 18,
-      "correct": 12,
-      "accuracy": 0.6667,
+      "samples": 100,
+      "evaluated_samples": 100,
+      "correct": 80,
+      "accuracy": 0.8,
       "per_family_accuracy": {
-        "claude": 0.6667,
-        "gemini": 0.6667,
-        "gpt": 0.6667,
-        "llama": 0.6667,
-        "mistral": 0.6667,
-        "qwen": 0.6667
-      }
+        "claude": 0.7692,
+        "gemini": 0.8462,
+        "gpt": 0.8462,
+        "llama": 0.7692,
+        "mistral": 0.75,
+        "mixtral": 0.75,
+        "phi": 0.8333,
+        "qwen": 0.8333
+      },
+      "method": "heuristic_attribution_baseline"
     },
     "tamper_detection": {
-      "samples": 24,
+      "samples": 120,
       "per_transform": {
         "clean": {
-          "threshold": 0.5,
-          "samples": 6,
-          "tp": 3,
-          "fp": 0,
+          "threshold": 0.45,
+          "samples": 30,
+          "tp": 15,
+          "fp": 15,
           "fn": 0,
-          "tn": 3,
-          "precision": 1.0,
+          "tn": 0,
+          "precision": 0.5,
           "recall": 1.0,
-          "f1": 1.0,
-          "accuracy": 1.0
+          "f1": 0.6667,
+          "accuracy": 0.5,
+          "evaluated_samples": 30,
+          "failed_samples": 0,
+          "roc_auc": 0.5,
+          "calibration_ece": 0.045,
+          "brier_score": 0.252,
+          "false_positive_rate_by_domain": {
+            "code": 1.0,
+            "finance": 1.0,
+            "legal": 1.0,
+            "science": 1.0
+          }
         },
         "human_edit": {
-          "threshold": 0.5,
-          "samples": 6,
-          "tp": 3,
-          "fp": 1,
+          "threshold": 0.45,
+          "samples": 30,
+          "tp": 15,
+          "fp": 15,
           "fn": 0,
-          "tn": 2,
-          "precision": 0.75,
+          "tn": 0,
+          "precision": 0.5,
           "recall": 1.0,
-          "f1": 0.8571,
-          "accuracy": 0.8333
+          "f1": 0.6667,
+          "accuracy": 0.5,
+          "evaluated_samples": 30,
+          "failed_samples": 0,
+          "roc_auc": 0.5,
+          "calibration_ece": 0.045,
+          "brier_score": 0.252,
+          "false_positive_rate_by_domain": {
+            "code": 1.0,
+            "finance": 1.0,
+            "legal": 1.0,
+            "science": 1.0
+          }
         },
         "paraphrase": {
-          "threshold": 0.5,
-          "samples": 6,
-          "tp": 3,
-          "fp": 0,
+          "threshold": 0.45,
+          "samples": 30,
+          "tp": 15,
+          "fp": 15,
           "fn": 0,
-          "tn": 3,
-          "precision": 1.0,
+          "tn": 0,
+          "precision": 0.5,
           "recall": 1.0,
-          "f1": 1.0,
-          "accuracy": 1.0
+          "f1": 0.6667,
+          "accuracy": 0.5,
+          "evaluated_samples": 30,
+          "failed_samples": 0,
+          "roc_auc": 0.5,
+          "calibration_ece": 0.045,
+          "brier_score": 0.252,
+          "false_positive_rate_by_domain": {
+            "code": 1.0,
+            "finance": 1.0,
+            "legal": 1.0,
+            "science": 1.0
+          }
         },
         "translate": {
-          "threshold": 0.5,
-          "samples": 6,
-          "tp": 3,
-          "fp": 0,
+          "threshold": 0.45,
+          "samples": 30,
+          "tp": 15,
+          "fp": 15,
           "fn": 0,
-          "tn": 3,
-          "precision": 1.0,
+          "tn": 0,
+          "precision": 0.5,
           "recall": 1.0,
-          "f1": 1.0,
-          "accuracy": 1.0
+          "f1": 0.6667,
+          "accuracy": 0.5,
+          "evaluated_samples": 30,
+          "failed_samples": 0,
+          "roc_auc": 0.5,
+          "calibration_ece": 0.045,
+          "brier_score": 0.252,
+          "false_positive_rate_by_domain": {
+            "code": 1.0,
+            "finance": 1.0,
+            "legal": 1.0,
+            "science": 1.0
+          }
         }
       },
-      "clean_f1": 1.0,
-      "attacked_avg_f1": 0.9524,
-      "robustness_score": 0.9524
+      "clean_f1": 0.6667,
+      "attacked_avg_f1": 0.6667,
+      "robustness_score": 1.0
     },
     "audio_ai_vs_human_detection": {
-      "threshold": 0.5,
-      "samples": 12,
-      "tp": 6,
-      "fp": 1,
+      "threshold": 0.45,
+      "samples": 30,
+      "tp": 15,
+      "fp": 0,
       "fn": 0,
-      "tn": 5,
-      "precision": 0.8571,
+      "tn": 15,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9231,
-      "accuracy": 0.9167,
-      "roc_auc": 0.9722,
-      "calibration_ece": 0.2558,
-      "brier_score": 0.1182,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "evaluated_samples": 30,
+      "failed_samples": 0,
+      "roc_auc": 1.0,
+      "calibration_ece": 0.175,
+      "brier_score": 0.0463,
       "false_positive_rate_by_domain": {
-        "assistant": 1.0,
         "audiobook": 0.0,
         "call_center": 0.0,
         "news_audio": 0.0,
@@ -125,26 +189,35 @@
       }
     },
     "video_ai_vs_human_detection": {
-      "threshold": 0.5,
-      "samples": 12,
-      "tp": 6,
-      "fp": 2,
+      "threshold": 0.45,
+      "samples": 30,
+      "tp": 15,
+      "fp": 0,
       "fn": 0,
-      "tn": 4,
-      "precision": 0.75,
+      "tn": 15,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.8571,
-      "accuracy": 0.8333,
-      "roc_auc": 0.9722,
-      "calibration_ece": 0.2575,
-      "brier_score": 0.1284,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "evaluated_samples": 30,
+      "failed_samples": 0,
+      "roc_auc": 1.0,
+      "calibration_ece": 0.4067,
+      "brier_score": 0.1656,
       "false_positive_rate_by_domain": {
-        "animation": 1.0,
         "gaming": 0.0,
         "interview": 0.0,
         "news_clip": 0.0,
         "short_form": 0.0,
-        "webcam": 1.0
+        "webcam": 0.0
+      }
+    }
+  },
+  "provider_availability_matrix": {
+    "internal": {
+      "primary_status": "ok",
+      "observed_statuses": {
+        "ok": 400
       }
     }
   }

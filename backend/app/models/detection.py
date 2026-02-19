@@ -78,6 +78,9 @@ class ProviderConsensusVote(BaseModel):
       weight: float = Field(..., ge=0)
       status: Literal["ok", "unavailable", "unsupported", "error"]
       rationale: str
+      evidence_type: Optional[Literal["c2pa_manifest", "external_api", "heuristic"]] = None
+      evidence_ref: Optional[str] = None
+      verification_status: Optional[Literal["verified", "unverified", "unsupported", "error"]] = None
 
 
 class ConsensusSummary(BaseModel):
@@ -93,6 +96,21 @@ class TextDetectionRequest(BaseModel):
       """Request to detect AI-generated text."""
       text: str = Field(..., min_length=1, max_length=50000, description="Text to analyze")
       language: Optional[str] = Field(None, description="Language code (auto-detected if not provided)")
+
+      model_config = {
+          "json_schema_extra": {
+              "examples": [
+                  {
+                      "text": (
+                          "The integration of artificial intelligence into modern healthcare "
+                          "systems represents a paradigm shift in how medical professionals "
+                          "approach patient care and diagnosis."
+                      ),
+                      "language": "en",
+                  }
+              ]
+          }
+      }
 
 
 class TextDetectionResponse(BaseModel):
@@ -160,6 +178,20 @@ class BatchTextDetectionRequest(BaseModel):
           default=False,
           description="Stop processing remaining items if one item fails",
       )
+
+      model_config = {
+          "json_schema_extra": {
+              "examples": [
+                  {
+                      "items": [
+                          {"item_id": "doc-1", "text": "Sample text for batch analysis..."},
+                          {"item_id": "doc-2", "text": "Another document to check..."},
+                      ],
+                      "stop_on_error": False,
+                  }
+              ]
+          }
+      }
 
 
 class BatchTextResultItem(BaseModel):

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-02-18T16:11:43.215506+00:00",
+  "updated_at": "2026-02-18T22:01:28.661667+00:00",
   "columns": [
     "rank",
     "model_id",
@@ -23,7 +23,21 @@
       "attribution_accuracy": 0.6667,
       "robustness_score": 0.9524,
       "overall_score": 0.8814,
-      "rank": 1
+      "rank": 1,
+      "audio_video_experimental": true
+    },
+    {
+      "model_id": "baseline-heuristic-v1.0-live",
+      "updated_at": "2026-02-18T22:01:28.661667+00:00",
+      "detection_f1": 0.7333,
+      "roc_auc": 1.0,
+      "audio_detection_f1": 1.0,
+      "video_detection_f1": 1.0,
+      "attribution_accuracy": 0.8,
+      "robustness_score": 1.0,
+      "overall_score": 0.8733,
+      "audio_video_experimental": true,
+      "rank": 2
     }
   ]
 }

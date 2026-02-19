@@ -85,11 +85,15 @@ class Settings(BaseSettings):
     provider_copyleaks_weight: float = 0.15
     provider_reality_defender_weight: float = 0.15
     provider_c2pa_weight: float = 0.1
+    provider_retry_attempts: int = 3
+    provider_retry_backoff_seconds: float = 0.5
     copyleaks_api_key: str = ""
     copyleaks_api_url: str = "https://api.copyleaks.com/v1/ai-content/detect"
     reality_defender_api_key: str = ""
     reality_defender_api_url: str = "https://api.realitydefender.com/v1/detect"
     c2pa_enabled: bool = True
+    c2pa_cli_path: str = "c2patool"
+    c2pa_verify_timeout_seconds: float = 8.0
 
     # Scheduled X pipeline
     scheduler_enabled: bool = False

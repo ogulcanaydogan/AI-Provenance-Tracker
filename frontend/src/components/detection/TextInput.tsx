@@ -29,6 +29,7 @@ export function TextInput({ onAnalyze, isLoading }: TextInputProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste or type text to analyze (minimum 50 characters)..."
+          aria-label="Text to analyze for AI detection"
           className="w-full h-64 bg-gray-900 border border-gray-700 rounded-xl p-4 text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors text-sm leading-relaxed"
           maxLength={maxLength}
           disabled={isLoading}
@@ -52,16 +53,17 @@ export function TextInput({ onAnalyze, isLoading }: TextInputProps) {
           disabled={isLoading}
           className="px-4 py-2.5 bg-gray-800 text-gray-300 rounded-xl hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
         >
-          <ClipboardPaste className="h-4 w-4" />
+          <ClipboardPaste className="h-4 w-4" aria-hidden="true" />
           Paste
         </button>
 
         <button
           onClick={() => setText(SAMPLE_AI_TEXT)}
           disabled={isLoading}
+          aria-label="Load a sample AI-generated text"
           className="px-4 py-2.5 text-gray-400 hover:text-gray-200 transition-colors text-sm flex items-center gap-2"
         >
-          <FlaskConical className="h-4 w-4" />
+          <FlaskConical className="h-4 w-4" aria-hidden="true" />
           Try Sample
         </button>
 
@@ -69,9 +71,10 @@ export function TextInput({ onAnalyze, isLoading }: TextInputProps) {
           <button
             onClick={() => setText("")}
             disabled={isLoading}
+            aria-label="Clear text input"
             className="px-4 py-2.5 text-gray-500 hover:text-gray-300 transition-colors text-sm flex items-center gap-2 ml-auto"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
             Clear
           </button>
         )}

@@ -94,6 +94,17 @@
         background: rgba(76, 201, 240, 0.2);
         border: 1px solid rgba(76, 201, 240, 0.5);
       }
+
+      .exp {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(245, 166, 35, 0.75);
+        background: rgba(245, 166, 35, 0.2);
+        color: #ffd28a;
+        font-size: 11px;
+      }
     </style>
   </head>
   <body>
@@ -101,6 +112,7 @@
       <section class="hero">
         <h1>AI Provenance Public Benchmark</h1>
         <p>Tasks: text/image detection, source attribution, tamper robustness, audio/video detection.</p>
+        <p>Audio/video metrics are flagged as <strong>experimental</strong>.</p>
         <p>Trust metrics: ROC-AUC, calibration ECE, false-positive rates by domain.</p>
         <div class="meta" id="updated">Updated: loading...</div>
       </section>
@@ -113,8 +125,8 @@
               <th>Model</th>
               <th>Detection F1</th>
               <th>ROC-AUC</th>
-              <th>Audio F1</th>
-              <th>Video F1</th>
+              <th>Audio F1 <span class="exp">Experimental</span></th>
+              <th>Video F1 <span class="exp">Experimental</span></th>
               <th>Attribution Acc</th>
               <th>Robustness</th>
               <th>Overall</th>
@@ -156,8 +168,8 @@
                   <td>${entry.model_id ?? "-"}</td>
                   <td>${entry.detection_f1 ?? "-"}</td>
                   <td>${entry.roc_auc ?? "-"}</td>
-                  <td>${entry.audio_detection_f1 ?? "-"}</td>
-                  <td>${entry.video_detection_f1 ?? "-"}</td>
+                  <td>${entry.audio_detection_f1 ?? "-"}${entry.audio_video_experimental ? ' <span class="exp">Experimental</span>' : ''}</td>
+                  <td>${entry.video_detection_f1 ?? "-"}${entry.audio_video_experimental ? ' <span class="exp">Experimental</span>' : ''}</td>
                   <td>${entry.attribution_accuracy ?? "-"}</td>
                   <td>${entry.robustness_score ?? "-"}</td>
                   <td><strong>${entry.overall_score ?? "-"}</strong></td>

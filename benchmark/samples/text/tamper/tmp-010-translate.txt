@@ -1,0 +1,1 @@
+tmp-010 code raporu, ayni bulgulari daha kisa bir anlatimla sunar ve ana noktalari korur.

@@ -1,24 +1,220 @@
-{"sample_id":"det-001","domain":"news","label_is_ai":1,"baseline_score":0.95,"source":"synthetic"}
-{"sample_id":"det-002","domain":"news","label_is_ai":0,"baseline_score":0.08,"source":"human"}
-{"sample_id":"det-003","domain":"news","label_is_ai":1,"baseline_score":0.84,"source":"synthetic"}
-{"sample_id":"det-004","domain":"news","label_is_ai":0,"baseline_score":0.41,"source":"human"}
-{"sample_id":"det-005","domain":"finance","label_is_ai":1,"baseline_score":0.88,"source":"synthetic"}
-{"sample_id":"det-006","domain":"finance","label_is_ai":0,"baseline_score":0.19,"source":"human"}
-{"sample_id":"det-007","domain":"finance","label_is_ai":1,"baseline_score":0.79,"source":"synthetic"}
-{"sample_id":"det-008","domain":"finance","label_is_ai":0,"baseline_score":0.36,"source":"human"}
-{"sample_id":"det-009","domain":"health","label_is_ai":1,"baseline_score":0.91,"source":"synthetic"}
-{"sample_id":"det-010","domain":"health","label_is_ai":0,"baseline_score":0.24,"source":"human"}
-{"sample_id":"det-011","domain":"health","label_is_ai":1,"baseline_score":0.73,"source":"synthetic"}
-{"sample_id":"det-012","domain":"health","label_is_ai":0,"baseline_score":0.48,"source":"human"}
-{"sample_id":"det-013","domain":"legal","label_is_ai":1,"baseline_score":0.82,"source":"synthetic"}
-{"sample_id":"det-014","domain":"legal","label_is_ai":0,"baseline_score":0.29,"source":"human"}
-{"sample_id":"det-015","domain":"legal","label_is_ai":1,"baseline_score":0.77,"source":"synthetic"}
-{"sample_id":"det-016","domain":"legal","label_is_ai":0,"baseline_score":0.53,"source":"human"}
-{"sample_id":"det-017","domain":"code","label_is_ai":1,"baseline_score":0.86,"source":"synthetic"}
-{"sample_id":"det-018","domain":"code","label_is_ai":0,"baseline_score":0.31,"source":"human"}
-{"sample_id":"det-019","domain":"code","label_is_ai":1,"baseline_score":0.68,"source":"synthetic"}
-{"sample_id":"det-020","domain":"code","label_is_ai":0,"baseline_score":0.56,"source":"human"}
-{"sample_id":"det-021","domain":"social","label_is_ai":1,"baseline_score":0.75,"source":"synthetic"}
-{"sample_id":"det-022","domain":"social","label_is_ai":0,"baseline_score":0.27,"source":"human"}
-{"sample_id":"det-023","domain":"social","label_is_ai":1,"baseline_score":0.61,"source":"synthetic"}
-{"sample_id":"det-024","domain":"social","label_is_ai":0,"baseline_score":0.58,"source":"human"}
+{"sample_id": "det-t-001", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-001.txt"}
+{"sample_id": "det-t-002", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-002.txt"}
+{"sample_id": "det-t-003", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-003.txt"}
+{"sample_id": "det-t-004", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-004.txt"}
+{"sample_id": "det-t-005", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-005.txt"}
+{"sample_id": "det-t-006", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-006.txt"}
+{"sample_id": "det-t-007", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-007.txt"}
+{"sample_id": "det-t-008", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-008.txt"}
+{"sample_id": "det-t-009", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-009.txt"}
+{"sample_id": "det-t-010", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-010.txt"}
+{"sample_id": "det-t-011", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-011.txt"}
+{"sample_id": "det-t-012", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-012.txt"}
+{"sample_id": "det-t-013", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-013.txt"}
+{"sample_id": "det-t-014", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-014.txt"}
+{"sample_id": "det-t-015", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-015.txt"}
+{"sample_id": "det-t-016", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-016.txt"}
+{"sample_id": "det-t-017", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-017.txt"}
+{"sample_id": "det-t-018", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-018.txt"}
+{"sample_id": "det-t-019", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-019.txt"}
+{"sample_id": "det-t-020", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-020.txt"}
+{"sample_id": "det-t-021", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-021.txt"}
+{"sample_id": "det-t-022", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-022.txt"}
+{"sample_id": "det-t-023", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-023.txt"}
+{"sample_id": "det-t-024", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-024.txt"}
+{"sample_id": "det-t-025", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-025.txt"}
+{"sample_id": "det-t-026", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-026.txt"}
+{"sample_id": "det-t-027", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-027.txt"}
+{"sample_id": "det-t-028", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-028.txt"}
+{"sample_id": "det-t-029", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-029.txt"}
+{"sample_id": "det-t-030", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-030.txt"}
+{"sample_id": "det-t-031", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-031.txt"}
+{"sample_id": "det-t-032", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-032.txt"}
+{"sample_id": "det-t-033", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-033.txt"}
+{"sample_id": "det-t-034", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-034.txt"}
+{"sample_id": "det-t-035", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-035.txt"}
+{"sample_id": "det-t-036", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-036.txt"}
+{"sample_id": "det-t-037", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-037.txt"}
+{"sample_id": "det-t-038", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-038.txt"}
+{"sample_id": "det-t-039", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-039.txt"}
+{"sample_id": "det-t-040", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-040.txt"}
+{"sample_id": "det-t-041", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-041.txt"}
+{"sample_id": "det-t-042", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-042.txt"}
+{"sample_id": "det-t-043", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-043.txt"}
+{"sample_id": "det-t-044", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-044.txt"}
+{"sample_id": "det-t-045", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-045.txt"}
+{"sample_id": "det-t-046", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-046.txt"}
+{"sample_id": "det-t-047", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-047.txt"}
+{"sample_id": "det-t-048", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-048.txt"}
+{"sample_id": "det-t-049", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-049.txt"}
+{"sample_id": "det-t-050", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-050.txt"}
+{"sample_id": "det-t-051", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-051.txt"}
+{"sample_id": "det-t-052", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-052.txt"}
+{"sample_id": "det-t-053", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-053.txt"}
+{"sample_id": "det-t-054", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-054.txt"}
+{"sample_id": "det-t-055", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-055.txt"}
+{"sample_id": "det-t-056", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-056.txt"}
+{"sample_id": "det-t-057", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-057.txt"}
+{"sample_id": "det-t-058", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-058.txt"}
+{"sample_id": "det-t-059", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-059.txt"}
+{"sample_id": "det-t-060", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-060.txt"}
+{"sample_id": "det-t-061", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-061.txt"}
+{"sample_id": "det-t-062", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-062.txt"}
+{"sample_id": "det-t-063", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-063.txt"}
+{"sample_id": "det-t-064", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-064.txt"}
+{"sample_id": "det-t-065", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-065.txt"}
+{"sample_id": "det-t-066", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-066.txt"}
+{"sample_id": "det-t-067", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-067.txt"}
+{"sample_id": "det-t-068", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-068.txt"}
+{"sample_id": "det-t-069", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-069.txt"}
+{"sample_id": "det-t-070", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-070.txt"}
+{"sample_id": "det-t-071", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-071.txt"}
+{"sample_id": "det-t-072", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-072.txt"}
+{"sample_id": "det-t-073", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-073.txt"}
+{"sample_id": "det-t-074", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-074.txt"}
+{"sample_id": "det-t-075", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-075.txt"}
+{"sample_id": "det-t-076", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-076.txt"}
+{"sample_id": "det-t-077", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-077.txt"}
+{"sample_id": "det-t-078", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-078.txt"}
+{"sample_id": "det-t-079", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-079.txt"}
+{"sample_id": "det-t-080", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-080.txt"}
+{"sample_id": "det-t-081", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-081.txt"}
+{"sample_id": "det-t-082", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-082.txt"}
+{"sample_id": "det-t-083", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-083.txt"}
+{"sample_id": "det-t-084", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-084.txt"}
+{"sample_id": "det-t-085", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-085.txt"}
+{"sample_id": "det-t-086", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-086.txt"}
+{"sample_id": "det-t-087", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-087.txt"}
+{"sample_id": "det-t-088", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-088.txt"}
+{"sample_id": "det-t-089", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-089.txt"}
+{"sample_id": "det-t-090", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-090.txt"}
+{"sample_id": "det-t-091", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-091.txt"}
+{"sample_id": "det-t-092", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-092.txt"}
+{"sample_id": "det-t-093", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-093.txt"}
+{"sample_id": "det-t-094", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-094.txt"}
+{"sample_id": "det-t-095", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-095.txt"}
+{"sample_id": "det-t-096", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-096.txt"}
+{"sample_id": "det-t-097", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-097.txt"}
+{"sample_id": "det-t-098", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-098.txt"}
+{"sample_id": "det-t-099", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-099.txt"}
+{"sample_id": "det-t-100", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-100.txt"}
+{"sample_id": "det-t-101", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-101.txt"}
+{"sample_id": "det-t-102", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-102.txt"}
+{"sample_id": "det-t-103", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-103.txt"}
+{"sample_id": "det-t-104", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-104.txt"}
+{"sample_id": "det-t-105", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-105.txt"}
+{"sample_id": "det-t-106", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-106.txt"}
+{"sample_id": "det-t-107", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-107.txt"}
+{"sample_id": "det-t-108", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-108.txt"}
+{"sample_id": "det-t-109", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-109.txt"}
+{"sample_id": "det-t-110", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-110.txt"}
+{"sample_id": "det-t-111", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-111.txt"}
+{"sample_id": "det-t-112", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-112.txt"}
+{"sample_id": "det-t-113", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-113.txt"}
+{"sample_id": "det-t-114", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-114.txt"}
+{"sample_id": "det-t-115", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-115.txt"}
+{"sample_id": "det-t-116", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-116.txt"}
+{"sample_id": "det-t-117", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-117.txt"}
+{"sample_id": "det-t-118", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-118.txt"}
+{"sample_id": "det-t-119", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-119.txt"}
+{"sample_id": "det-t-120", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-120.txt"}
+{"sample_id": "det-t-121", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-121.txt"}
+{"sample_id": "det-t-122", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-122.txt"}
+{"sample_id": "det-t-123", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-123.txt"}
+{"sample_id": "det-t-124", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-124.txt"}
+{"sample_id": "det-t-125", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-125.txt"}
+{"sample_id": "det-t-126", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-126.txt"}
+{"sample_id": "det-t-127", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-127.txt"}
+{"sample_id": "det-t-128", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-128.txt"}
+{"sample_id": "det-t-129", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-129.txt"}
+{"sample_id": "det-t-130", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-130.txt"}
+{"sample_id": "det-t-131", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-131.txt"}
+{"sample_id": "det-t-132", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-132.txt"}
+{"sample_id": "det-t-133", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-133.txt"}
+{"sample_id": "det-t-134", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-134.txt"}
+{"sample_id": "det-t-135", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-135.txt"}
+{"sample_id": "det-t-136", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-136.txt"}
+{"sample_id": "det-t-137", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-137.txt"}
+{"sample_id": "det-t-138", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-138.txt"}
+{"sample_id": "det-t-139", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-139.txt"}
+{"sample_id": "det-t-140", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-140.txt"}
+{"sample_id": "det-t-141", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-141.txt"}
+{"sample_id": "det-t-142", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-142.txt"}
+{"sample_id": "det-t-143", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-143.txt"}
+{"sample_id": "det-t-144", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-144.txt"}
+{"sample_id": "det-t-145", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-145.txt"}
+{"sample_id": "det-t-146", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-146.txt"}
+{"sample_id": "det-t-147", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-147.txt"}
+{"sample_id": "det-t-148", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-148.txt"}
+{"sample_id": "det-t-149", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-149.txt"}
+{"sample_id": "det-t-150", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-150.txt"}
+{"sample_id": "det-t-151", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-151.txt"}
+{"sample_id": "det-t-152", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-152.txt"}
+{"sample_id": "det-t-153", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-153.txt"}
+{"sample_id": "det-t-154", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-154.txt"}
+{"sample_id": "det-t-155", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-155.txt"}
+{"sample_id": "det-t-156", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-156.txt"}
+{"sample_id": "det-t-157", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-157.txt"}
+{"sample_id": "det-t-158", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-158.txt"}
+{"sample_id": "det-t-159", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-159.txt"}
+{"sample_id": "det-t-160", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/detection/det-t-160.txt"}
+{"sample_id": "det-i-001", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-001.png"}
+{"sample_id": "det-i-002", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-002.png"}
+{"sample_id": "det-i-003", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-003.png"}
+{"sample_id": "det-i-004", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-004.png"}
+{"sample_id": "det-i-005", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-005.png"}
+{"sample_id": "det-i-006", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-006.png"}
+{"sample_id": "det-i-007", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-007.png"}
+{"sample_id": "det-i-008", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-008.png"}
+{"sample_id": "det-i-009", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-009.png"}
+{"sample_id": "det-i-010", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-010.png"}
+{"sample_id": "det-i-011", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-011.png"}
+{"sample_id": "det-i-012", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-012.png"}
+{"sample_id": "det-i-013", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-013.png"}
+{"sample_id": "det-i-014", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-014.png"}
+{"sample_id": "det-i-015", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-015.png"}
+{"sample_id": "det-i-016", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-016.png"}
+{"sample_id": "det-i-017", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-017.png"}
+{"sample_id": "det-i-018", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-018.png"}
+{"sample_id": "det-i-019", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-019.png"}
+{"sample_id": "det-i-020", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-020.png"}
+{"sample_id": "det-i-021", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-021.png"}
+{"sample_id": "det-i-022", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-022.png"}
+{"sample_id": "det-i-023", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-023.png"}
+{"sample_id": "det-i-024", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-024.png"}
+{"sample_id": "det-i-025", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-025.png"}
+{"sample_id": "det-i-026", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-026.png"}
+{"sample_id": "det-i-027", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-027.png"}
+{"sample_id": "det-i-028", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-028.png"}
+{"sample_id": "det-i-029", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-029.png"}
+{"sample_id": "det-i-030", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-030.png"}
+{"sample_id": "det-i-031", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-031.png"}
+{"sample_id": "det-i-032", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-032.png"}
+{"sample_id": "det-i-033", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-033.png"}
+{"sample_id": "det-i-034", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-034.png"}
+{"sample_id": "det-i-035", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-035.png"}
+{"sample_id": "det-i-036", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-036.png"}
+{"sample_id": "det-i-037", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-037.png"}
+{"sample_id": "det-i-038", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-038.png"}
+{"sample_id": "det-i-039", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-039.png"}
+{"sample_id": "det-i-040", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-040.png"}
+{"sample_id": "det-i-041", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-041.png"}
+{"sample_id": "det-i-042", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-042.png"}
+{"sample_id": "det-i-043", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-043.png"}
+{"sample_id": "det-i-044", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-044.png"}
+{"sample_id": "det-i-045", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-045.png"}
+{"sample_id": "det-i-046", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-046.png"}
+{"sample_id": "det-i-047", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-047.png"}
+{"sample_id": "det-i-048", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-048.png"}
+{"sample_id": "det-i-049", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-049.png"}
+{"sample_id": "det-i-050", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-050.png"}
+{"sample_id": "det-i-051", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-051.png"}
+{"sample_id": "det-i-052", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-052.png"}
+{"sample_id": "det-i-053", "task": "ai_vs_human_detection", "domain": "science", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-053.png"}
+{"sample_id": "det-i-054", "task": "ai_vs_human_detection", "domain": "news", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-054.png"}
+{"sample_id": "det-i-055", "task": "ai_vs_human_detection", "domain": "finance", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-055.png"}
+{"sample_id": "det-i-056", "task": "ai_vs_human_detection", "domain": "health", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-056.png"}
+{"sample_id": "det-i-057", "task": "ai_vs_human_detection", "domain": "legal", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-057.png"}
+{"sample_id": "det-i-058", "task": "ai_vs_human_detection", "domain": "social", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-058.png"}
+{"sample_id": "det-i-059", "task": "ai_vs_human_detection", "domain": "code", "label_is_ai": 0, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-059.png"}
+{"sample_id": "det-i-060", "task": "ai_vs_human_detection", "domain": "education", "label_is_ai": 1, "modality": "image", "input_ref": "benchmark/samples/image/detection/det-i-060.png"}

@@ -1,24 +1,120 @@
-{"sample_id":"tmp-a1-clean","base_id":"a1","transform":"clean","label_is_ai":1,"baseline_score":0.94}
-{"sample_id":"tmp-a1-paraphrase","base_id":"a1","transform":"paraphrase","label_is_ai":1,"baseline_score":0.81}
-{"sample_id":"tmp-a1-translate","base_id":"a1","transform":"translate","label_is_ai":1,"baseline_score":0.76}
-{"sample_id":"tmp-a1-human_edit","base_id":"a1","transform":"human_edit","label_is_ai":1,"baseline_score":0.69}
-{"sample_id":"tmp-a2-clean","base_id":"a2","transform":"clean","label_is_ai":1,"baseline_score":0.90}
-{"sample_id":"tmp-a2-paraphrase","base_id":"a2","transform":"paraphrase","label_is_ai":1,"baseline_score":0.78}
-{"sample_id":"tmp-a2-translate","base_id":"a2","transform":"translate","label_is_ai":1,"baseline_score":0.71}
-{"sample_id":"tmp-a2-human_edit","base_id":"a2","transform":"human_edit","label_is_ai":1,"baseline_score":0.63}
-{"sample_id":"tmp-a3-clean","base_id":"a3","transform":"clean","label_is_ai":1,"baseline_score":0.88}
-{"sample_id":"tmp-a3-paraphrase","base_id":"a3","transform":"paraphrase","label_is_ai":1,"baseline_score":0.75}
-{"sample_id":"tmp-a3-translate","base_id":"a3","transform":"translate","label_is_ai":1,"baseline_score":0.66}
-{"sample_id":"tmp-a3-human_edit","base_id":"a3","transform":"human_edit","label_is_ai":1,"baseline_score":0.58}
-{"sample_id":"tmp-h1-clean","base_id":"h1","transform":"clean","label_is_ai":0,"baseline_score":0.12}
-{"sample_id":"tmp-h1-paraphrase","base_id":"h1","transform":"paraphrase","label_is_ai":0,"baseline_score":0.19}
-{"sample_id":"tmp-h1-translate","base_id":"h1","transform":"translate","label_is_ai":0,"baseline_score":0.27}
-{"sample_id":"tmp-h1-human_edit","base_id":"h1","transform":"human_edit","label_is_ai":0,"baseline_score":0.35}
-{"sample_id":"tmp-h2-clean","base_id":"h2","transform":"clean","label_is_ai":0,"baseline_score":0.16}
-{"sample_id":"tmp-h2-paraphrase","base_id":"h2","transform":"paraphrase","label_is_ai":0,"baseline_score":0.22}
-{"sample_id":"tmp-h2-translate","base_id":"h2","transform":"translate","label_is_ai":0,"baseline_score":0.32}
-{"sample_id":"tmp-h2-human_edit","base_id":"h2","transform":"human_edit","label_is_ai":0,"baseline_score":0.40}
-{"sample_id":"tmp-h3-clean","base_id":"h3","transform":"clean","label_is_ai":0,"baseline_score":0.21}
-{"sample_id":"tmp-h3-paraphrase","base_id":"h3","transform":"paraphrase","label_is_ai":0,"baseline_score":0.29}
-{"sample_id":"tmp-h3-translate","base_id":"h3","transform":"translate","label_is_ai":0,"baseline_score":0.44}
-{"sample_id":"tmp-h3-human_edit","base_id":"h3","transform":"human_edit","label_is_ai":0,"baseline_score":0.52}
+{"sample_id": "tmp-001-clean", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-001-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-001-paraphrase", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-001-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-001-translate", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-001-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-001-human_edit", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-001-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-002-clean", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-002-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-002-paraphrase", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-002-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-002-translate", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-002-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-002-human_edit", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-002-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-003-clean", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-003-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-003-paraphrase", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-003-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-003-translate", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-003-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-003-human_edit", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-003-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-004-clean", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-004-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-004-paraphrase", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-004-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-004-translate", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-004-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-004-human_edit", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-004-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-005-clean", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-005-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-005-paraphrase", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-005-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-005-translate", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-005-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-005-human_edit", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-005-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-006-clean", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-006-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-006-paraphrase", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-006-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-006-translate", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-006-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-006-human_edit", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-006-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-007-clean", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-007-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-007-paraphrase", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-007-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-007-translate", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-007-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-007-human_edit", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-007-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-008-clean", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-008-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-008-paraphrase", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-008-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-008-translate", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-008-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-008-human_edit", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-008-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-009-clean", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-009-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-009-paraphrase", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-009-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-009-translate", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-009-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-009-human_edit", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-009-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-010-clean", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-010-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-010-paraphrase", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-010-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-010-translate", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-010-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-010-human_edit", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-010-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-011-clean", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-011-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-011-paraphrase", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-011-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-011-translate", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-011-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-011-human_edit", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-011-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-012-clean", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-012-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-012-paraphrase", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-012-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-012-translate", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-012-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-012-human_edit", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-012-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-013-clean", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-013-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-013-paraphrase", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-013-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-013-translate", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-013-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-013-human_edit", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-013-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-014-clean", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-014-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-014-paraphrase", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-014-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-014-translate", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-014-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-014-human_edit", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-014-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-015-clean", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-015-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-015-paraphrase", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-015-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-015-translate", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-015-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-015-human_edit", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-015-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-016-clean", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-016-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-016-paraphrase", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-016-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-016-translate", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-016-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-016-human_edit", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-016-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-017-clean", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-017-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-017-paraphrase", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-017-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-017-translate", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-017-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-017-human_edit", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-017-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-018-clean", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-018-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-018-paraphrase", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-018-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-018-translate", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-018-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-018-human_edit", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-018-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-019-clean", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-019-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-019-paraphrase", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-019-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-019-translate", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-019-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-019-human_edit", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-019-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-020-clean", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-020-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-020-paraphrase", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-020-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-020-translate", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-020-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-020-human_edit", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-020-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-021-clean", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-021-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-021-paraphrase", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-021-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-021-translate", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-021-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-021-human_edit", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-021-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-022-clean", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-022-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-022-paraphrase", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-022-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-022-translate", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-022-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-022-human_edit", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-022-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-023-clean", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-023-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-023-paraphrase", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-023-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-023-translate", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-023-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-023-human_edit", "task": "tamper_detection", "domain": "health", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-023-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-024-clean", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-024-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-024-paraphrase", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-024-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-024-translate", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-024-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-024-human_edit", "task": "tamper_detection", "domain": "legal", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-024-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-025-clean", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-025-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-025-paraphrase", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-025-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-025-translate", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-025-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-025-human_edit", "task": "tamper_detection", "domain": "social", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-025-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-026-clean", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-026-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-026-paraphrase", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-026-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-026-translate", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-026-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-026-human_edit", "task": "tamper_detection", "domain": "code", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-026-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-027-clean", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-027-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-027-paraphrase", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-027-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-027-translate", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-027-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-027-human_edit", "task": "tamper_detection", "domain": "education", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-027-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-028-clean", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-028-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-028-paraphrase", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-028-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-028-translate", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-028-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-028-human_edit", "task": "tamper_detection", "domain": "science", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-028-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-029-clean", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-029-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-029-paraphrase", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-029-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-029-translate", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-029-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-029-human_edit", "task": "tamper_detection", "domain": "news", "label_is_ai": 1, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-029-human_edit.txt", "transform": "human_edit"}
+{"sample_id": "tmp-030-clean", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-030-clean.txt", "transform": "clean"}
+{"sample_id": "tmp-030-paraphrase", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-030-paraphrase.txt", "transform": "paraphrase"}
+{"sample_id": "tmp-030-translate", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-030-translate.txt", "transform": "translate"}
+{"sample_id": "tmp-030-human_edit", "task": "tamper_detection", "domain": "finance", "label_is_ai": 0, "modality": "text", "input_ref": "benchmark/samples/text/tamper/tmp-030-human_edit.txt", "transform": "human_edit"}

@@ -1,0 +1,25 @@
+# CODEOWNERS — require review for critical paths
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @ogulcanaydogan
+
+# Backend core
+/backend/app/core/         @ogulcanaydogan
+/backend/app/middleware/   @ogulcanaydogan
+/backend/app/models/       @ogulcanaydogan
+
+# API routes
+/backend/app/api/          @ogulcanaydogan
+
+# Infrastructure & CI
+/docker-compose*.yml       @ogulcanaydogan
+/backend/Dockerfile        @ogulcanaydogan
+/frontend/Dockerfile       @ogulcanaydogan
+/.github/workflows/        @ogulcanaydogan
+/terraform/                @ogulcanaydogan
+
+# Security-sensitive files
+/SECURITY.md               @ogulcanaydogan
+/.pre-commit-config.yaml   @ogulcanaydogan
+/.github/dependabot.yml    @ogulcanaydogan

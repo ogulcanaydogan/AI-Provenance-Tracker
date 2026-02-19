@@ -11,6 +11,7 @@ from app.api.v1 import router as api_router
 from app.core.config import settings
 from app.db import close_database, init_database
 from app.middleware.audit import audit_http_request
+from app.middleware.error_handlers import register_error_handlers
 from app.services.job_scheduler import x_pipeline_scheduler
 
 logger = structlog.get_logger()
@@ -30,14 +31,41 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down AI Provenance Tracker")
 
 
+openapi_tags = [
+    {
+        "name": "detection",
+        "description": "Detect AI-generated content across text, image, audio, and video modalities.",
+    },
+    {
+        "name": "batch",
+        "description": "Batch processing endpoints for high-throughput text analysis.",
+    },
+    {
+        "name": "analysis",
+        "description": (
+            "Analysis history, aggregate statistics, dashboard analytics, "
+            "audit events, and calibration/evaluation metrics."
+        ),
+    },
+    {
+        "name": "intel",
+        "description": "X (Twitter) intelligence collection, trust reports, and cost estimation.",
+    },
+]
+
 app = FastAPI(
     title=settings.app_name,
-    description="Detect AI-generated content, trace origins, verify authenticity",
+    description=(
+        "Open-source multi-modal AI content detection platform. "
+        "Analyse text, images, audio, and video for AI-generated signals "
+        "with explainable scoring, multi-provider consensus, and full audit trail."
+    ),
     version=settings.app_version,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
+    openapi_tags=openapi_tags,
 )
 
 # CORS middleware
@@ -49,6 +77,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(audit_http_request)
+
+# Global error handlers (structured JSON errors with request IDs)
+register_error_handlers(app)
 
 
 @app.get("/health")
