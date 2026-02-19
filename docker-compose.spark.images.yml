@@ -1,0 +1,6 @@
+services:
+  backend:
+    image: ${SPARK_BACKEND_IMAGE:?Set SPARK_BACKEND_IMAGE}
+
+  worker:
+    image: ${SPARK_WORKER_IMAGE:?Set SPARK_WORKER_IMAGE}

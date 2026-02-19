@@ -582,7 +582,8 @@ ai-provenance-tracker/
 ├── docs/                      # Deployment and operational documentation
 ├── scripts/                   # Deployment and utility scripts
 ├── docker-compose.yml         # Local development compose
-└── docker-compose.spark.yml   # Production-oriented compose
+├── docker-compose.spark.yml   # Spark compose (source-build mode)
+└── docker-compose.spark.images.yml  # Spark compose override (pinned GHCR images)
 ```
 
 ---
@@ -594,6 +595,7 @@ ai-provenance-tracker/
 ```bash
 docker-compose up --build                    # Development
 docker-compose -f docker-compose.spark.yml up --build  # Production
+docker-compose -f docker-compose.spark.yml -f docker-compose.spark.images.yml up -d  # Spark pinned images
 ```
 
 ### Kubernetes
@@ -618,21 +620,23 @@ terraform apply
 ```bash
 ./scripts/deploy_spark.sh
 SPARK_DEPLOY_FRONTEND=true ./scripts/deploy_spark.sh  # Include frontend
+SPARK_USE_PINNED_IMAGES=true \
+SPARK_BACKEND_IMAGE=ghcr.io/ogulcanaydogan/provenance-api:<commit-sha> \
+SPARK_WORKER_IMAGE=ghcr.io/ogulcanaydogan/provenance-worker:<commit-sha> \
+./scripts/deploy_spark.sh
 ```
+
+`Deploy Spark Runtime` GitHub Action supports the same pinned image mode via `use_pinned_images=true` and optional `image_tag`.
 
 ---
 
 ## Running the Benchmark
 
 ```bash
-python benchmark/eval/run_public_benchmark.py \
-  --datasets-dir benchmark/datasets \
-  --output-dir benchmark/results/latest \
-  --leaderboard-output benchmark/leaderboard/leaderboard.json \
-  --model-id baseline-heuristic-v0.1
+make benchmark-public
 ```
 
-Outputs benchmark results, per-domain accuracy breakdowns, and an updated leaderboard JSON.
+Outputs benchmark results, `scored_samples.jsonl`, regression report, and an updated leaderboard JSON.
 
 ---
 

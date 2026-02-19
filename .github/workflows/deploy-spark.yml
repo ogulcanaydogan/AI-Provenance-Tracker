@@ -3,6 +3,18 @@ name: Deploy Spark Runtime
 on:
   workflow_dispatch:
     inputs:
+      use_pinned_images:
+        description: "Use GHCR pinned images for backend/worker"
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+      image_tag:
+        description: "Pinned image tag override (defaults to commit SHA)"
+        required: false
+        type: string
       deploy_frontend:
         description: "Deploy frontend service as part of this run"
         required: true
@@ -53,11 +65,13 @@ on:
       - "backend/**"
       - "docker-compose.yml"
       - "docker-compose.spark.yml"
+      - "docker-compose.spark.images.yml"
       - "scripts/deploy_spark.sh"
       - ".github/workflows/deploy-spark.yml"
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: spark-runtime-production
@@ -75,6 +89,7 @@ jobs:
       SPARK_REMOTE_DIR_VAR: ${{ vars.SPARK_REMOTE_DIR }}
       SPARK_PUBLIC_API_URL_VAR: ${{ vars.SPARK_PUBLIC_API_URL }}
       SPARK_DEPLOY_FRONTEND_VAR: ${{ vars.SPARK_DEPLOY_FRONTEND }}
+      SPARK_USE_PINNED_IMAGES_VAR: ${{ vars.SPARK_USE_PINNED_IMAGES }}
       SPARK_RUNNER_TYPE_VAR: ${{ vars.SPARK_RUNNER_TYPE }}
       SPARK_RUN_SMOKE_VAR: ${{ vars.SPARK_RUN_SMOKE }}
       SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR: ${{ vars.SPARK_ROLLBACK_ON_SMOKE_FAILURE }}
@@ -108,13 +123,29 @@ jobs:
           remote_dir="${SPARK_REMOTE_DIR_VAR:-/home/weezboo/ogulcan/ai-provenance-tracker}"
           public_api_url="${SPARK_PUBLIC_API_URL_VAR:-}"
           deploy_frontend="${SPARK_DEPLOY_FRONTEND_VAR:-false}"
+          use_pinned_images="${SPARK_USE_PINNED_IMAGES_VAR:-}"
           runner_type="${SPARK_RUNNER_TYPE_VAR:-github-hosted}"
           smoke_base_url="${SPARK_PUBLIC_API_URL_VAR:-}"
           run_smoke="${SPARK_RUN_SMOKE_VAR:-true}"
           rollback_on_smoke_failure="${SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR:-true}"
+          image_tag="${GITHUB_SHA}"
           ssh_port="${SPARK_SSH_PORT:-22}"
 
+          if [ -z "${use_pinned_images}" ]; then
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              use_pinned_images="true"
+            else
+              use_pinned_images="false"
+            fi
+          fi
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.use_pinned_images }}" ]; then
+              use_pinned_images="${{ github.event.inputs.use_pinned_images }}"
+            fi
+            if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+              image_tag="${{ github.event.inputs.image_tag }}"
+            fi
             if [ -n "${{ github.event.inputs.remote_dir }}" ]; then
               remote_dir="${{ github.event.inputs.remote_dir }}"
             fi
@@ -138,6 +169,11 @@ jobs:
             fi
           fi
 
+          if [ "${use_pinned_images}" != "true" ] && [ "${use_pinned_images}" != "false" ]; then
+            echo "use_pinned_images must be true or false."
+            exit 1
+          fi
+
           if [ -z "${smoke_base_url}" ]; then
             smoke_base_url="${public_api_url}"
           fi
@@ -146,11 +182,34 @@ jobs:
             echo "remote_dir=${remote_dir}"
             echo "public_api_url=${public_api_url}"
             echo "deploy_frontend=${deploy_frontend}"
+            echo "use_pinned_images=${use_pinned_images}"
+            echo "image_tag=${image_tag}"
             echo "runner_type=${runner_type}"
             echo "smoke_base_url=${smoke_base_url}"
             echo "run_smoke=${run_smoke}"
             echo "rollback_on_smoke_failure=${rollback_on_smoke_failure}"
             echo "ssh_port=${ssh_port}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve pinned image refs
+        id: image_refs
+        run: |
+          set -euo pipefail
+          use_pinned_images="${{ steps.resolve.outputs.use_pinned_images }}"
+          image_tag="${{ steps.resolve.outputs.image_tag }}"
+          api_ref=""
+          worker_ref=""
+
+          if [ "${use_pinned_images}" = "true" ]; then
+            api_ref="ghcr.io/${{ github.repository_owner }}/provenance-api:${image_tag}"
+            worker_ref="ghcr.io/${{ github.repository_owner }}/provenance-worker:${image_tag}"
+          fi
+
+          {
+            echo "use_pinned_images=${use_pinned_images}"
+            echo "image_tag=${image_tag}"
+            echo "api_ref=${api_ref}"
+            echo "worker_ref=${worker_ref}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up SSH access
@@ -195,6 +254,9 @@ jobs:
           SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
           SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
           SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \
+          SPARK_USE_PINNED_IMAGES="${{ steps.image_refs.outputs.use_pinned_images }}" \
+          SPARK_BACKEND_IMAGE="${{ steps.image_refs.outputs.api_ref }}" \
+          SPARK_WORKER_IMAGE="${{ steps.image_refs.outputs.worker_ref }}" \
           X_BEARER_TOKEN="${X_BEARER_TOKEN:-}" \
           ./scripts/deploy_spark.sh
 
@@ -239,6 +301,9 @@ jobs:
           SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
           SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
           SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \
+          SPARK_USE_PINNED_IMAGES=false \
+          SPARK_BACKEND_IMAGE="" \
+          SPARK_WORKER_IMAGE="" \
           X_BEARER_TOKEN="${X_BEARER_TOKEN:-}" \
           ./scripts/deploy_spark.sh
           git checkout --detach "${GITHUB_SHA}"
@@ -313,6 +378,14 @@ jobs:
             echo "- Commit: \`${{ github.sha }}\`"
             echo "- Remote dir: \`${{ steps.resolve.outputs.remote_dir }}\`"
             echo "- Deploy frontend: \`${{ steps.resolve.outputs.deploy_frontend }}\`"
+            echo "- Use pinned images: \`${{ steps.image_refs.outputs.use_pinned_images }}\`"
+            echo "- Image tag: \`${{ steps.image_refs.outputs.image_tag }}\`"
+            if [ -n "${{ steps.image_refs.outputs.api_ref }}" ]; then
+              echo "- Backend image ref: \`${{ steps.image_refs.outputs.api_ref }}\`"
+            fi
+            if [ -n "${{ steps.image_refs.outputs.worker_ref }}" ]; then
+              echo "- Worker image ref: \`${{ steps.image_refs.outputs.worker_ref }}\`"
+            fi
             echo "- Runner type: \`${{ steps.resolve.outputs.runner_type || 'github-hosted' }}\`"
             echo "- Run smoke: \`${{ steps.resolve.outputs.run_smoke }}\`"
             echo "- SSH reachable from runner: \`${{ steps.ssh_prep.outputs.keyscan_ok || 'false' }}\`"
