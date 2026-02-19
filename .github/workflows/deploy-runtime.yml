@@ -197,7 +197,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Verify image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -359,7 +359,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ steps.railway_link.outputs.link_failed != 'true' && env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Verify image signatures
         if: ${{ steps.railway_link.outputs.link_failed != 'true' && env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -505,7 +505,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Verify rollback image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -639,7 +639,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Verify rollback image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
