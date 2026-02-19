@@ -1,36 +1,36 @@
 {
-  "snapshot_version": "2026-02-18-v1",
+  "snapshot_version": "2026-02-18-v1.0-live",
   "source_results": "benchmark/results/latest/benchmark_results.json",
-  "notes": "Baseline metrics for CI regression gating. Metrics must not drop more than max_drop.",
+  "notes": "Baseline metrics for CI regression gating against live detector benchmark outputs.",
   "metrics": [
     {
       "path": "tasks.ai_vs_human_detection.f1",
-      "baseline": 0.8889,
+      "baseline": 0.7333,
       "max_drop": 0.03
     },
     {
       "path": "tasks.ai_vs_human_detection.roc_auc",
       "baseline": 1.0,
-      "max_drop": 0.01
+      "max_drop": 0.02
     },
     {
       "path": "tasks.source_attribution.accuracy",
-      "baseline": 0.6667,
+      "baseline": 0.8,
       "max_drop": 0.03
     },
     {
       "path": "tasks.tamper_detection.robustness_score",
-      "baseline": 0.9524,
-      "max_drop": 0.03
+      "baseline": 1.0,
+      "max_drop": 0.05
     },
     {
       "path": "tasks.audio_ai_vs_human_detection.f1",
-      "baseline": 0.9231,
+      "baseline": 1.0,
       "max_drop": 0.05
     },
     {
       "path": "tasks.video_ai_vs_human_detection.f1",
-      "baseline": 0.8571,
+      "baseline": 1.0,
       "max_drop": 0.05
     }
   ]

@@ -48,13 +48,13 @@ export function VideoUpload({ onAnalyze, isLoading }: VideoUploadProps) {
               : "border-gray-700 hover:border-gray-500 bg-gray-900"
           }`}
         >
-          <input {...getInputProps()} />
-          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" />
+          <input {...getInputProps()} aria-label="Upload video file for AI detection" />
+          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" aria-hidden="true" />
           <p className="text-gray-300 font-medium">
             {isDragActive ? "Drop video here..." : "Drag & drop a video, or click to upload"}
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Supports MP4, WebM, MOV, AVI, MKV (max 150 MB)
+            Supports MP4, WebM, MOV, AVI, MKV &middot; Max 150 MB
           </p>
         </div>
       ) : (
@@ -74,9 +74,10 @@ export function VideoUpload({ onAnalyze, isLoading }: VideoUploadProps) {
               <button
                 onClick={clear}
                 disabled={isLoading}
+                aria-label="Remove selected video file"
                 className="mt-3 text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
                 Remove
               </button>
             </div>

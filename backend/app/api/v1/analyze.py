@@ -1,6 +1,13 @@
 """Analysis API endpoints for detailed content inspection."""
 
+from __future__ import annotations
+
+import csv
+import io
+import json as json_lib
+
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.services.analysis_store import analysis_store
@@ -77,19 +84,61 @@ async def detailed_analysis(request: AnalysisRequest) -> AnalysisResponse:
 async def get_analysis_history(
     limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    content_type: str = Query(default="", max_length=16),
 ) -> dict:
     """
     Get history of past analyses.
 
     Returns paginated list of previous detection results.
+    Optionally filter by content_type (text, image, audio, video).
     """
-    items, total = await analysis_store.get_history(limit=limit, offset=offset)
+    items, total = await analysis_store.get_history(
+        limit=limit,
+        offset=offset,
+        content_type=content_type.strip() or None,
+    )
     return {
         "items": items,
         "total": total,
         "limit": limit,
         "offset": offset,
+        "content_type": content_type.strip() or None,
     }
+
+
+@router.get("/history/export")
+async def export_history(
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+    content_type: str = Query(default="", max_length=16),
+) -> StreamingResponse:
+    """
+    Export analysis history as JSON or CSV download.
+
+    Returns up to 10 000 records as a downloadable file.
+    """
+    items, _ = await analysis_store.get_history(
+        limit=10_000,
+        offset=0,
+        content_type=content_type.strip() or None,
+    )
+
+    if format == "csv":
+        output = io.StringIO()
+        if items:
+            writer = csv.DictWriter(output, fieldnames=list(items[0].keys()))
+            writer.writeheader()
+            writer.writerows(items)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=analysis_history.csv"},
+        )
+
+    return StreamingResponse(
+        iter([json_lib.dumps(items, indent=2, default=str)]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=analysis_history.json"},
+    )
 
 
 @router.get("/stats")
@@ -111,6 +160,39 @@ async def get_dashboard(days: int = Query(default=14, ge=1, le=90)) -> dict:
     and per-day timeline metrics.
     """
     return await analysis_store.get_dashboard(days=days)
+
+
+@router.get("/dashboard/export")
+async def export_dashboard(
+    days: int = Query(default=14, ge=1, le=90),
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+) -> StreamingResponse:
+    """
+    Export dashboard data as JSON or CSV download.
+    """
+    data = await analysis_store.get_dashboard(days=days)
+
+    if format == "csv":
+        output = io.StringIO()
+        timeline = data.get("timeline", [])
+        if timeline:
+            writer = csv.DictWriter(
+                output,
+                fieldnames=list(timeline[0].keys()),
+            )
+            writer.writeheader()
+            writer.writerows(timeline)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=dashboard_timeline.csv"},
+        )
+
+    return StreamingResponse(
+        iter([json_lib.dumps(data, indent=2, default=str)]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=dashboard.json"},
+    )
 
 
 @router.get("/evaluation")

@@ -1,12 +1,30 @@
-{"sample_id":"aud-001","domain":"podcast","label_is_ai":1,"baseline_score":0.91,"source":"synthetic"}
-{"sample_id":"aud-002","domain":"podcast","label_is_ai":0,"baseline_score":0.18,"source":"human"}
-{"sample_id":"aud-003","domain":"voice_note","label_is_ai":1,"baseline_score":0.84,"source":"synthetic"}
-{"sample_id":"aud-004","domain":"voice_note","label_is_ai":0,"baseline_score":0.22,"source":"human"}
-{"sample_id":"aud-005","domain":"news_audio","label_is_ai":1,"baseline_score":0.79,"source":"synthetic"}
-{"sample_id":"aud-006","domain":"news_audio","label_is_ai":0,"baseline_score":0.31,"source":"human"}
-{"sample_id":"aud-007","domain":"call_center","label_is_ai":1,"baseline_score":0.73,"source":"synthetic"}
-{"sample_id":"aud-008","domain":"call_center","label_is_ai":0,"baseline_score":0.44,"source":"human"}
-{"sample_id":"aud-009","domain":"audiobook","label_is_ai":1,"baseline_score":0.67,"source":"synthetic"}
-{"sample_id":"aud-010","domain":"audiobook","label_is_ai":0,"baseline_score":0.49,"source":"human"}
-{"sample_id":"aud-011","domain":"assistant","label_is_ai":1,"baseline_score":0.58,"source":"synthetic"}
-{"sample_id":"aud-012","domain":"assistant","label_is_ai":0,"baseline_score":0.61,"source":"human"}
+{"sample_id": "aud-001", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-001.wav"}
+{"sample_id": "aud-002", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-002.wav"}
+{"sample_id": "aud-003", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-003.wav"}
+{"sample_id": "aud-004", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-004.wav"}
+{"sample_id": "aud-005", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-005.wav"}
+{"sample_id": "aud-006", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-006.wav"}
+{"sample_id": "aud-007", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-007.wav"}
+{"sample_id": "aud-008", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-008.wav"}
+{"sample_id": "aud-009", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-009.wav"}
+{"sample_id": "aud-010", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-010.wav"}
+{"sample_id": "aud-011", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-011.wav"}
+{"sample_id": "aud-012", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-012.wav"}
+{"sample_id": "aud-013", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-013.wav"}
+{"sample_id": "aud-014", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-014.wav"}
+{"sample_id": "aud-015", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-015.wav"}
+{"sample_id": "aud-016", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-016.wav"}
+{"sample_id": "aud-017", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-017.wav"}
+{"sample_id": "aud-018", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-018.wav"}
+{"sample_id": "aud-019", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-019.wav"}
+{"sample_id": "aud-020", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-020.wav"}
+{"sample_id": "aud-021", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-021.wav"}
+{"sample_id": "aud-022", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-022.wav"}
+{"sample_id": "aud-023", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-023.wav"}
+{"sample_id": "aud-024", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-024.wav"}
+{"sample_id": "aud-025", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-025.wav"}
+{"sample_id": "aud-026", "task": "audio_ai_vs_human_detection", "domain": "podcast", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-026.wav"}
+{"sample_id": "aud-027", "task": "audio_ai_vs_human_detection", "domain": "voice_note", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-027.wav"}
+{"sample_id": "aud-028", "task": "audio_ai_vs_human_detection", "domain": "news_audio", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-028.wav"}
+{"sample_id": "aud-029", "task": "audio_ai_vs_human_detection", "domain": "call_center", "label_is_ai": 1, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-029.wav"}
+{"sample_id": "aud-030", "task": "audio_ai_vs_human_detection", "domain": "audiobook", "label_is_ai": 0, "modality": "audio", "input_ref": "benchmark/samples/audio/detection/aud-030.wav"}

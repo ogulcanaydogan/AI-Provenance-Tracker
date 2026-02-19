@@ -11,6 +11,8 @@ from app.api.v1 import router as api_router
 from app.core.config import settings
 from app.db import close_database, init_database
 from app.middleware.audit import audit_http_request
+from app.middleware.cache_headers import cache_control_middleware
+from app.middleware.error_handlers import register_error_handlers
 from app.services.job_scheduler import x_pipeline_scheduler
 
 logger = structlog.get_logger()
@@ -30,14 +32,41 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down AI Provenance Tracker")
 
 
+openapi_tags = [
+    {
+        "name": "detection",
+        "description": "Detect AI-generated content across text, image, audio, and video modalities.",
+    },
+    {
+        "name": "batch",
+        "description": "Batch processing endpoints for high-throughput text analysis.",
+    },
+    {
+        "name": "analysis",
+        "description": (
+            "Analysis history, aggregate statistics, dashboard analytics, "
+            "audit events, and calibration/evaluation metrics."
+        ),
+    },
+    {
+        "name": "intel",
+        "description": "X (Twitter) intelligence collection, trust reports, and cost estimation.",
+    },
+]
+
 app = FastAPI(
     title=settings.app_name,
-    description="Detect AI-generated content, trace origins, verify authenticity",
+    description=(
+        "Open-source multi-modal AI content detection platform. "
+        "Analyse text, images, audio, and video for AI-generated signals "
+        "with explainable scoring, multi-provider consensus, and full audit trail."
+    ),
     version=settings.app_version,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
+    openapi_tags=openapi_tags,
 )
 
 # CORS middleware
@@ -49,12 +78,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(audit_http_request)
+app.middleware("http")(cache_control_middleware)
+
+# Global error handlers (structured JSON errors with request IDs)
+register_error_handlers(app)
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
-    """Health check endpoint."""
-    return {"status": "healthy", "version": settings.app_version}
+async def health_check(deep: bool = False) -> dict:
+    """Health check endpoint.
+
+    Pass ?deep=true to verify database and Redis connectivity.
+    """
+    result: dict = {"status": "healthy", "version": settings.app_version}
+
+    if not deep:
+        return result
+
+    checks: dict[str, str] = {}
+
+    # Database connectivity
+    try:
+        from app.db.session import get_db_session
+        from sqlalchemy import text
+
+        async with get_db_session() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:
+        checks["database"] = f"error: {exc}"
+        result["status"] = "degraded"
+
+    # Redis connectivity (optional — Redis may not be deployed)
+    try:
+        import redis.asyncio as aioredis
+
+        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=2)
+        await r.ping()
+        await r.aclose()
+        checks["redis"] = "ok"
+    except Exception as exc:
+        checks["redis"] = f"unavailable: {exc}"
+        # Redis is optional so this is non-fatal
+
+    result["checks"] = checks
+    return result
 
 
 @app.get("/")

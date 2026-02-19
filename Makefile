@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public build-text-dataset
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -29,6 +29,7 @@ help:
 	@echo "  make intel-weekly-cycle  Run one weekly cycle and auto-compare with previous run"
 	@echo "  make smoke-prod      Smoke test deployed /detect endpoints"
 	@echo "  make benchmark-public Run public provenance benchmark + leaderboard artifacts"
+	@echo "  make build-text-dataset Build expanded labeled text corpus from benchmark samples"
 
 install:
 	cd backend && pip install -e .
@@ -83,4 +84,8 @@ smoke-prod:
 	cd backend && python3 scripts/smoke_detect_prod.py --base-url "$${BASE_URL:?Set BASE_URL}" --api-key "$${API_KEY:-}" --api-key-header "$${API_KEY_HEADER:-X-API-Key}" --output "$${OUTPUT:-evidence/smoke/prod_detect_smoke.json}"
 
 benchmark-public:
-	python3 benchmark/eval/run_public_benchmark.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-dir "$${OUTPUT_DIR:-benchmark/results/latest}" --leaderboard-output "$${LEADERBOARD_OUTPUT:-benchmark/leaderboard/leaderboard.json}" --model-id "$${MODEL_ID:-baseline-heuristic-v0.1}"
+	python3 benchmark/eval/run_public_benchmark.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-dir "$${OUTPUT_DIR:-benchmark/results/latest}" --leaderboard-output "$${LEADERBOARD_OUTPUT:-benchmark/leaderboard/leaderboard.json}" --model-id "$${MODEL_ID:-baseline-heuristic-v1.0-live}" --decision-threshold "$${DECISION_THRESHOLD:-0.45}" --backend-url "$${BACKEND_URL:-http://127.0.0.1:8000}" --api-key "$${API_KEY:-}" --api-key-header "$${API_KEY_HEADER:-X-API-Key}" --live-mode "$${LIVE_MODE:-true}"
+	python3 benchmark/eval/check_benchmark_regression.py --current "$${OUTPUT_DIR:-benchmark/results/latest}/benchmark_results.json" --baseline "$${BASELINE_SNAPSHOT:-benchmark/baselines/public_benchmark_snapshot.json}" --report-json "$${OUTPUT_DIR:-benchmark/results/latest}/regression_check.json" --report-md "$${OUTPUT_DIR:-benchmark/results/latest}/regression_check.md"
+
+build-text-dataset:
+	python3 backend/scripts/build_text_training_dataset.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output "$${OUTPUT:-backend/evidence/samples/text_labeled_expanded.jsonl}" --min-chars "$${MIN_CHARS:-80}"

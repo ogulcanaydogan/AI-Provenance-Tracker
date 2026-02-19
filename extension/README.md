@@ -1,4 +1,4 @@
-# Browser Extension (MVP)
+# Browser Extension (Chrome, MVP)
 
 Chrome extension for analyzing visible text on the current page via the backend API.
 
@@ -21,6 +21,7 @@ Chrome extension for analyzing visible text on the current page via the backend 
 
 ## Notes
 
-- This MVP targets Chrome Manifest V3.
+- This package targets Chrome Manifest V3.
 - Chrome internal pages (for example `chrome://...`) cannot be analyzed.
 - Text is trimmed to the backend max input size (`50,000` characters).
+- Firefox package lives in `/extension-firefox` with its own manifest.

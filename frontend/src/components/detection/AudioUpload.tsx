@@ -47,12 +47,12 @@ export function AudioUpload({ onAnalyze, isLoading }: AudioUploadProps) {
               : "border-gray-700 hover:border-gray-500 bg-gray-900"
           }`}
         >
-          <input {...getInputProps()} />
-          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" />
+          <input {...getInputProps()} aria-label="Upload audio file for AI detection" />
+          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" aria-hidden="true" />
           <p className="text-gray-300 font-medium">
             {isDragActive ? "Drop audio here..." : "Drag & drop a WAV file, or click to upload"}
           </p>
-          <p className="text-sm text-gray-500 mt-2">Supports WAV (max 25 MB)</p>
+          <p className="text-sm text-gray-500 mt-2">Supports WAV &middot; Max 25 MB</p>
         </div>
       ) : (
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
@@ -71,9 +71,10 @@ export function AudioUpload({ onAnalyze, isLoading }: AudioUploadProps) {
               <button
                 onClick={clear}
                 disabled={isLoading}
+                aria-label="Remove selected audio file"
                 className="mt-3 text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
                 Remove
               </button>
             </div>

@@ -11,10 +11,18 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/provenance
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   worker:
     build:
@@ -30,10 +38,18 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - X_BEARER_TOKEN=${X_BEARER_TOKEN:-}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     command: python -m app.worker.main
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; os.getpid()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   frontend:
     build:
@@ -46,8 +62,15 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8010}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   db:
     image: postgres:15-alpine
@@ -60,6 +83,12 @@ services:
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -68,6 +97,12 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   postgres_data:

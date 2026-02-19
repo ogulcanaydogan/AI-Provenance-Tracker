@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -55,6 +56,22 @@ jobs:
         run: |
           cd backend
           pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=60
+      - name: Optional Reality Defender live smoke (non-blocking)
+        continue-on-error: true
+        env:
+          REALITY_DEFENDER_API_KEY: ${{ secrets.REALITY_DEFENDER_API_KEY }}
+          REALITY_DEFENDER_API_URL: ${{ vars.REALITY_DEFENDER_API_URL }}
+        run: |
+          cd backend
+          python scripts/smoke_reality_defender_adapter.py
+      - name: Optional Hive live smoke (non-blocking)
+        continue-on-error: true
+        env:
+          HIVE_API_KEY: ${{ secrets.HIVE_API_KEY }}
+          HIVE_API_URL: ${{ vars.HIVE_API_URL }}
+        run: |
+          cd backend
+          python scripts/smoke_hive_adapter.py
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -79,13 +96,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e ".[dev]"
+      - name: Start backend for live benchmark
+        env:
+          RUN_SCHEDULER_IN_API: "false"
+          CONSENSUS_ENABLED: "false"
+          C2PA_ENABLED: "false"
+          RATE_LIMIT_REQUESTS: "10000"
+          RATE_LIMIT_MEDIA_REQUESTS: "10000"
+          RATE_LIMIT_BATCH_REQUESTS: "10000"
+        run: |
+          mkdir -p benchmark/results/ci
+          cd backend
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../benchmark/results/ci/backend.log 2>&1 &
+          echo $! > ../benchmark/results/ci/backend.pid
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:8000/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/health > /dev/null || {
+            echo "Backend failed to start"
+            cat ../benchmark/results/ci/backend.log
+            exit 1
+          }
       - name: Run public benchmark
         run: |
           python benchmark/eval/run_public_benchmark.py \
             --datasets-dir benchmark/datasets \
             --output-dir benchmark/results/ci \
             --leaderboard-output benchmark/results/ci/leaderboard.json \
-            --model-id baseline-heuristic-ci
+            --model-id baseline-heuristic-ci \
+            --decision-threshold 0.45 \
+            --backend-url http://127.0.0.1:8000 \
+            --live-mode true
       - name: Check benchmark regressions
         run: |
           python benchmark/eval/check_benchmark_regression.py \
@@ -93,6 +141,12 @@ jobs:
             --baseline benchmark/baselines/public_benchmark_snapshot.json \
             --report-json benchmark/results/ci/regression_check.json \
             --report-md benchmark/results/ci/regression_check.md
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -f benchmark/results/ci/backend.pid ]; then
+            kill "$(cat benchmark/results/ci/backend.pid)" || true
+          fi
       - name: Upload benchmark artifacts
         uses: actions/upload-artifact@v4
         with:

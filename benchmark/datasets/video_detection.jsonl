@@ -1,12 +1,30 @@
-{"sample_id":"vid-001","domain":"short_form","label_is_ai":1,"baseline_score":0.88,"source":"synthetic"}
-{"sample_id":"vid-002","domain":"short_form","label_is_ai":0,"baseline_score":0.14,"source":"human"}
-{"sample_id":"vid-003","domain":"interview","label_is_ai":1,"baseline_score":0.81,"source":"synthetic"}
-{"sample_id":"vid-004","domain":"interview","label_is_ai":0,"baseline_score":0.24,"source":"human"}
-{"sample_id":"vid-005","domain":"news_clip","label_is_ai":1,"baseline_score":0.74,"source":"synthetic"}
-{"sample_id":"vid-006","domain":"news_clip","label_is_ai":0,"baseline_score":0.36,"source":"human"}
-{"sample_id":"vid-007","domain":"gaming","label_is_ai":1,"baseline_score":0.69,"source":"synthetic"}
-{"sample_id":"vid-008","domain":"gaming","label_is_ai":0,"baseline_score":0.42,"source":"human"}
-{"sample_id":"vid-009","domain":"webcam","label_is_ai":1,"baseline_score":0.64,"source":"synthetic"}
-{"sample_id":"vid-010","domain":"webcam","label_is_ai":0,"baseline_score":0.53,"source":"human"}
-{"sample_id":"vid-011","domain":"animation","label_is_ai":1,"baseline_score":0.57,"source":"synthetic"}
-{"sample_id":"vid-012","domain":"animation","label_is_ai":0,"baseline_score":0.59,"source":"human"}
+{"sample_id": "vid-001", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-001.mp4"}
+{"sample_id": "vid-002", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-002.mp4"}
+{"sample_id": "vid-003", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-003.mp4"}
+{"sample_id": "vid-004", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-004.mp4"}
+{"sample_id": "vid-005", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-005.mp4"}
+{"sample_id": "vid-006", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-006.mp4"}
+{"sample_id": "vid-007", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-007.mp4"}
+{"sample_id": "vid-008", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-008.mp4"}
+{"sample_id": "vid-009", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-009.mp4"}
+{"sample_id": "vid-010", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-010.mp4"}
+{"sample_id": "vid-011", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-011.mp4"}
+{"sample_id": "vid-012", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-012.mp4"}
+{"sample_id": "vid-013", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-013.mp4"}
+{"sample_id": "vid-014", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-014.mp4"}
+{"sample_id": "vid-015", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-015.mp4"}
+{"sample_id": "vid-016", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-016.mp4"}
+{"sample_id": "vid-017", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-017.mp4"}
+{"sample_id": "vid-018", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-018.mp4"}
+{"sample_id": "vid-019", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-019.mp4"}
+{"sample_id": "vid-020", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-020.mp4"}
+{"sample_id": "vid-021", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-021.mp4"}
+{"sample_id": "vid-022", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-022.mp4"}
+{"sample_id": "vid-023", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-023.mp4"}
+{"sample_id": "vid-024", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-024.mp4"}
+{"sample_id": "vid-025", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-025.mp4"}
+{"sample_id": "vid-026", "task": "video_ai_vs_human_detection", "domain": "short_form", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-026.mp4"}
+{"sample_id": "vid-027", "task": "video_ai_vs_human_detection", "domain": "interview", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-027.mp4"}
+{"sample_id": "vid-028", "task": "video_ai_vs_human_detection", "domain": "news_clip", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-028.mp4"}
+{"sample_id": "vid-029", "task": "video_ai_vs_human_detection", "domain": "webcam", "label_is_ai": 0, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-029.mp4"}
+{"sample_id": "vid-030", "task": "video_ai_vs_human_detection", "domain": "gaming", "label_is_ai": 1, "modality": "video", "input_ref": "benchmark/samples/video/detection/vid-030.mp4"}

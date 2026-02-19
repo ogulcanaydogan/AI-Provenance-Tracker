@@ -1,8 +1,8 @@
 # AI Provenance Tracker
 
-**An open-source, multi-modal AI content detection and provenance verification platform.**
+**An open-source AI content detection and provenance verification platform.**
 
-Analyses text, images, audio, and video to determine whether content is AI-generated — providing confidence scores, explainable reasoning, and full audit trails. Built as a production-grade system with enterprise deployment options, a public benchmark suite, and a browser extension.
+Analyses text and images in production mode, with audio/video detection exposed as **experimental** capabilities. The platform returns confidence scores, explainable reasoning, and full audit trails. It includes enterprise deployment options, a public benchmark suite, and a browser extension.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com)
@@ -10,6 +10,21 @@ Analyses text, images, audio, and video to determine whether content is AI-gener
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-red.svg)](https://pytorch.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+---
+
+## Limitations and Safe Use
+
+- Detection scores are probabilistic and can produce both false positives and false negatives.
+- Performance varies by domain, language, compression, and transformation style.
+- C2PA verification works only when signed manifests are present and verifiable.
+- Confidence is not certainty. Output from this project is **not legal proof** and must not be the sole basis for high-stakes decisions.
+- Detailed methodology caveats: `docs/METHODOLOGY_LIMITATIONS.md`.
+
+### Do / Don't Use
+
+- Do use this system for triage, prioritization, moderation queues, and investigation support.
+- Don't use this system as a single-source decision engine for legal, medical, employment, immigration, or safety-critical determinations.
 
 ---
 
@@ -50,9 +65,9 @@ Generative AI now produces text, images, audio, and video that is functionally i
 
 AI Provenance Tracker solves this by providing a **unified, open-source platform** that:
 
-- Detects AI-generated content across **four modalities** (text, image, audio, video)
+- Detects AI-generated content across text/image (production) and audio/video (**experimental**)
 - Returns **explainable confidence scores** — not just a binary yes/no, but a weighted breakdown of detection signals so users understand *why* a piece of content was flagged
-- Supports **multi-provider consensus** — aggregates results from internal detectors and external providers (Copyleaks, Reality Defender, C2PA) with configurable weighting
+- Supports **multi-provider consensus** — combines internal detectors with optional external adapters (Copyleaks, Reality Defender, Hive) and C2PA cryptographic provenance verification when a manifest is available
 - Ships with a **public benchmark and leaderboard** for reproducible evaluation of detection accuracy, source attribution, and tamper robustness
 - Deploys anywhere — from a single `docker-compose up` to **Kubernetes (Helm)** or **AWS (Terraform IaC)**
 
@@ -68,8 +83,8 @@ The project targets journalists verifying sources, researchers ensuring academic
 |----------|-----------|-----------------|
 | **Text** | Perplexity analysis, burstiness measurement, vocabulary distribution, structural analysis, fine-tuned DistilRoBERTa classifier | GPT-4, Claude, Llama, Gemini, and other LLMs |
 | **Image** | FFT frequency domain analysis, artifact pattern recognition, metadata forensics, CNN binary classifier | DALL-E, Midjourney, Stable Diffusion |
-| **Audio** | Spectral flatness analysis, dynamic range profiling, clipping detection, zero-crossing anomaly checks | AI-synthesised speech and audio |
-| **Video** | Container signature analysis, byte-pattern detection, frame-level anomaly scoring | Deepfake and AI-generated video |
+| **Audio (Experimental)** | Spectral flatness analysis, dynamic range profiling, clipping detection, zero-crossing anomaly checks | AI-synthesised speech and audio |
+| **Video (Experimental)** | Container signature analysis, byte-pattern detection, frame-level anomaly scoring | Deepfake and AI-generated video |
 
 Every detection returns a **confidence score (0–100%)** with a signal-by-signal breakdown, so results are transparent and auditable.
 
@@ -158,28 +173,32 @@ graph LR
     A[Content] --> B[Internal<br/>Detectors]
     A --> C[Copyleaks]
     A --> D[Reality<br/>Defender]
-    A --> E[C2PA]
-    B --> F[Consensus<br/>Aggregator]
-    C --> F
-    D --> F
-    E --> F
-    F --> G[Weighted<br/>Final Score]
+    A --> E[Hive]
+    A --> F[C2PA]
+    B --> G[Consensus<br/>Aggregator]
+    C --> G
+    D --> G
+    E --> G
+    F --> G
+    G --> H[Weighted<br/>Final Score]
 
     style A fill:#4A90D9,stroke:#2C5F8A,color:#fff
     style B fill:#7B68EE,stroke:#5B48CE,color:#fff
     style C fill:#FF8C42,stroke:#CC6A2E,color:#fff
     style D fill:#FF8C42,stroke:#CC6A2E,color:#fff
     style E fill:#FF8C42,stroke:#CC6A2E,color:#fff
-    style F fill:#4ECDC4,stroke:#36B5AC,color:#fff
-    style G fill:#50C878,stroke:#3AA862,color:#fff
+    style F fill:#FF8C42,stroke:#CC6A2E,color:#fff
+    style G fill:#4ECDC4,stroke:#36B5AC,color:#fff
+    style H fill:#50C878,stroke:#3AA862,color:#fff
 ```
 
 Aggregates detection results from multiple providers using configurable weighted scoring:
 
 - **Internal detectors** — the platform's own ML models
-- **Copyleaks** — external text detection
-- **Reality Defender** — external media detection
-- **C2PA** — content provenance standard verification
+- **Copyleaks** — optional external text detector adapter
+- **Reality Defender** — optional external multimodal detector adapter
+- **Hive** — optional external multimodal detector adapter
+- **C2PA** — cryptographic provenance verification (when a signed manifest is available)
 
 This consensus approach reduces false positives and increases confidence in results.
 
@@ -249,8 +268,8 @@ graph LR
 - **Task 1: AI-vs-Human Detection** — multi-domain binary classification
 - **Task 2: Source Attribution** — model-family identification accuracy
 - **Task 3: Tamper Robustness** — detection resilience against paraphrasing, translation, and human editing
-- **Task 4: Audio Detection** — AI-vs-human voice/audio mini-benchmark
-- **Task 5: Video Detection** — AI-vs-human video mini-benchmark
+- **Task 4: Audio Detection (Experimental)** — AI-vs-human voice/audio benchmark slice
+- **Task 5: Video Detection (Experimental)** — AI-vs-human video benchmark slice
 - **Trust metrics** — ROC-AUC, calibration ECE, Brier score, false-positive rates by domain
 - **Regression gate** — CI fails when core AUC/F1 metrics regress beyond snapshot thresholds
 - **Static leaderboard** — published results at `benchmark/leaderboard/index.html`
@@ -262,9 +281,16 @@ graph LR
 - **Persistent history** — all detection results stored with full audit trails
 - **Audit events** — structured event logging for compliance and review
 
-### Browser Extension
+### Browser Extensions
 
-A Chrome extension (Manifest V3) that analyses the visible text of any web page against the backend API, displaying verdict, confidence, model prediction, and explanation directly in the browser.
+Chrome and Firefox extensions (Manifest V3) analyse visible page text against the backend API, displaying verdict, confidence, model prediction, and explanation directly in the browser.
+
+### Accuracy Calibration with Expanded Text Dataset
+
+- Expanded labeled text corpus: `backend/evidence/samples/text_labeled_expanded.jsonl` (330 samples generated from benchmark corpora)
+- Corpus builder: `backend/scripts/build_text_training_dataset.py`
+- Detector calibration profile: `backend/app/detection/text/calibration_profile.json`
+- Calibration evaluator: `backend/scripts/evaluate_detection_calibration.py`
 
 ### Enterprise Deployment
 
@@ -322,13 +348,13 @@ graph TB
         FE4[Analytics]
     end
 
-    subgraph Extension ["Browser Extension"]
-        EXT[Chrome Extension<br/>Manifest V3]
+    subgraph Extension ["Browser Extensions"]
+        EXT[Chrome + Firefox<br/>Manifest V3]
     end
 
     subgraph API ["REST API — FastAPI + Python 3.11+"]
         direction LR
-        EP1["/detect<br/>text · image<br/>audio · video · url"]
+        EP1["/detect<br/>text · image<br/>audio · video · url<br/>stream/text (SSE)"]
         EP2["/batch<br/>text"]
         EP3["/analyze<br/>dashboard · history<br/>audit-events"]
         EP4["/intel<br/>x/collect · x/report<br/>x/drilldown"]
@@ -347,7 +373,7 @@ graph TB
     end
 
     subgraph Consensus ["Provider Consensus"]
-        PC["Weighted Aggregator<br/>Internal · Copyleaks<br/>Reality Defender · C2PA"]
+        PC["Weighted Aggregator<br/>Internal · Copyleaks · Hive<br/>Reality Defender · C2PA"]
     end
 
     subgraph Data ["Data Layer"]
@@ -496,6 +522,16 @@ curl -X POST "http://localhost:8000/api/v1/batch/text" \
   -d '{"items":[{"item_id":"a","text":"Sample one..."},{"item_id":"b","text":"Sample two..."}]}'
 ```
 
+### Real-Time Streaming (SSE)
+
+```bash
+curl -N -X POST "http://localhost:8000/api/v1/detect/stream/text" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Your long-form text to analyze in streaming mode..."}'
+```
+
+SSE events: `started`, `internal`, `consensus`, `result`, `done` (and `error` when applicable).
+
 ### X Intelligence Collection
 
 ```bash
@@ -538,6 +574,7 @@ ai-provenance-tracker/
 │   └── pyproject.toml         # Python dependencies and tooling config
 ├── frontend/                  # Next.js 16 web application
 ├── extension/                 # Chrome extension (Manifest V3)
+├── extension-firefox/         # Firefox extension (Manifest V3)
 ├── benchmark/                 # Public benchmark datasets, evaluation, leaderboard
 ├── deploy/
 │   ├── helm/                  # Kubernetes Helm charts
@@ -623,11 +660,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution guidelines.
 
 ---
 
-## Browser Extension
+## Browser Extensions
 
-Load the unpacked extension from `extension/` in Chrome (`chrome://extensions` → Developer mode → Load unpacked). Analyses the current page's text against the backend API.
+Chrome:
+- Load unpacked `extension/` from `chrome://extensions` (Developer mode).
 
-See [extension/README.md](extension/README.md) for details.
+Firefox:
+- Load temporary add-on from `about:debugging#/runtime/this-firefox` and select `extension-firefox/manifest.json`.
+
+See [extension/README.md](extension/README.md) and [extension-firefox/README.md](extension-firefox/README.md) for details.
 
 ---
 
@@ -636,8 +677,8 @@ See [extension/README.md](extension/README.md) for details.
 - [x] Project structure and API foundation
 - [x] Text detection engine with multi-signal analysis
 - [x] Image detection engine with frequency and artifact analysis
-- [x] Audio detection (spectral analysis)
-- [x] Video detection (container and byte-pattern analysis)
+- [x] Audio detection (spectral analysis, **experimental**)
+- [x] Video detection (container and byte-pattern analysis, **experimental**)
 - [x] Web interface with detection, dashboard, and history views
 - [x] Public REST API with rate limiting and quotas
 - [x] Chrome browser extension
@@ -649,10 +690,10 @@ See [extension/README.md](extension/README.md) for details.
 - [x] Enterprise deployment (Helm charts, Terraform IaC, worker process split)
 - [x] Audit event logging and compliance tooling
 - [x] Automated scheduling with budget guardrails
-- [ ] Enhanced detection accuracy with larger training datasets
-- [ ] Additional external provider integrations
-- [ ] Firefox browser extension
-- [ ] Real-time streaming detection API
+- [x] Enhanced detection accuracy with larger training datasets
+- [x] Additional external provider integrations
+- [x] Firefox browser extension
+- [x] Real-time streaming detection API
 
 ---
 

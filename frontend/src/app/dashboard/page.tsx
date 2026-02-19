@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, Bot, CalendarDays, BarChart3, RefreshCw } from "lucide-react";
-import { getDashboard, getEvaluation, getXCollectEstimate } from "@/lib/api";
+import { Activity, Bot, CalendarDays, BarChart3, RefreshCw, Download } from "lucide-react";
+import { getDashboard, getEvaluation, getXCollectEstimate, getExportUrl } from "@/lib/api";
 import {
   BackendDashboardResponse,
   BackendEvaluationResponse,
@@ -12,6 +12,15 @@ import {
 
 function formatPct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function downloadFile(url: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function maxTimelineValue(items: BackendDashboardResponse["timeline"]): number {
@@ -106,10 +115,10 @@ export default function DashboardPage() {
   const loading = (data === null || evaluation === null) && error === null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12" aria-labelledby="dashboard-heading">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">API Analytics Dashboard</h1>
+          <h1 id="dashboard-heading" className="text-3xl font-bold text-white">API Analytics Dashboard</h1>
           <p className="text-gray-400 mt-2">
             Windowed analysis activity, AI detection rate, and source/type breakdown.
           </p>
@@ -136,18 +145,42 @@ export default function DashboardPage() {
             <option value={60}>60 days</option>
             <option value={90}>90 days</option>
           </select>
+          <button
+            onClick={() =>
+              downloadFile(
+                getExportUrl("dashboard", "csv", { days }),
+                "dashboard_timeline.csv",
+              )
+            }
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-300 hover:border-gray-500 hover:text-white transition-colors"
+          >
+            <Download className="h-3 w-3" />
+            CSV
+          </button>
+          <button
+            onClick={() =>
+              downloadFile(
+                getExportUrl("dashboard", "json", { days }),
+                "dashboard.json",
+              )
+            }
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-300 hover:border-gray-500 hover:text-white transition-colors"
+          >
+            <Download className="h-3 w-3" />
+            JSON
+          </button>
         </div>
       </div>
 
       {loading && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-6 text-gray-300 flex items-center gap-3">
-          <RefreshCw className="h-4 w-4 animate-spin" />
+        <div role="status" className="rounded-xl border border-gray-800 bg-gray-900 p-6 text-gray-300 flex items-center gap-3">
+          <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
           Loading dashboard...
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-300">{error}</div>
+        <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-300">{error}</div>
       )}
 
       {!loading && !error && data && (
@@ -431,6 +464,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

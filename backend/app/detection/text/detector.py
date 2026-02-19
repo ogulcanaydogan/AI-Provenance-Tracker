@@ -1,9 +1,11 @@
 """Text AI detection engine with ML-based classification."""
 
+import json
 import math
 import re
 import time
 from collections import Counter
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -23,6 +25,7 @@ from app.models.detection import (
     TextAnalysis,
     TextDetectionResponse,
 )
+from app.core.config import settings
 
 
 class TextDetector:
@@ -46,6 +49,7 @@ class TextDetector:
         self.tokenizer = None
         self.model_loaded = False
         self._loading = False
+        self._calibration_profile = self._load_calibration_profile()
         if not lazy_load and ML_AVAILABLE:
             self._load_model()
 
@@ -274,57 +278,53 @@ class TextDetector:
         repetition: float,
         ml_score: Optional[float] = None,
     ) -> tuple[bool, float, Optional[AIModel]]:
-        """Combine all signals to make final prediction."""
-        signals = []
-        weights = []
+        """Combine all signals using a calibrated profile from expanded benchmark samples."""
+        ranges = self._calibration_profile["ranges"]
+        weights = self._calibration_profile["weights"]
 
-        # ML model score (highest weight if available)
+        perplexity_signal = self._normalize_inverse(
+            perplexity,
+            low=float(ranges["perplexity_low"]),
+            high=float(ranges["perplexity_high"]),
+        )
+        burstiness_signal = self._normalize_inverse(
+            burstiness,
+            low=float(ranges["burstiness_low"]),
+            high=float(ranges["burstiness_high"]),
+        )
+        vocabulary_signal = self._normalize_inverse(
+            vocab_richness,
+            low=float(ranges["vocab_richness_low"]),
+            high=float(ranges["vocab_richness_high"]),
+        )
+        repetition_signal = self._normalize_direct(
+            repetition,
+            low=float(ranges["repetition_low"]),
+            high=float(ranges["repetition_high"]),
+        )
+        sentence_signal = self._normalize_direct(
+            avg_sentence_length,
+            low=float(ranges["sentence_len_low"]),
+            high=float(ranges["sentence_len_high"]),
+        )
+
+        heuristic_score = (
+            perplexity_signal * float(weights["perplexity"])
+            + burstiness_signal * float(weights["burstiness"])
+            + vocabulary_signal * float(weights["vocabulary_richness"])
+            + repetition_signal * float(weights["repetition"])
+            + sentence_signal * float(weights["sentence_length"])
+        )
+
         if ml_score is not None:
-            signals.append(ml_score)
-            weights.append(0.40)
-
-        # Statistical signals
-        # Perplexity signal
-        if 5 < perplexity < 30:
-            signals.append(0.7)
-        elif perplexity < 5:
-            signals.append(0.5)
+            ml_weight = float(self._calibration_profile["ml_weight"])
+            confidence = (ml_weight * float(ml_score)) + ((1.0 - ml_weight) * heuristic_score)
         else:
-            signals.append(0.3)
-        weights.append(0.20 if ml_score else 0.35)
+            confidence = heuristic_score
 
-        # Burstiness signal
-        if burstiness < 0.3:
-            signals.append(0.8)
-        elif burstiness < 0.5:
-            signals.append(0.5)
-        else:
-            signals.append(0.2)
-        weights.append(0.15 if ml_score else 0.30)
-
-        # Vocabulary signal
-        if 0.3 < vocab_richness < 0.6:
-            signals.append(0.6)
-        else:
-            signals.append(0.4)
-        weights.append(0.10 if ml_score else 0.15)
-
-        # Repetition signal
-        if repetition > 0.3:
-            signals.append(0.7)
-        else:
-            signals.append(0.3)
-        weights.append(0.15 if ml_score else 0.20)
-
-        # Normalize weights
-        total_weight = sum(weights)
-        weights = [w / total_weight for w in weights]
-
-        # Weighted average
-        confidence = sum(s * w for s, w in zip(signals, weights))
-
-        # Determine prediction
-        is_ai = confidence > 0.5
+        confidence = float(np.clip(confidence, 0.02, 0.98))
+        threshold = float(self._calibration_profile["decision_threshold"])
+        is_ai = confidence >= threshold
 
         # Model attribution based on patterns
         model_pred = None
@@ -337,6 +337,78 @@ class TextDetector:
                 model_pred = AIModel.GPT35
 
         return is_ai, round(confidence, 3), model_pred
+
+    def _load_calibration_profile(self) -> dict[str, object]:
+        """Load detector calibration profile generated from larger labeled corpora."""
+        default_profile: dict[str, object] = {
+            "version": "default-v1",
+            "decision_threshold": 0.5,
+            "ml_weight": 0.35,
+            "weights": {
+                "perplexity": 0.28,
+                "burstiness": 0.24,
+                "vocabulary_richness": 0.16,
+                "repetition": 0.20,
+                "sentence_length": 0.12,
+            },
+            "ranges": {
+                "perplexity_low": 8.0,
+                "perplexity_high": 42.0,
+                "burstiness_low": 0.12,
+                "burstiness_high": 0.72,
+                "vocab_richness_low": 0.20,
+                "vocab_richness_high": 0.95,
+                "repetition_low": 0.01,
+                "repetition_high": 0.30,
+                "sentence_len_low": 8.0,
+                "sentence_len_high": 28.0,
+            },
+        }
+
+        configured_path = settings.text_calibration_profile_path.strip()
+        if not configured_path:
+            return default_profile
+
+        profile_path = Path(configured_path)
+        if not profile_path.is_absolute():
+            backend_root = Path(__file__).resolve().parents[3]
+            profile_path = (backend_root / profile_path).resolve()
+        if not profile_path.exists():
+            return default_profile
+
+        try:
+            payload = json.loads(profile_path.read_text(encoding="utf-8"))
+        except Exception:
+            return default_profile
+
+        if not isinstance(payload, dict):
+            return default_profile
+
+        merged = {
+            **default_profile,
+            **payload,
+            "weights": {
+                **default_profile["weights"],  # type: ignore[index]
+                **(payload.get("weights") if isinstance(payload.get("weights"), dict) else {}),
+            },
+            "ranges": {
+                **default_profile["ranges"],  # type: ignore[index]
+                **(payload.get("ranges") if isinstance(payload.get("ranges"), dict) else {}),
+            },
+        }
+        return merged
+
+    def _normalize_inverse(self, value: float, *, low: float, high: float) -> float:
+        if high <= low:
+            return 0.5
+        clipped = float(np.clip(value, low, high))
+        return float(np.clip((high - clipped) / (high - low), 0.0, 1.0))
+
+    def _normalize_direct(self, value: float, *, low: float, high: float) -> float:
+        if high <= low:
+            return 0.5
+        clipped = float(np.clip(value, low, high))
+        return float(np.clip((clipped - low) / (high - low), 0.0, 1.0))
 
     def _generate_explanation(
         self,

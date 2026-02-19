@@ -81,6 +81,34 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_text_detection_stream_sse_returns_progress_and_result(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/detect/stream/text",
+        json={"text": "This is a sufficiently long sample text for SSE testing." * 4},
+    )
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+
+    body = response.text
+    assert "event: started" in body
+    assert "event: internal" in body
+    assert "event: result" in body
+    assert "event: done" in body
+
+    payload_by_event: dict[str, dict] = {}
+    current_event = None
+    for line in body.splitlines():
+        if line.startswith("event: "):
+            current_event = line.replace("event: ", "", 1).strip()
+        elif line.startswith("data: ") and current_event:
+            payload_by_event[current_event] = json.loads(line.replace("data: ", "", 1))
+
+    assert payload_by_event["started"]["stage"] == "started"
+    assert payload_by_event["done"]["stage"] == "done"
+    assert payload_by_event["result"]["analysis_id"]
+
+
+@pytest.mark.asyncio
 async def test_image_detection_no_file(client: AsyncClient):
     response = await client.post("/api/v1/detect/image")
     assert response.status_code == 422
@@ -430,3 +458,214 @@ async def test_audit_events_filter_by_event_type(client: AsyncClient):
     assert payload["event_type"] == "detection.completed"
     assert payload["total"] >= 1
     assert all(item["event_type"] == "detection.completed" for item in payload["items"])
+
+
+# ---------------------------------------------------------------------------
+# Image detection – success, stats, and size-limit tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_image_detection_success_returns_analysis_id(client: AsyncClient):
+    """Upload a valid PNG and verify a full detection response."""
+    png_bytes = _create_test_png()
+    response = await client.post(
+        "/api/v1/detect/image",
+        files={"file": ("photo.png", png_bytes, "image/png")},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["analysis_id"]
+    assert payload["filename"] == "photo.png"
+    assert "analysis" in payload
+    assert "frequency_anomaly" in payload["analysis"]
+    assert "artifact_score" in payload["analysis"]
+    assert "metadata_flags" in payload["analysis"]
+    assert payload["dimensions"][0] == 32
+    assert payload["dimensions"][1] == 32
+
+
+@pytest.mark.asyncio
+async def test_image_detection_updates_stats(client: AsyncClient):
+    """Stats reflect an image detection after it completes."""
+    detect_response = await client.post(
+        "/api/v1/detect/image",
+        files={"file": ("photo.png", _create_test_png(), "image/png")},
+    )
+    assert detect_response.status_code == 200
+
+    stats_response = await client.get("/api/v1/analyze/stats")
+    assert stats_response.status_code == 200
+    stats_payload = stats_response.json()
+    assert stats_payload["total_analyses"] == 1
+    assert stats_payload["by_type"]["image"] == 1
+
+
+@pytest.mark.asyncio
+async def test_image_detection_rejects_oversized_file(client: AsyncClient):
+    """Image exceeding max_image_size_mb is rejected with 400."""
+    old_max = settings.max_image_size_mb
+    settings.max_image_size_mb = 0  # any file will be too large
+    try:
+        response = await client.post(
+            "/api/v1/detect/image",
+            files={"file": ("photo.png", _create_test_png(), "image/png")},
+        )
+    finally:
+        settings.max_image_size_mb = old_max
+    assert response.status_code == 400
+    assert "exceeds maximum size" in response.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# URL detection – edge-case tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_url_detection_fetch_failure(client: AsyncClient):
+    """URL fetch that raises an HTTP error returns 400."""
+
+    async def failing_get(self, url, **kwargs):  # noqa: ARG001
+        raise httpx.ConnectError("Connection refused")
+
+    with patch.object(httpx.AsyncClient, "get", new=failing_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://unreachable.example.com/page"},
+        )
+    assert response.status_code == 400
+    assert "failed to fetch" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_url_detection_remote_error_status(client: AsyncClient):
+    """Remote server returning 404 is surfaced as 400."""
+
+    async def not_found_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        return httpx.Response(status_code=404, request=request)
+
+    with patch.object(httpx.AsyncClient, "get", new=not_found_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://example.com/missing"},
+        )
+    assert response.status_code == 400
+    assert "404" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_url_detection_empty_html(client: AsyncClient):
+    """HTML page with no extractable text returns 400."""
+
+    async def empty_html_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            status_code=200,
+            headers={"content-type": "text/html"},
+            text="<html><body><script>var x=1;</script></body></html>",
+            request=request,
+        )
+
+    with patch.object(httpx.AsyncClient, "get", new=empty_html_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://example.com/empty"},
+        )
+    assert response.status_code == 400
+    assert "no analyzable text" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_url_detection_unsupported_content_type(client: AsyncClient):
+    """Non-text, non-image content type returns 400."""
+
+    async def pdf_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            status_code=200,
+            headers={"content-type": "application/pdf"},
+            content=b"%PDF-1.4 fake",
+            request=request,
+        )
+
+    with patch.object(httpx.AsyncClient, "get", new=pdf_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://example.com/doc.pdf"},
+        )
+    assert response.status_code == 400
+    assert "unsupported content type" in response.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Batch text – stop_on_error and partial failure tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_batch_text_stop_on_error_halts_early(client: AsyncClient):
+    """Batch with stop_on_error=True stops after first empty-text failure."""
+    response = await client.post(
+        "/api/v1/batch/text",
+        json={
+            "items": [
+                {"item_id": "ok", "text": "Valid text for batch testing." * 10},
+                {"item_id": "bad", "text": "   "},
+                {"item_id": "skipped", "text": "This should be skipped." * 10},
+            ],
+            "stop_on_error": True,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["succeeded"] == 1
+    assert payload["failed"] == 1
+    # Third item should NOT have been processed
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["status"] == "ok"
+    assert payload["items"][1]["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_batch_text_partial_failure_continues(client: AsyncClient):
+    """Batch with stop_on_error=False processes all items despite failures."""
+    response = await client.post(
+        "/api/v1/batch/text",
+        json={
+            "items": [
+                {"item_id": "good1", "text": "Valid text content here." * 10},
+                {"item_id": "empty", "text": "   "},
+                {"item_id": "good2", "text": "Another valid text batch item." * 10},
+            ],
+            "stop_on_error": False,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 3
+    assert payload["succeeded"] == 2
+    assert payload["failed"] == 1
+    assert len(payload["items"]) == 3
+
+
+# ---------------------------------------------------------------------------
+# Video detection – size limit test
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_video_detection_rejects_oversized_file(client: AsyncClient):
+    """Video exceeding max_video_size_mb is rejected with 400."""
+    old_max = settings.max_video_size_mb
+    settings.max_video_size_mb = 0  # any file will be too large
+    try:
+        response = await client.post(
+            "/api/v1/detect/video",
+            files={"file": ("clip.mp4", _create_test_mp4(), "video/mp4")},
+        )
+    finally:
+        settings.max_video_size_mb = old_max
+    assert response.status_code == 400
+    assert "exceeds maximum size" in response.json()["detail"].lower()

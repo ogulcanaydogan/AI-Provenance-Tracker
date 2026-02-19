@@ -15,6 +15,21 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export type TextStreamEvent =
+  | "started"
+  | "internal"
+  | "consensus"
+  | "result"
+  | "done"
+  | "error";
+
+export interface TextStreamProgress {
+  event: TextStreamEvent;
+  stage: string;
+  message: string;
+  payload: Record<string, unknown>;
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -255,6 +270,140 @@ export async function detectText(text: string): Promise<DetectionResult> {
   return mapDetection(payload, "text");
 }
 
+function streamMessage(event: TextStreamEvent, payload: Record<string, unknown>): string {
+  if (event === "started") return "Text received, detection started.";
+  if (event === "internal") return "Internal detector finished. Computing consensus.";
+  if (event === "consensus") {
+    const value = payload.final_probability;
+    const formatted = typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "n/a";
+    return `Consensus complete (${formatted}). Preparing final result.`;
+  }
+  if (event === "result") return "Final result received.";
+  if (event === "done") return "Streaming analysis completed.";
+  if (event === "error") return "Streaming analysis failed.";
+  return "Streaming update received.";
+}
+
+function parseSseBlock(block: string): {
+  event: TextStreamEvent;
+  payload: Record<string, unknown>;
+} | null {
+  const lines = block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return null;
+
+  let event: TextStreamEvent | null = null;
+  const dataParts: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("event:")) {
+      const rawEvent = line.replace("event:", "").trim();
+      if (
+        rawEvent === "started" ||
+        rawEvent === "internal" ||
+        rawEvent === "consensus" ||
+        rawEvent === "result" ||
+        rawEvent === "done" ||
+        rawEvent === "error"
+      ) {
+        event = rawEvent;
+      }
+    } else if (line.startsWith("data:")) {
+      dataParts.push(line.replace("data:", "").trim());
+    }
+  }
+
+  if (!event) return null;
+
+  const rawData = dataParts.join("\n");
+  if (!rawData) {
+    return { event, payload: {} };
+  }
+
+  try {
+    const parsed = JSON.parse(rawData);
+    if (parsed && typeof parsed === "object") {
+      return { event, payload: parsed as Record<string, unknown> };
+    }
+  } catch {
+    // Ignore malformed payloads; handled by caller through missing fields.
+  }
+  return { event, payload: {} };
+}
+
+export async function detectTextStream(
+  text: string,
+  onProgress?: (progress: TextStreamProgress) => void,
+): Promise<DetectionResult> {
+  const response = await fetch(`${API_URL}/api/v1/detect/stream/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  // Fallback to non-stream endpoint for environments where SSE route is unavailable.
+  if (!response.ok && response.status === 404) {
+    return detectText(text);
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Request failed" }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  if (!response.body) {
+    return detectText(text);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalPayload: BackendDetectionResponse | null = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split("\n\n");
+    buffer = blocks.pop() ?? "";
+
+    for (const block of blocks) {
+      const parsed = parseSseBlock(block);
+      if (!parsed) continue;
+
+      const stage =
+        typeof parsed.payload.stage === "string"
+          ? parsed.payload.stage
+          : parsed.event;
+      onProgress?.({
+        event: parsed.event,
+        stage,
+        message: streamMessage(parsed.event, parsed.payload),
+        payload: parsed.payload,
+      });
+
+      if (parsed.event === "error") {
+        const detail =
+          typeof parsed.payload.detail === "string"
+            ? parsed.payload.detail
+            : "Streaming analysis failed";
+        throw new Error(detail);
+      }
+
+      if (parsed.event === "result") {
+        finalPayload = parsed.payload as unknown as BackendDetectionResponse;
+      }
+    }
+  }
+
+  if (!finalPayload) {
+    return detectText(text);
+  }
+  return mapDetection(finalPayload, "text");
+}
+
 export async function detectImage(file: File): Promise<DetectionResult> {
   const formData = new FormData();
   formData.append("file", file);
@@ -288,10 +437,20 @@ export async function detectVideo(file: File): Promise<DetectionResult> {
   return mapDetection(payload, "video");
 }
 
-export async function getHistory(page = 1, perPage = 20): Promise<HistoryResponse> {
+export async function getHistory(
+  page = 1,
+  perPage = 20,
+  contentType?: string,
+): Promise<HistoryResponse> {
   const offset = (page - 1) * perPage;
+  const params = new URLSearchParams({
+    limit: String(perPage),
+    offset: String(offset),
+  });
+  if (contentType) params.set("content_type", contentType);
+
   const response = await fetch(
-    `${API_URL}/api/v1/analyze/history?limit=${perPage}&offset=${offset}`
+    `${API_URL}/api/v1/analyze/history?${params.toString()}`
   );
   const payload = await handleResponse<BackendHistoryResponse>(response);
 
@@ -301,6 +460,18 @@ export async function getHistory(page = 1, perPage = 20): Promise<HistoryRespons
     page,
     per_page: perPage,
   };
+}
+
+export function getExportUrl(
+  endpoint: "history" | "dashboard",
+  format: "csv" | "json",
+  options?: { days?: number; contentType?: string },
+): string {
+  const base = `${API_URL}/api/v1/analyze/${endpoint}/export`;
+  const params = new URLSearchParams({ format });
+  if (options?.days) params.set("days", String(options.days));
+  if (options?.contentType) params.set("content_type", options.contentType);
+  return `${base}?${params.toString()}`;
 }
 
 export async function getAnalysis(id: string): Promise<DetectionResult> {

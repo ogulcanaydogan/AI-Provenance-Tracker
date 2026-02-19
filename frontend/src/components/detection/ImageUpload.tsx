@@ -51,13 +51,13 @@ export function ImageUpload({ onAnalyze, isLoading }: ImageUploadProps) {
               : "border-gray-700 hover:border-gray-500 bg-gray-900"
           }`}
         >
-          <input {...getInputProps()} />
-          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" />
+          <input {...getInputProps()} aria-label="Upload image file for AI detection" />
+          <Upload className="h-10 w-10 text-gray-500 mx-auto mb-4" aria-hidden="true" />
           <p className="text-gray-300 font-medium">
             {isDragActive ? "Drop image here..." : "Drag & drop an image, or click to upload"}
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Supports JPEG, PNG, WebP (max 10 MB)
+            Supports JPEG, PNG, WebP &middot; Max 10 MB
           </p>
         </div>
       ) : (
@@ -82,9 +82,10 @@ export function ImageUpload({ onAnalyze, isLoading }: ImageUploadProps) {
               <button
                 onClick={clear}
                 disabled={isLoading}
+                aria-label="Remove selected image"
                 className="mt-3 text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
                 Remove
               </button>
             </div>
