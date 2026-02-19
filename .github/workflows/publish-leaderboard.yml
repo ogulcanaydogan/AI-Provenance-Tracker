@@ -88,7 +88,7 @@ jobs:
             benchmark/results/latest/regression_check.md
           retention-days: 14
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: benchmark/leaderboard
       - name: Deploy disabled notice
