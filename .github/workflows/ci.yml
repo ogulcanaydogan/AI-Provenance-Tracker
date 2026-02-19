@@ -57,7 +57,6 @@ jobs:
           cd backend
           pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=60
       - name: Optional Reality Defender live smoke (non-blocking)
-        if: ${{ secrets.REALITY_DEFENDER_API_KEY != '' }}
         continue-on-error: true
         env:
           REALITY_DEFENDER_API_KEY: ${{ secrets.REALITY_DEFENDER_API_KEY }}
@@ -66,7 +65,6 @@ jobs:
           cd backend
           python scripts/smoke_reality_defender_adapter.py
       - name: Optional Hive live smoke (non-blocking)
-        if: ${{ secrets.HIVE_API_KEY != '' }}
         continue-on-error: true
         env:
           HIVE_API_KEY: ${{ secrets.HIVE_API_KEY }}
