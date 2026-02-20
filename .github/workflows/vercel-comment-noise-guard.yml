@@ -4,6 +4,10 @@ on:
   issue_comment:
     types: [created]
 
+concurrency:
+  group: vercel-comment-noise-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write
@@ -20,9 +24,20 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const commentId = context.payload.comment.id;
-            await github.rest.issues.deleteComment({
-              owner,
-              repo,
-              comment_id: commentId,
-            });
-            core.info(`Deleted Vercel bot comment id=${commentId}`);
+            try {
+              await github.rest.issues.deleteComment({
+                owner,
+                repo,
+                comment_id: commentId,
+              });
+              core.info(`Deleted Vercel bot comment id=${commentId}`);
+            } catch (error) {
+              const status = error?.status ?? 0;
+              if (status === 403 || status === 404) {
+                core.warning(
+                  `Skipping comment deletion for id=${commentId}; status=${status} (permission model or already deleted).`
+                );
+                return;
+              }
+              throw error;
+            }
