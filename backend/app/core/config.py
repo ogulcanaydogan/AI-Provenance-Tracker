@@ -136,6 +136,9 @@ class Settings(BaseSettings):
     audit_actor_header: str = "X-Actor-Id"
     audit_events_max_items: int = 20000
 
+    # Prometheus metrics
+    enable_prometheus: bool = True
+
     # Calibration/evaluation tracking
     calibration_reports_dir: str = "evidence/calibration"
 

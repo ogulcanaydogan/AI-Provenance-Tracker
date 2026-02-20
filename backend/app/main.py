@@ -69,19 +69,42 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
-# CORS middleware
+# CORS middleware — hardened to explicit methods, headers, and preflight caching
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-API-Key",
+        "X-Request-ID",
+        "X-Actor-ID",
+    ],
+    expose_headers=[
+        "X-Request-ID",
+        "Retry-After",
+        "X-RateLimit-Remaining",
+    ],
+    max_age=600,
 )
 app.middleware("http")(audit_http_request)
 app.middleware("http")(cache_control_middleware)
 
 # Global error handlers (structured JSON errors with request IDs)
 register_error_handlers(app)
+
+# Prometheus /metrics endpoint
+if settings.enable_prometheus:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+        should_respect_env_var=False,
+        excluded_handlers=["/health", "/metrics", "/docs", "/redoc", "/openapi.json"],
+    ).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 @app.get("/health")
