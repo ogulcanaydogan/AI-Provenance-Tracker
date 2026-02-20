@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-02-20 (evolution controls added)
+Last updated: 2026-02-20 (evolution controls verified in production)
 
 ## Overall
 
@@ -65,10 +65,12 @@ Last updated: 2026-02-20 (evolution controls added)
 
 ## Operational Evidence (Latest)
 
-- Multi-arch publish run (success): [22221158757](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221158757)
-- Chained dispatch run (success): [22221346782](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221346782)
-- Deploy Spark Runtime run (success): [22221349343](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221349343)
-- Last successful production deploy commit SHA: `f3840c45e7d54f4f0f4eb887089cb0354485eecf`
+- Multi-arch publish run with SBOM+attestation (success): [22226784059](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226784059)
+- Chained dispatch run (success): [22227033913](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227033913)
+- Deploy Spark Runtime run (success): [22227037725](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227037725)
+- Cost governance run (success): [22226797967](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797967)
+- SLO observability run (success): [22226797959](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797959)
+- Last successful production deploy commit SHA: `94b5c2a5a45abd59734a0f4cd26862d10b0b3f43`
 - Deploy step status: `Deploy to Spark` executed (non-skipped) and passed.
 - Smoke status: `Run Spark smoke test` passed (`checks_passed=4/4`).
 - Verification status: cosign signature + SBOM attestation checks passed before deploy.
