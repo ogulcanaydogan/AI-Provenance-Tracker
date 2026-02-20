@@ -41,6 +41,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "redis>=5.0.1",
     "structlog>=24.1.0",
+    "prometheus-fastapi-instrumentator>=7.0.0",
 ]
 
 [project.optional-dependencies]

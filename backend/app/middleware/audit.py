@@ -9,7 +9,7 @@ from fastapi import Request, Response
 from app.core.config import settings
 from app.services.audit_events import audit_event_store
 
-_SKIP_PREFIXES = ("/health", "/docs", "/redoc", "/openapi.json", "/favicon.ico")
+_SKIP_PREFIXES = ("/health", "/metrics", "/docs", "/redoc", "/openapi.json", "/favicon.ico")
 
 
 async def audit_http_request(request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
