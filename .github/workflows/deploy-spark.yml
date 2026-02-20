@@ -249,7 +249,11 @@ jobs:
         if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' }}
         run: |
           set -euo pipefail
-          SPARK_HOST=spark-ci \
+          deploy_host="spark-ci"
+          if [ "${{ steps.resolve.outputs.runner_type }}" = "self-hosted" ]; then
+            deploy_host="local"
+          fi
+          SPARK_HOST="${deploy_host}" \
           SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
           SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
           SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \
@@ -296,7 +300,11 @@ jobs:
           fi
           echo "Rolling back to ${rollback_sha}"
           git checkout --detach "${rollback_sha}"
-          SPARK_HOST=spark-ci \
+          deploy_host="spark-ci"
+          if [ "${{ steps.resolve.outputs.runner_type }}" = "self-hosted" ]; then
+            deploy_host="local"
+          fi
+          SPARK_HOST="${deploy_host}" \
           SPARK_REMOTE_DIR="${{ steps.resolve.outputs.remote_dir }}" \
           SPARK_PUBLIC_API_URL="${{ steps.resolve.outputs.public_api_url }}" \
           SPARK_DEPLOY_FRONTEND="${{ steps.resolve.outputs.deploy_frontend }}" \

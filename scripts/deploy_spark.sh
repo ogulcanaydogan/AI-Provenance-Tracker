@@ -20,6 +20,13 @@ SPARK_USE_PINNED_IMAGES="${SPARK_USE_PINNED_IMAGES:-auto}"
 SPARK_BACKEND_IMAGE="${SPARK_BACKEND_IMAGE:-}"
 SPARK_WORKER_IMAGE="${SPARK_WORKER_IMAGE:-}"
 
+is_local_host="false"
+case "${SPARK_HOST}" in
+  local|localhost|127.0.0.1)
+    is_local_host="true"
+    ;;
+esac
+
 if [ "${SPARK_USE_PINNED_IMAGES}" = "auto" ]; then
   if [ -n "${SPARK_BACKEND_IMAGE}" ] || [ -n "${SPARK_WORKER_IMAGE}" ]; then
     SPARK_USE_PINNED_IMAGES="true"
@@ -51,25 +58,62 @@ for compose_file in ${SPARK_COMPOSE_FILES}; do
 done
 REMOTE_COMPOSE_CMD="docker compose${compose_args} --env-file .env.spark"
 
-echo "[1/4] Verifying SSH connectivity to ${SPARK_HOST}..."
-ssh -o BatchMode=yes "${SPARK_HOST}" "echo connected:\$(hostname):\$(whoami)"
+remote_exec() {
+  local remote_cmd="$1"
+  if [ "${is_local_host}" = "true" ]; then
+    bash -lc "${remote_cmd}"
+  else
+    ssh "${SPARK_HOST}" "${remote_cmd}"
+  fi
+}
+
+if [ "${is_local_host}" = "true" ]; then
+  echo "[1/4] Running in local deploy mode on $(hostname) as $(whoami)."
+else
+  echo "[1/4] Verifying SSH connectivity to ${SPARK_HOST}..."
+  ssh -o BatchMode=yes "${SPARK_HOST}" "echo connected:\$(hostname):\$(whoami)"
+fi
 
 echo "[2/4] Syncing repository to ${SPARK_HOST}:${SPARK_REMOTE_DIR} ..."
-ssh "${SPARK_HOST}" "mkdir -p '${SPARK_REMOTE_DIR}'"
-rsync -az --delete \
-  --exclude ".git" \
-  --exclude ".venv" \
-  --exclude ".pytest_cache" \
-  --exclude ".mypy_cache" \
-  --exclude ".ruff_cache" \
-  --exclude "backend/.venv" \
-  --exclude "backend/evidence/runs" \
-  --exclude "backend/evidence/smoke" \
-  --exclude "frontend/node_modules" \
-  --exclude "frontend/.next" \
-  --exclude "frontend/out" \
-  --exclude ".DS_Store" \
-  ./ "${SPARK_HOST}:${SPARK_REMOTE_DIR}/"
+if [ "${is_local_host}" = "true" ]; then
+  mkdir -p "${SPARK_REMOTE_DIR}"
+  src_dir="$(pwd -P)"
+  dst_dir="$(cd "${SPARK_REMOTE_DIR}" && pwd -P)"
+  if [ "${src_dir}" = "${dst_dir}" ]; then
+    echo "SPARK_REMOTE_DIR must be different from the current workspace in local mode."
+    exit 1
+  fi
+  rsync -az --delete \
+    --exclude ".git" \
+    --exclude ".venv" \
+    --exclude ".pytest_cache" \
+    --exclude ".mypy_cache" \
+    --exclude ".ruff_cache" \
+    --exclude "backend/.venv" \
+    --exclude "backend/evidence/runs" \
+    --exclude "backend/evidence/smoke" \
+    --exclude "frontend/node_modules" \
+    --exclude "frontend/.next" \
+    --exclude "frontend/out" \
+    --exclude ".DS_Store" \
+    ./ "${SPARK_REMOTE_DIR}/"
+else
+  ssh "${SPARK_HOST}" "mkdir -p '${SPARK_REMOTE_DIR}'"
+  rsync -az --delete \
+    --exclude ".git" \
+    --exclude ".venv" \
+    --exclude ".pytest_cache" \
+    --exclude ".mypy_cache" \
+    --exclude ".ruff_cache" \
+    --exclude "backend/.venv" \
+    --exclude "backend/evidence/runs" \
+    --exclude "backend/evidence/smoke" \
+    --exclude "frontend/node_modules" \
+    --exclude "frontend/.next" \
+    --exclude "frontend/out" \
+    --exclude ".DS_Store" \
+    ./ "${SPARK_HOST}:${SPARK_REMOTE_DIR}/"
+fi
 
 tmp_env="$(mktemp)"
 cleanup() {
@@ -90,17 +134,21 @@ SPARK_WORKER_IMAGE=${SPARK_WORKER_IMAGE}
 EOF
 
 echo "[3/4] Uploading remote env file (.env.spark)..."
-scp -q "${tmp_env}" "${SPARK_HOST}:${SPARK_REMOTE_DIR}/.env.spark"
+if [ "${is_local_host}" = "true" ]; then
+  cp "${tmp_env}" "${SPARK_REMOTE_DIR}/.env.spark"
+else
+  scp -q "${tmp_env}" "${SPARK_HOST}:${SPARK_REMOTE_DIR}/.env.spark"
+fi
 
 if [ "${SPARK_USE_PINNED_IMAGES}" = "true" ]; then
   echo "[4/4] Pulling pinned backend/worker images and starting services on ${SPARK_HOST}..."
 else
   echo "[4/4] Building and starting services on ${SPARK_HOST}..."
 fi
-ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d db redis"
+remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d db redis"
 
 echo "Waiting for Postgres to become ready..."
-ssh "${SPARK_HOST}" "
+remote_exec "
   set -euo pipefail
   cd '${SPARK_REMOTE_DIR}'
   for i in \$(seq 1 30); do
@@ -117,25 +165,25 @@ ssh "${SPARK_HOST}" "
 "
 
 if [ "${SPARK_USE_PINNED_IMAGES}" = "true" ]; then
-  ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} pull backend worker"
-  ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d backend worker"
+  remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} pull backend worker"
+  remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d backend worker"
 else
-  ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d --build backend worker"
+  remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d --build backend worker"
 fi
 
 if [ "${SPARK_DEPLOY_FRONTEND}" = "true" ]; then
   echo "Starting frontend service..."
-  ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d --build frontend"
+  remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} up -d --build frontend"
 else
   echo "Skipping frontend service on Spark (set SPARK_DEPLOY_FRONTEND=true to enable)."
-  ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} stop frontend >/dev/null 2>&1 || true"
+  remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} stop frontend >/dev/null 2>&1 || true"
 fi
 
 echo "Deployment complete. Remote service status:"
-ssh "${SPARK_HOST}" "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} ps"
+remote_exec "cd '${SPARK_REMOTE_DIR}' && ${REMOTE_COMPOSE_CMD} ps"
 
 echo "API health check (via SSH):"
-ssh "${SPARK_HOST}" "
+remote_exec "
   set -euo pipefail
   cd '${SPARK_REMOTE_DIR}'
   ok=0
