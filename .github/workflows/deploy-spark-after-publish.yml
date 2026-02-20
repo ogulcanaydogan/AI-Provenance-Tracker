@@ -36,6 +36,7 @@ jobs:
               inputs: {
                 use_pinned_images: "true",
                 image_tag: sha,
+                verify_signatures: "true",
                 deploy_frontend: "false",
                 run_smoke: "true",
                 rollback_on_smoke_failure: "true",

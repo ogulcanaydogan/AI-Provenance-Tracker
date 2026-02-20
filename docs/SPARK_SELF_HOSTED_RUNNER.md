@@ -92,6 +92,7 @@ Expected:
 gh workflow run deploy-spark.yml \
   -f use_pinned_images=true \
   -f image_tag=<commit_sha> \
+  -f verify_signatures=true \
   -f deploy_frontend=false \
   -f run_smoke=true \
   -f rollback_on_smoke_failure=true \
@@ -104,3 +105,4 @@ gh workflow run deploy-spark.yml \
 - Keep `SPARK_SSH_KEY` permissions strict (`600`) and `known_hosts` pinned.
 - Keep `RAILWAY_*` secrets out of this path; Spark deploy uses SSH + GHCR.
 - For ARM64 Spark hosts, publish multi-arch images (`linux/amd64,linux/arm64`) before pinned deploys.
+- Keep signature verification enabled for pinned deploys (`verify_signatures=true`).

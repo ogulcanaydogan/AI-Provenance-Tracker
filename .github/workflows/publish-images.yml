@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   build-and-push:
@@ -32,6 +33,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push ${{ matrix.component }} image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -41,6 +43,16 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:latest
             ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
+      - name: Sign GHCR images (keyless)
+        env:
+          IMAGE_SHA_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
+          IMAGE_LATEST_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:latest
+        run: |
+          set -euo pipefail
+          cosign sign --yes "${IMAGE_SHA_TAG}"
+          cosign sign --yes "${IMAGE_LATEST_TAG}"
       - name: Output image refs
         run: |
           echo "ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:latest"

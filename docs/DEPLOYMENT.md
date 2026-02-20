@@ -51,13 +51,18 @@ Optional repository variables:
 - `SPARK_USE_PINNED_IMAGES`
 - `SPARK_RUN_SMOKE`
 - `SPARK_ROLLBACK_ON_SMOKE_FAILURE`
+- `SPARK_VERIFY_SIGNATURES` (default recommended: `true`)
 
 Pinned image mode (recommended for reproducibility):
 
 - `use_pinned_images=true`
 - `image_tag=<commit_sha>` (or leave default to workflow SHA)
+- `verify_signatures=true` (cosign keyless verification gate)
 
 For Spark ARM64 hosts, publish multi-arch images first (`linux/amd64,linux/arm64`).
+`Publish Service Images` now signs pushed images with keyless cosign. `Deploy Spark Runtime`
+verifies signatures (certificate identity = `publish-images.yml` on `main`) before deploy when
+`use_pinned_images=true` and `verify_signatures=true`.
 
 This deploys:
 
@@ -72,6 +77,7 @@ Production deploy example (self-hosted runner + pinned images):
 gh workflow run deploy-spark.yml \
   -f use_pinned_images=true \
   -f image_tag=<commit_sha> \
+  -f verify_signatures=true \
   -f deploy_frontend=false \
   -f run_smoke=true \
   -f rollback_on_smoke_failure=true \

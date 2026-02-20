@@ -15,6 +15,14 @@ on:
         description: "Pinned image tag override (defaults to commit SHA)"
         required: false
         type: string
+      verify_signatures:
+        description: "Verify cosign signatures for pinned images before deploy"
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
       deploy_frontend:
         description: "Deploy frontend service as part of this run"
         required: true
@@ -93,6 +101,7 @@ jobs:
       SPARK_RUNNER_TYPE_VAR: ${{ vars.SPARK_RUNNER_TYPE }}
       SPARK_RUN_SMOKE_VAR: ${{ vars.SPARK_RUN_SMOKE }}
       SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR: ${{ vars.SPARK_ROLLBACK_ON_SMOKE_FAILURE }}
+      SPARK_VERIFY_SIGNATURES_VAR: ${{ vars.SPARK_VERIFY_SIGNATURES }}
       X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
       SPARK_SMOKE_API_KEY: ${{ secrets.SPARK_SMOKE_API_KEY }}
       SPARK_SMOKE_API_KEY_HEADER: ${{ vars.SPARK_SMOKE_API_KEY_HEADER || 'X-API-Key' }}
@@ -128,6 +137,7 @@ jobs:
           smoke_base_url="${SPARK_PUBLIC_API_URL_VAR:-}"
           run_smoke="${SPARK_RUN_SMOKE_VAR:-true}"
           rollback_on_smoke_failure="${SPARK_ROLLBACK_ON_SMOKE_FAILURE_VAR:-true}"
+          verify_signatures="${SPARK_VERIFY_SIGNATURES_VAR:-true}"
           image_tag="${GITHUB_SHA}"
           ssh_port="${SPARK_SSH_PORT:-22}"
 
@@ -145,6 +155,9 @@ jobs:
             fi
             if [ -n "${{ github.event.inputs.image_tag }}" ]; then
               image_tag="${{ github.event.inputs.image_tag }}"
+            fi
+            if [ -n "${{ github.event.inputs.verify_signatures }}" ]; then
+              verify_signatures="${{ github.event.inputs.verify_signatures }}"
             fi
             if [ -n "${{ github.event.inputs.remote_dir }}" ]; then
               remote_dir="${{ github.event.inputs.remote_dir }}"
@@ -174,6 +187,11 @@ jobs:
             exit 1
           fi
 
+          if [ "${verify_signatures}" != "true" ] && [ "${verify_signatures}" != "false" ]; then
+            echo "verify_signatures must be true or false."
+            exit 1
+          fi
+
           if [ -z "${smoke_base_url}" ]; then
             smoke_base_url="${public_api_url}"
           fi
@@ -188,6 +206,7 @@ jobs:
             echo "smoke_base_url=${smoke_base_url}"
             echo "run_smoke=${run_smoke}"
             echo "rollback_on_smoke_failure=${rollback_on_smoke_failure}"
+            echo "verify_signatures=${verify_signatures}"
             echo "ssh_port=${ssh_port}"
           } >> "$GITHUB_OUTPUT"
 
@@ -211,6 +230,28 @@ jobs:
             echo "api_ref=${api_ref}"
             echo "worker_ref=${worker_ref}"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign for signature verification
+        if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Verify pinned image signatures (cosign keyless)
+        if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
+        env:
+          API_REF: ${{ steps.image_refs.outputs.api_ref }}
+          WORKER_REF: ${{ steps.image_refs.outputs.worker_ref }}
+          COSIGN_CERT_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish-images.yml@refs/heads/main
+          COSIGN_CERT_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${API_REF}"
+          cosign verify \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${WORKER_REF}"
 
       - name: Set up SSH access
         id: ssh_prep
@@ -387,6 +428,7 @@ jobs:
             echo "- Deploy frontend: \`${{ steps.resolve.outputs.deploy_frontend }}\`"
             echo "- Use pinned images: \`${{ steps.image_refs.outputs.use_pinned_images }}\`"
             echo "- Image tag: \`${{ steps.image_refs.outputs.image_tag }}\`"
+            echo "- Verify signatures: \`${{ steps.resolve.outputs.verify_signatures }}\`"
             if [ -n "${{ steps.image_refs.outputs.api_ref }}" ]; then
               echo "- Backend image ref: \`${{ steps.image_refs.outputs.api_ref }}\`"
             fi
