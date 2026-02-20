@@ -30,6 +30,7 @@ Behavior:
 ### Option A: GitHub Actions workflow
 
 Use workflow: `Deploy Spark Runtime` (`.github/workflows/deploy-spark.yml`).
+Automatic chain is also available: `Publish Service Images` success on `main` auto-dispatches pinned Spark deploy (`.github/workflows/deploy-spark-after-publish.yml`).
 
 Self-hosted runner runbook:
 

@@ -50,6 +50,7 @@ Last updated: 2026-02-20
 - Runner persistence is configured via `systemd` user service (`github-actions-runner.service`).
 - GHCR publish pipeline now builds multi-arch images (`linux/amd64,linux/arm64`).
 - Real production deploy executed on self-hosted runner with pinned images and smoke test success.
+- Publish -> deploy chaining is enabled (`.github/workflows/deploy-spark-after-publish.yml`) to auto-dispatch pinned Spark deploy for the same SHA.
 
 ### Remaining blockers
 - None for roadmap completion.
@@ -72,7 +73,6 @@ Last updated: 2026-02-20
 ## Evolution Backlog (Priority Order)
 
 1. Cost governance: add Vercel usage budget/alert SOP and monthly spend threshold review.
-2. Deploy automation: chain `publish-images` -> `deploy-spark` so pinned deploy only runs after image publish success for the same SHA.
-3. Supply chain hardening: add image signing (cosign) and signature verification gate before deploy.
-4. Observability depth: add uptime/error SLO dashboard and alert routing for backend + smoke regressions.
-5. Evaluation growth: expand public benchmark dataset toward 1k+ samples with per-domain breakdown and calibration tracking.
+2. Supply chain hardening: add image signing (cosign) and signature verification gate before deploy.
+3. Observability depth: add uptime/error SLO dashboard and alert routing for backend + smoke regressions.
+4. Evaluation growth: expand public benchmark dataset toward 1k+ samples with per-domain breakdown and calibration tracking.

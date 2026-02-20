@@ -1,0 +1,46 @@
+name: Deploy Spark After Image Publish
+
+on:
+  workflow_run:
+    workflows: ["Publish Service Images"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: spark-chain-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger pinned Spark deploy for published SHA
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.payload.workflow_run.head_sha;
+
+            core.info(`Dispatching deploy-spark.yml for SHA ${sha}`);
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: "deploy-spark.yml",
+              ref: "main",
+              inputs: {
+                use_pinned_images: "true",
+                image_tag: sha,
+                deploy_frontend: "false",
+                run_smoke: "true",
+                rollback_on_smoke_failure: "true",
+                runner_type: "self-hosted",
+              },
+            });
+
+            core.info("deploy-spark.yml dispatch submitted.");
