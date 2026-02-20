@@ -68,3 +68,11 @@ Last updated: 2026-02-20
 1. Keep weekly benchmark publish + evidence pack cadence.
 2. Keep pinned deploys tied to commit SHA tags and recorded in release notes.
 3. Keep runner and token hygiene (periodic rotation, service health checks).
+
+## Evolution Backlog (Priority Order)
+
+1. Cost governance: add Vercel usage budget/alert SOP and monthly spend threshold review.
+2. Deploy automation: chain `publish-images` -> `deploy-spark` so pinned deploy only runs after image publish success for the same SHA.
+3. Supply chain hardening: add image signing (cosign) and signature verification gate before deploy.
+4. Observability depth: add uptime/error SLO dashboard and alert routing for backend + smoke regressions.
+5. Evaluation growth: expand public benchmark dataset toward 1k+ samples with per-domain breakdown and calibration tracking.

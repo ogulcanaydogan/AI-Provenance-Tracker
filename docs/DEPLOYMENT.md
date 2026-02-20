@@ -13,6 +13,18 @@ This project supports multiple runtime targets. The recommended production path 
    - `NEXT_PUBLIC_API_URL`: public backend URL (Spark API base URL).
 4. Deploy.
 
+### Vercel Credit Guard (Enabled)
+
+Frontend project uses `frontend/vercel.json` `ignoreCommand`:
+
+- `frontend/scripts/vercel-ignore.sh`
+
+Behavior:
+
+- Skips Vercel build when commit does not affect frontend-relevant paths.
+- Continues build when frontend files changed.
+- Manual override supported with env var: `FORCE_VERCEL_BUILD=1`.
+
 ## Backend (Spark, Recommended)
 
 ### Option A: GitHub Actions workflow
