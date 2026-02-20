@@ -90,6 +90,14 @@ jobs:
           npm run typecheck
           npm test
           npm run build
+      - name: Report bundle size
+        run: |
+          echo "## Bundle Size Report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -sh frontend/.next/static/chunks/*.js | sort -rh | head -20 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          TOTAL=$(du -sh frontend/.next/static/ | cut -f1)
+          echo "**Total static assets:** $TOTAL" >> "$GITHUB_STEP_SUMMARY"
 
   e2e-tests:
     runs-on: ubuntu-latest

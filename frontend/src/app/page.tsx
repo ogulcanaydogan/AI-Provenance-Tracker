@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import {
   FileText,
-  Image,
+  Image as ImageIcon,
   Mic,
   Video,
   Shield,
@@ -72,7 +72,7 @@ const MODALITIES = [
     borderColor: "border-blue-500/20 hover:border-blue-500/40",
   },
   {
-    icon: Image,
+    icon: ImageIcon,
     label: "Image",
     href: "/detect/image",
     description: "DALL-E, Midjourney, Stable Diffusion detection via FFT and CNN analysis",
@@ -195,7 +195,7 @@ export default function Home() {
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                <Image className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" />
                 Image
               </button>
             </div>

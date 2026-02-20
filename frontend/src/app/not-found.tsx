@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Shield, ArrowLeft, FileText, Image, Mic, Video } from "lucide-react";
+import { Shield, ArrowLeft, FileText, Image as ImageIcon, Mic, Video } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -40,7 +40,7 @@ export default function NotFound() {
               href="/detect/image"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#262626] text-gray-400 hover:text-white hover:border-[#404040] transition-colors text-sm"
             >
-              <Image className="h-3.5 w-3.5" />
+              <ImageIcon className="h-3.5 w-3.5" />
               Image
             </Link>
             <Link
