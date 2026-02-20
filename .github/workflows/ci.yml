@@ -55,7 +55,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: |
           cd backend
-          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=75
+          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=80
       - name: Optional Reality Defender live smoke (non-blocking)
         continue-on-error: true
         env:
@@ -90,6 +90,47 @@ jobs:
           npm run typecheck
           npm test
           npm run build
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend
+        run: |
+          cd backend
+          pip install -e ".[dev]"
+      - name: Install frontend
+        run: |
+          cd frontend
+          npm ci
+      - name: Install Playwright browsers
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        env:
+          CI: "true"
+          BASE_URL: http://localhost:3000
+          API_URL: http://localhost:8000
+        run: |
+          cd frontend
+          npx playwright test --reporter=github
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/test-results/
+          retention-days: 7
 
   public-benchmark:
     runs-on: ubuntu-latest
