@@ -35,6 +35,9 @@ Automatic chain is also available: `Publish Service Images` success on `main` au
 Self-hosted runner runbook:
 
 - `docs/SPARK_SELF_HOSTED_RUNNER.md`
+- `docs/SUPPLY_CHAIN_SECURITY.md`
+- `docs/COST_GOVERNANCE.md`
+- `docs/SLO_OBSERVABILITY.md`
 
 Required repository secrets:
 
@@ -63,6 +66,7 @@ For Spark ARM64 hosts, publish multi-arch images first (`linux/amd64,linux/arm64
 `Publish Service Images` now signs pushed images with keyless cosign. `Deploy Spark Runtime`
 verifies signatures (certificate identity = `publish-images.yml` on `main`) before deploy when
 `use_pinned_images=true` and `verify_signatures=true`.
+Deploy also verifies SBOM attestations (`spdxjson`) before rollout in pinned mode.
 
 This deploys:
 

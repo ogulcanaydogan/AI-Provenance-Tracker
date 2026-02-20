@@ -70,6 +70,14 @@ jobs:
             --baseline benchmark/baselines/public_benchmark_snapshot.json \
             --report-json benchmark/results/latest/regression_check.json \
             --report-md benchmark/results/latest/regression_check.md
+      - name: Generate dataset health report
+        run: |
+          python benchmark/eval/dataset_health.py \
+            --datasets-dir benchmark/datasets \
+            --output-json benchmark/results/latest/dataset_health.json \
+            --output-md benchmark/results/latest/dataset_health.md \
+            --target-total 1000 \
+            --warn-total 500
       - name: Stop backend
         if: always()
         run: |
@@ -86,6 +94,8 @@ jobs:
             benchmark/results/latest/baseline_results.md
             benchmark/results/latest/regression_check.json
             benchmark/results/latest/regression_check.md
+            benchmark/results/latest/dataset_health.json
+            benchmark/results/latest/dataset_health.md
           retention-days: 14
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -66,6 +66,14 @@ jobs:
             --baseline benchmark/baselines/public_benchmark_snapshot.json \
             --report-json benchmark/results/ci/regression_check.json \
             --report-md benchmark/results/ci/regression_check.md
+      - name: Generate dataset health report
+        run: |
+          python benchmark/eval/dataset_health.py \
+            --datasets-dir benchmark/datasets \
+            --output-json benchmark/results/ci/dataset_health.json \
+            --output-md benchmark/results/ci/dataset_health.md \
+            --target-total 1000 \
+            --warn-total 500
       - name: Stop backend
         if: always()
         run: |

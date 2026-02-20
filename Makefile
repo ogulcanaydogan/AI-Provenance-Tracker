@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public build-text-dataset
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance slo-report build-text-dataset
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -29,6 +29,9 @@ help:
 	@echo "  make intel-weekly-cycle  Run one weekly cycle and auto-compare with previous run"
 	@echo "  make smoke-prod      Smoke test deployed /detect endpoints"
 	@echo "  make benchmark-public Run public provenance benchmark + leaderboard artifacts"
+	@echo "  make benchmark-health Dataset size/coverage tracker toward 1k target"
+	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
+	@echo "  make slo-report      Generate observability SLO report from workflow history"
 	@echo "  make build-text-dataset Build expanded labeled text corpus from benchmark samples"
 
 install:
@@ -85,6 +88,15 @@ smoke-prod:
 
 benchmark-public:
 	bash scripts/run_benchmark_public.sh
+
+benchmark-health:
+	python3 benchmark/eval/dataset_health.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-json "$${OUTPUT_JSON:-benchmark/results/latest/dataset_health.json}" --output-md "$${OUTPUT_MD:-benchmark/results/latest/dataset_health.md}" --target-total "$${TARGET_TOTAL:-1000}" --warn-total "$${WARN_TOTAL:-500}" $${ENFORCE:+--enforce}
+
+cost-governance:
+	python3 scripts/cost_governance_snapshot.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-30}" --output-json "$${OUTPUT_JSON:-ops/reports/cost_governance_snapshot.json}" --output-md "$${OUTPUT_MD:-ops/reports/cost_governance_snapshot.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --vercel-token "$${VERCEL_TOKEN:-}" --vercel-project-id "$${VERCEL_PROJECT_ID:-}" --vercel-team-id "$${VERCEL_TEAM_ID:-}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
+
+slo-report:
+	python3 scripts/slo_observability_report.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-7}" --output-json "$${OUTPUT_JSON:-ops/reports/slo_observability_report.json}" --output-md "$${OUTPUT_MD:-ops/reports/slo_observability_report.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
 
 build-text-dataset:
 	python3 backend/scripts/build_text_training_dataset.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output "$${OUTPUT:-backend/evidence/samples/text_labeled_expanded.jsonl}" --min-chars "$${MIN_CHARS:-80}"

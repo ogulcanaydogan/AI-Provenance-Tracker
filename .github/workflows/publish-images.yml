@@ -53,6 +53,27 @@ jobs:
           set -euo pipefail
           cosign sign --yes "${IMAGE_SHA_TAG}"
           cosign sign --yes "${IMAGE_LATEST_TAG}"
+      - name: Generate SBOM (SPDX JSON)
+        env:
+          IMAGE_SHA_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
+          SBOM_PATH: sbom-${{ matrix.component }}-${{ github.sha }}.spdx.json
+        run: |
+          set -euo pipefail
+          docker run --rm --pull=always ghcr.io/anchore/syft:latest \
+            "${IMAGE_SHA_TAG}" -o spdx-json > "${SBOM_PATH}"
+      - name: Attest SBOM (keyless cosign)
+        env:
+          IMAGE_SHA_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
+          SBOM_PATH: sbom-${{ matrix.component }}-${{ github.sha }}.spdx.json
+        run: |
+          set -euo pipefail
+          cosign attest --yes --type spdxjson --predicate "${SBOM_PATH}" "${IMAGE_SHA_TAG}"
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.component }}-${{ github.sha }}
+          path: sbom-${{ matrix.component }}-${{ github.sha }}.spdx.json
+          retention-days: 30
       - name: Output image refs
         run: |
           echo "ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:latest"

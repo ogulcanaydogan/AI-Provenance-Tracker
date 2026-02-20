@@ -106,3 +106,4 @@ gh workflow run deploy-spark.yml \
 - Keep `RAILWAY_*` secrets out of this path; Spark deploy uses SSH + GHCR.
 - For ARM64 Spark hosts, publish multi-arch images (`linux/amd64,linux/arm64`) before pinned deploys.
 - Keep signature verification enabled for pinned deploys (`verify_signatures=true`).
+- Keep SBOM attestation checks enabled for pinned deploys (automatic when verification is enabled).

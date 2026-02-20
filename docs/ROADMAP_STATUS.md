@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-02-20
+Last updated: 2026-02-20 (evolution controls added)
 
 ## Overall
 
@@ -50,9 +50,14 @@ Last updated: 2026-02-20
 - Runner persistence is configured via `systemd` user service (`github-actions-runner.service`).
 - GHCR publish pipeline now builds multi-arch images (`linux/amd64,linux/arm64`).
 - GHCR publish pipeline signs backend/worker images with keyless cosign.
+- GHCR publish pipeline emits SBOM artifacts and keyless SBOM attestations.
 - Real production deploy executed on self-hosted runner with pinned images and smoke test success.
 - Publish -> deploy chaining is enabled (`.github/workflows/deploy-spark-after-publish.yml`) to auto-dispatch pinned Spark deploy for the same SHA.
 - Spark deploy verifies cosign signatures for pinned images before deploy (`verify_signatures=true`).
+- Spark deploy verifies SBOM attestations (`spdxjson`) before deploy in pinned mode.
+- Cost governance automation is enabled (`.github/workflows/cost-governance.yml`).
+- SLO observability automation is enabled (`.github/workflows/slo-observability-report.yml`).
+- Benchmark pipelines now emit dataset health reports toward the 1k target.
 
 ### Remaining blockers
 - None for roadmap completion.
@@ -60,21 +65,24 @@ Last updated: 2026-02-20
 
 ## Operational Evidence (Latest)
 
-- Multi-arch publish run (success): [22216976601](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22216976601)
-- Deploy Spark Runtime run (success): [22217190173](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22217190173)
-- Last successful production deploy commit SHA: `8ced8a9bb491a624018e052bf3229b6a4bb4b2b4`
+- Multi-arch publish run (success): [22221158757](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221158757)
+- Chained dispatch run (success): [22221346782](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221346782)
+- Deploy Spark Runtime run (success): [22221349343](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22221349343)
+- Last successful production deploy commit SHA: `f3840c45e7d54f4f0f4eb887089cb0354485eecf`
 - Deploy step status: `Deploy to Spark` executed (non-skipped) and passed.
 - Smoke status: `Run Spark smoke test` passed (`checks_passed=4/4`).
+- Verification status: cosign signature + SBOM attestation checks passed before deploy.
 
 ## Steady-State Next Actions
 
 1. Keep weekly benchmark publish + evidence pack cadence.
 2. Keep pinned deploys tied to commit SHA tags and recorded in release notes.
 3. Keep runner and token hygiene (periodic rotation, service health checks).
+4. Review cost and SLO reports weekly and resolve warning-level alerts.
 
 ## Evolution Backlog (Priority Order)
 
-1. Cost governance: add Vercel usage budget/alert SOP and monthly spend threshold review.
-2. Observability depth: add uptime/error SLO dashboard and alert routing for backend + smoke regressions.
-3. Evaluation growth: expand public benchmark dataset toward 1k+ samples with per-domain breakdown and calibration tracking.
-4. Supply-chain depth: add SBOM + signed provenance attestation and deploy-time policy checks.
+1. Evaluation growth: expand public benchmark dataset beyond 1k samples with per-domain balance targets.
+2. Observability depth: add runtime latency/error dashboards (beyond workflow success proxies).
+3. Supply-chain depth: add CVE policy gates and periodic production-tag verification jobs.
+4. Cost governance depth: add explicit monthly budget caps with escalation playbook.

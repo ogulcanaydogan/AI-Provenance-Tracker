@@ -639,6 +639,34 @@ make benchmark-public
 
 Outputs benchmark results, `scored_samples.jsonl`, regression report, and an updated leaderboard JSON.
 
+Dataset growth and health tracking:
+
+```bash
+make benchmark-health
+```
+
+Generates `dataset_health.json/.md` with task/modality coverage and progress toward the 1k target.
+
+## Operations Automation
+
+Cost governance snapshot:
+
+```bash
+make cost-governance REPO=ogulcanaydogan/AI-Provenance-Tracker GH_TOKEN=$GH_TOKEN
+```
+
+SLO observability report:
+
+```bash
+make slo-report REPO=ogulcanaydogan/AI-Provenance-Tracker GH_TOKEN=$GH_TOKEN
+```
+
+See:
+
+- `docs/COST_GOVERNANCE.md`
+- `docs/SLO_OBSERVABILITY.md`
+- `docs/SUPPLY_CHAIN_SECURITY.md`
+
 ---
 
 ## Development

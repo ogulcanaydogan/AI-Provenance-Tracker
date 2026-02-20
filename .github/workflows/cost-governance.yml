@@ -1,0 +1,81 @@
+name: Cost Governance Snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 5 * * 1"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate cost governance snapshot
+        run: |
+          python scripts/cost_governance_snapshot.py \
+            --repo "${REPO}" \
+            --window-days 30 \
+            --gh-token "${GH_TOKEN}" \
+            --vercel-token "${VERCEL_TOKEN}" \
+            --vercel-project-id "${VERCEL_PROJECT_ID}" \
+            --vercel-team-id "${VERCEL_TEAM_ID}" \
+            --output-json ops/reports/cost_governance_snapshot.json \
+            --output-md ops/reports/cost_governance_snapshot.md \
+            --fail-on-alert-level none
+      - name: Append snapshot to summary
+        run: |
+          cat ops/reports/cost_governance_snapshot.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload governance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-governance-snapshot
+          path: ops/reports/cost_governance_snapshot.*
+          retention-days: 30
+      - name: Send cost alert webhook
+        if: ${{ always() && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          path = "ops/reports/cost_governance_snapshot.json"
+          payload = json.loads(open(path, encoding="utf-8").read())
+          alerts = payload.get("alerts", [])
+          if not alerts:
+              raise SystemExit(0)
+
+          body = json.dumps(
+              {
+                  "event": "cost_governance_alert",
+                  "repository": os.environ.get("GITHUB_REPOSITORY", ""),
+                  "workflow": os.environ.get("GITHUB_WORKFLOW", ""),
+                  "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                  "run_url": f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+                  "alerts": alerts,
+              }
+          ).encode("utf-8")
+          req = urllib.request.Request(
+              os.environ["OPS_ALERT_WEBHOOK_URL"],
+              data=body,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(req, timeout=20).read()
+          PY

@@ -1,0 +1,77 @@
+name: SLO Observability Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "35 6 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate SLO observability report
+        run: |
+          python scripts/slo_observability_report.py \
+            --repo "${REPO}" \
+            --window-days 7 \
+            --gh-token "${GH_TOKEN}" \
+            --smoke-success-slo 0.98 \
+            --deploy-success-slo 0.95 \
+            --output-json ops/reports/slo_observability_report.json \
+            --output-md ops/reports/slo_observability_report.md \
+            --fail-on-alert-level none
+      - name: Append report to summary
+        run: |
+          cat ops/reports/slo_observability_report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: slo-observability-report
+          path: ops/reports/slo_observability_report.*
+          retention-days: 30
+      - name: Send SLO alert webhook
+        if: ${{ always() && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          path = "ops/reports/slo_observability_report.json"
+          payload = json.loads(open(path, encoding="utf-8").read())
+          alerts = payload.get("alerts", [])
+          if not alerts:
+              raise SystemExit(0)
+
+          body = json.dumps(
+              {
+                  "event": "slo_observability_alert",
+                  "repository": os.environ.get("GITHUB_REPOSITORY", ""),
+                  "workflow": os.environ.get("GITHUB_WORKFLOW", ""),
+                  "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                  "run_url": f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+                  "alerts": alerts,
+              }
+          ).encode("utf-8")
+          req = urllib.request.Request(
+              os.environ["OPS_ALERT_WEBHOOK_URL"],
+              data=body,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(req, timeout=20).read()
+          PY

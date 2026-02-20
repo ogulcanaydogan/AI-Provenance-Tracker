@@ -253,6 +253,28 @@ jobs:
             --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
             "${WORKER_REF}"
 
+      - name: Verify SBOM attestations (spdxjson)
+        if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
+        env:
+          API_REF: ${{ steps.image_refs.outputs.api_ref }}
+          WORKER_REF: ${{ steps.image_refs.outputs.worker_ref }}
+          COSIGN_CERT_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish-images.yml@refs/heads/main
+          COSIGN_CERT_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${API_REF}" > /tmp/api-attestations.jsonl
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${WORKER_REF}" > /tmp/worker-attestations.jsonl
+          test -s /tmp/api-attestations.jsonl
+          test -s /tmp/worker-attestations.jsonl
+
       - name: Set up SSH access
         id: ssh_prep
         run: |
@@ -429,6 +451,9 @@ jobs:
             echo "- Use pinned images: \`${{ steps.image_refs.outputs.use_pinned_images }}\`"
             echo "- Image tag: \`${{ steps.image_refs.outputs.image_tag }}\`"
             echo "- Verify signatures: \`${{ steps.resolve.outputs.verify_signatures }}\`"
+            if [ "${{ steps.resolve.outputs.verify_signatures }}" = "true" ] && [ "${{ steps.image_refs.outputs.use_pinned_images }}" = "true" ]; then
+              echo "- SBOM attestation check: \`spdxjson verified\`"
+            fi
             if [ -n "${{ steps.image_refs.outputs.api_ref }}" ]; then
               echo "- Backend image ref: \`${{ steps.image_refs.outputs.api_ref }}\`"
             fi
