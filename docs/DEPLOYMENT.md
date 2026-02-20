@@ -19,6 +19,10 @@ This project supports multiple runtime targets. The recommended production path 
 
 Use workflow: `Deploy Spark Runtime` (`.github/workflows/deploy-spark.yml`).
 
+Self-hosted runner runbook:
+
+- `docs/SPARK_SELF_HOSTED_RUNNER.md`
+
 Required repository secrets:
 
 - `SPARK_SSH_HOST`
@@ -40,12 +44,26 @@ Pinned image mode (recommended for reproducibility):
 - `use_pinned_images=true`
 - `image_tag=<commit_sha>` (or leave default to workflow SHA)
 
+For Spark ARM64 hosts, publish multi-arch images first (`linux/amd64,linux/arm64`).
+
 This deploys:
 
 - `ghcr.io/<owner>/provenance-api:<image_tag>`
 - `ghcr.io/<owner>/provenance-worker:<image_tag>`
 
 with rollback-on-smoke support.
+
+Production deploy example (self-hosted runner + pinned images):
+
+```bash
+gh workflow run deploy-spark.yml \
+  -f use_pinned_images=true \
+  -f image_tag=<commit_sha> \
+  -f deploy_frontend=false \
+  -f run_smoke=true \
+  -f rollback_on_smoke_failure=true \
+  -f runner_type=self-hosted
+```
 
 ### Option B: Manual SSH deploy script
 

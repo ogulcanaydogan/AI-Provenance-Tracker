@@ -1,12 +1,12 @@
 # Roadmap Status
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ## Overall
 
 - Product roadmap in `README.md` is feature-complete (`20/20` checked).
 - Credibility-first sprint objectives are implemented in code and CI.
-- Remaining items are operational rollout tasks, not missing core features.
+- Operational rollout is completed (self-hosted Spark deploy + smoke pass).
 
 ## Completed Workstreams
 
@@ -46,18 +46,25 @@ Last updated: 2026-02-19
 ### Done
 - Spark deploy workflow is implemented with smoke + rollback flow.
 - Pinned GHCR image mode is implemented for Spark deploy.
+- Self-hosted Spark runner is online with labels: `self-hosted`, `Linux`, `ARM64`, `spark`.
+- Runner persistence is configured via `systemd` user service (`github-actions-runner.service`).
+- GHCR publish pipeline now builds multi-arch images (`linux/amd64,linux/arm64`).
+- Real production deploy executed on self-hosted runner with pinned images and smoke test success.
 
 ### Remaining blockers
-1. Spark host is not reachable from GitHub-hosted runners in current network layout.
-2. Real remote deploy requires either:
-   - self-hosted GitHub runner on reachable network, or
-   - direct SSH/manual deploy from reachable machine.
+- None for roadmap completion.
+- GitHub-hosted runners still cannot reach private Spark network directly (expected), but this is mitigated by the self-hosted runner path.
 
-## Completion Path (End State)
+## Operational Evidence (Latest)
 
-1. Bring one self-hosted runner online in Spark-reachable network.
-2. Run `Deploy Spark Runtime` with:
-   - `runner_type=self-hosted`
-   - `use_pinned_images=true`
-3. Confirm smoke success on public API URL.
-4. Keep weekly benchmark publish + evidence pack cadence.
+- Multi-arch publish run (success): [22216976601](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22216976601)
+- Deploy Spark Runtime run (success): [22217190173](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22217190173)
+- Last successful production deploy commit SHA: `8ced8a9bb491a624018e052bf3229b6a4bb4b2b4`
+- Deploy step status: `Deploy to Spark` executed (non-skipped) and passed.
+- Smoke status: `Run Spark smoke test` passed (`checks_passed=4/4`).
+
+## Steady-State Next Actions
+
+1. Keep weekly benchmark publish + evidence pack cadence.
+2. Keep pinned deploys tied to commit SHA tags and recorded in release notes.
+3. Keep runner and token hygiene (periodic rotation, service health checks).
