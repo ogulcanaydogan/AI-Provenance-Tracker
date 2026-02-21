@@ -5,6 +5,10 @@ metadata:
   labels:
     {{- include "provenance-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.api.containerPort }}"
+    prometheus.io/path: "/metrics"
 spec:
   type: {{ .Values.api.service.type }}
   selector:

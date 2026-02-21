@@ -414,7 +414,7 @@ graph TB
 | **Cache** | Redis 7 | Response caching and job queue |
 | **Infrastructure** | Docker, Kubernetes (Helm), Terraform (AWS) | Multi-target deployment |
 | **Quality** | Ruff, MyPy, Pytest, pre-commit hooks | Code quality and type safety |
-| **Observability** | Structlog (structured logging) | Production monitoring |
+| **Observability** | Structlog, Prometheus (structured logging, metrics) | Production monitoring |
 
 ---
 
@@ -666,6 +666,9 @@ See:
 - `docs/COST_GOVERNANCE.md`
 - `docs/SLO_OBSERVABILITY.md`
 - `docs/SUPPLY_CHAIN_SECURITY.md`
+- `docs/TROUBLESHOOTING.md`
+- `docs/PERFORMANCE_TUNING.md`
+- `docs/DATA_RETENTION.md`
 
 ---
 

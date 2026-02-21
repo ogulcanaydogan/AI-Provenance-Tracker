@@ -18,6 +18,11 @@ services:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -47,6 +52,11 @@ services:
       - ./backend:/app
     command: python -m app.worker.main
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     healthcheck:
       test: ["CMD", "python", "-c", "import os; os.getpid()"]
       interval: 30s
@@ -71,6 +81,11 @@ services:
       - ./frontend:/app
       - /app/node_modules
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
