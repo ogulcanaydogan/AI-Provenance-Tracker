@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: "{{ include \"provenance-stack.imageRef\" (dict \"repository\" .Values.worker.image.repository \"tag\" .Values.worker.image.tag \"digest\" .Values.worker.image.digest) }}"
+          image: {{ include "provenance-stack.imageRef" (dict "repository" .Values.worker.image.repository "tag" .Values.worker.image.tag "digest" .Values.worker.image.digest) | quote }}
           imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
           command: ["python", "-m", "app.worker.main"]
           envFrom:

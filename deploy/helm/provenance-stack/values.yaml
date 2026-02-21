@@ -12,7 +12,13 @@ api:
   service:
     type: ClusterIP
     port: 80
-  resources: {}
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
   runSchedulerInApi: false
   env:
     requireApiKey: false
@@ -30,7 +36,13 @@ worker:
     tag: latest
     digest: ""
     pullPolicy: IfNotPresent
-  resources: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
   env:
     workerEnableScheduler: true
     workerDrainWebhookQueue: true
