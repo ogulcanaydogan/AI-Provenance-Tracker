@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+e2e/
+src/**/*.test.ts
+src/**/*.test.tsx
+src/__tests__/
+playwright.config.ts
+vitest.config.ts
+
+# Dev tools
+.eslintcache
+.turbo/
+*.tsbuildinfo
+
+# Env files
+.env
+.env.*
+
+# Git and docs
+.git/
+.gitignore
+README.md
+
+# IDE
+.vscode/
+.idea/

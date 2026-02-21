@@ -4,3 +4,13 @@ description: Provenance-as-a-Service stack (API + worker + optional Postgres)
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+home: https://github.com/ogulcanaydogan/AI-Provenance-Tracker
+sources:
+  - https://github.com/ogulcanaydogan/AI-Provenance-Tracker
+maintainers:
+  - name: Ogulcan Aydogan
+keywords:
+  - ai-detection
+  - provenance
+  - deepfake
+  - content-authenticity
