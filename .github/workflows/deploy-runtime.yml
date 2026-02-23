@@ -151,7 +151,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
@@ -254,7 +254,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -409,7 +409,7 @@ jobs:
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -464,7 +464,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
@@ -553,7 +553,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
