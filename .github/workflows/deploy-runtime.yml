@@ -410,7 +410,7 @@ jobs:
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

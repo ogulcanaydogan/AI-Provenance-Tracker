@@ -328,7 +328,7 @@ jobs:
 
       - name: Set up Python for smoke test
         if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
