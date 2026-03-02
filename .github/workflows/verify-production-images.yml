@@ -63,14 +63,14 @@ jobs:
             --ignore-unfixed \
             --severity HIGH,CRITICAL \
             --format json \
-            --output trivy-api-latest.json \
-            "${API_IMAGE}"
+            --no-progress \
+            "${API_IMAGE}" > trivy-api-latest.json
           docker run --rm --pull=always ghcr.io/aquasecurity/trivy:latest image \
             --ignore-unfixed \
             --severity HIGH,CRITICAL \
             --format json \
-            --output trivy-worker-latest.json \
-            "${WORKER_IMAGE}"
+            --no-progress \
+            "${WORKER_IMAGE}" > trivy-worker-latest.json
 
       - name: Evaluate CVE policy
         run: |

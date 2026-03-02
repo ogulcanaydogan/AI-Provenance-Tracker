@@ -82,8 +82,8 @@ jobs:
             --ignore-unfixed \
             --severity HIGH,CRITICAL \
             --format json \
-            --output "${VULN_REPORT}" \
-            "${IMAGE_SHA_TAG}"
+            --no-progress \
+            "${IMAGE_SHA_TAG}" > "${VULN_REPORT}"
       - name: Enforce CVE policy gate
         env:
           VULN_REPORT: trivy-${{ matrix.component }}-${{ github.sha }}.json
