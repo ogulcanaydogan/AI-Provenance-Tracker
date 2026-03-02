@@ -16,6 +16,10 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      ENABLE_CVE_POLICY_GATE: ${{ vars.ENABLE_CVE_POLICY_GATE || 'false' }}
+      CVE_MAX_CRITICAL: ${{ vars.CVE_MAX_CRITICAL || '0' }}
+      CVE_MAX_HIGH: ${{ vars.CVE_MAX_HIGH || '0' }}
     strategy:
       fail-fast: false
       matrix:
@@ -68,11 +72,71 @@ jobs:
         run: |
           set -euo pipefail
           cosign attest --yes --type spdxjson --predicate "${SBOM_PATH}" "${IMAGE_SHA_TAG}"
+      - name: Scan image vulnerabilities (Trivy JSON)
+        env:
+          IMAGE_SHA_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
+          VULN_REPORT: trivy-${{ matrix.component }}-${{ github.sha }}.json
+        run: |
+          set -euo pipefail
+          docker run --rm --pull=always ghcr.io/aquasecurity/trivy:latest image \
+            --ignore-unfixed \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output "${VULN_REPORT}" \
+            "${IMAGE_SHA_TAG}"
+      - name: Enforce CVE policy gate
+        env:
+          VULN_REPORT: trivy-${{ matrix.component }}-${{ github.sha }}.json
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          report_path = os.environ["VULN_REPORT"]
+          gate_enabled = os.getenv("ENABLE_CVE_POLICY_GATE", "false").strip().lower() in {"1", "true", "yes", "on"}
+          max_critical = int(os.getenv("CVE_MAX_CRITICAL", "0"))
+          max_high = int(os.getenv("CVE_MAX_HIGH", "0"))
+
+          payload = json.loads(open(report_path, encoding="utf-8").read())
+          critical = 0
+          high = 0
+          for result in payload.get("Results", []):
+            vulns = result.get("Vulnerabilities") or []
+            for vuln in vulns:
+              sev = str(vuln.get("Severity", "")).upper()
+              if sev == "CRITICAL":
+                critical += 1
+              elif sev == "HIGH":
+                high += 1
+
+          print(f"Trivy summary ({report_path}): critical={critical}, high={high}")
+          if not gate_enabled:
+            print("CVE gate disabled (ENABLE_CVE_POLICY_GATE=false); continuing.")
+            raise SystemExit(0)
+
+          if critical > max_critical or high > max_high:
+            print(
+              "CVE policy gate failed: "
+              f"critical={critical} (max={max_critical}), "
+              f"high={high} (max={max_high})"
+            )
+            raise SystemExit(1)
+
+          print("CVE policy gate passed.")
+          PY
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.component }}-${{ github.sha }}
           path: sbom-${{ matrix.component }}-${{ github.sha }}.spdx.json
+          retention-days: 30
+      - name: Upload vulnerability report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ matrix.component }}-${{ github.sha }}
+          path: trivy-${{ matrix.component }}-${{ github.sha }}.json
           retention-days: 30
       - name: Output image refs
         run: |

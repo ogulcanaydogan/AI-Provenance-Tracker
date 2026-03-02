@@ -55,6 +55,9 @@ Optional repository variables:
 - `SPARK_RUN_SMOKE`
 - `SPARK_ROLLBACK_ON_SMOKE_FAILURE`
 - `SPARK_VERIFY_SIGNATURES` (default recommended: `true`)
+- `ENABLE_CVE_POLICY_GATE` (optional strict mode for publish/verify workflows)
+- `CVE_MAX_CRITICAL` (default `0`)
+- `CVE_MAX_HIGH` (default `0`)
 
 Pinned image mode (recommended for reproducibility):
 
@@ -67,6 +70,7 @@ For Spark ARM64 hosts, publish multi-arch images first (`linux/amd64,linux/arm64
 verifies signatures (certificate identity = `publish-images.yml` on `main`) before deploy when
 `use_pinned_images=true` and `verify_signatures=true`.
 Deploy also verifies SBOM attestations (`spdxjson`) before rollout in pinned mode.
+Daily integrity checks run in `.github/workflows/verify-production-images.yml` against latest tags.
 
 This deploys:
 

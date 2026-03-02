@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-02-20 (evolution controls verified in production)
+Last updated: 2026-03-02 (evolution controls expanded)
 
 ## Overall
 
@@ -51,10 +51,12 @@ Last updated: 2026-02-20 (evolution controls verified in production)
 - GHCR publish pipeline now builds multi-arch images (`linux/amd64,linux/arm64`).
 - GHCR publish pipeline signs backend/worker images with keyless cosign.
 - GHCR publish pipeline emits SBOM artifacts and keyless SBOM attestations.
+- GHCR publish pipeline performs Trivy scans and supports configurable CVE policy gates.
 - Real production deploy executed on self-hosted runner with pinned images and smoke test success.
 - Publish -> deploy chaining is enabled (`.github/workflows/deploy-spark-after-publish.yml`) to auto-dispatch pinned Spark deploy for the same SHA.
 - Spark deploy verifies cosign signatures for pinned images before deploy (`verify_signatures=true`).
 - Spark deploy verifies SBOM attestations (`spdxjson`) before deploy in pinned mode.
+- Daily production-tag verification workflow is enabled (`.github/workflows/verify-production-images.yml`).
 - Cost governance automation is enabled (`.github/workflows/cost-governance.yml`).
 - SLO observability automation is enabled (`.github/workflows/slo-observability-report.yml`).
 - Benchmark pipelines now emit dataset health reports toward the 1k target.
@@ -81,10 +83,11 @@ Last updated: 2026-02-20 (evolution controls verified in production)
 2. Keep pinned deploys tied to commit SHA tags and recorded in release notes.
 3. Keep runner and token hygiene (periodic rotation, service health checks).
 4. Review cost and SLO reports weekly and resolve warning-level alerts.
+5. Periodically review vulnerability reports and tighten CVE thresholds when stable.
 
 ## Evolution Backlog (Priority Order)
 
 1. Evaluation growth: expand public benchmark dataset beyond 1k samples with per-domain balance targets.
 2. Observability depth: add runtime latency/error dashboards (beyond workflow success proxies).
-3. Supply-chain depth: add CVE policy gates and periodic production-tag verification jobs.
-4. Cost governance depth: add explicit monthly budget caps with escalation playbook.
+3. Cost governance depth: add explicit monthly budget caps with escalation playbook.
+4. Supply-chain depth: add release-attestation notes and package policy allow/deny lists.

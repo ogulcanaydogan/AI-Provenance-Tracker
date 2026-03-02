@@ -666,6 +666,12 @@ See:
 - `docs/COST_GOVERNANCE.md`
 - `docs/SLO_OBSERVABILITY.md`
 - `docs/SUPPLY_CHAIN_SECURITY.md`
+
+Daily production image integrity verification (signature + SBOM attestation + vulnerability report):
+
+```bash
+gh workflow run verify-production-images.yml
+```
 - `docs/TROUBLESHOOTING.md`
 - `docs/PERFORMANCE_TUNING.md`
 - `docs/DATA_RETENTION.md`

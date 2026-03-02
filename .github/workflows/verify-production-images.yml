@@ -1,0 +1,189 @@
+name: Verify Production Images
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 7 * * *"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ENABLE_CVE_POLICY_GATE: ${{ vars.ENABLE_CVE_POLICY_GATE || 'false' }}
+      CVE_MAX_CRITICAL: ${{ vars.CVE_MAX_CRITICAL || '0' }}
+      CVE_MAX_HIGH: ${{ vars.CVE_MAX_HIGH || '0' }}
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Verify signatures and SBOM attestations (latest tags)
+        env:
+          API_IMAGE: ghcr.io/${{ github.repository_owner }}/provenance-api:latest
+          WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/provenance-worker:latest
+          COSIGN_CERT_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish-images.yml@refs/heads/main
+          COSIGN_CERT_ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${API_IMAGE}"
+          cosign verify \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${WORKER_IMAGE}"
+
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${API_IMAGE}" > api-latest-attestations.jsonl
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "${COSIGN_CERT_IDENTITY}" \
+            --certificate-oidc-issuer "${COSIGN_CERT_ISSUER}" \
+            "${WORKER_IMAGE}" > worker-latest-attestations.jsonl
+
+          test -s api-latest-attestations.jsonl
+          test -s worker-latest-attestations.jsonl
+
+      - name: Scan latest images for vulnerabilities (Trivy JSON)
+        env:
+          API_IMAGE: ghcr.io/${{ github.repository_owner }}/provenance-api:latest
+          WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/provenance-worker:latest
+        run: |
+          set -euo pipefail
+          docker run --rm --pull=always ghcr.io/aquasecurity/trivy:latest image \
+            --ignore-unfixed \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output trivy-api-latest.json \
+            "${API_IMAGE}"
+          docker run --rm --pull=always ghcr.io/aquasecurity/trivy:latest image \
+            --ignore-unfixed \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output trivy-worker-latest.json \
+            "${WORKER_IMAGE}"
+
+      - name: Evaluate CVE policy
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          gate_enabled = os.getenv("ENABLE_CVE_POLICY_GATE", "false").strip().lower() in {"1", "true", "yes", "on"}
+          max_critical = int(os.getenv("CVE_MAX_CRITICAL", "0"))
+          max_high = int(os.getenv("CVE_MAX_HIGH", "0"))
+
+          def count(path: str) -> tuple[int, int]:
+            payload = json.loads(open(path, encoding="utf-8").read())
+            critical = 0
+            high = 0
+            for result in payload.get("Results", []):
+              for vuln in (result.get("Vulnerabilities") or []):
+                sev = str(vuln.get("Severity", "")).upper()
+                if sev == "CRITICAL":
+                  critical += 1
+                elif sev == "HIGH":
+                  high += 1
+            return critical, high
+
+          api_critical, api_high = count("trivy-api-latest.json")
+          worker_critical, worker_high = count("trivy-worker-latest.json")
+          total_critical = api_critical + worker_critical
+          total_high = api_high + worker_high
+
+          print(
+            "Latest image vulnerability summary: "
+            f"api(critical={api_critical}, high={api_high}) "
+            f"worker(critical={worker_critical}, high={worker_high}) "
+            f"total(critical={total_critical}, high={total_high})"
+          )
+
+          with open("vuln-summary.json", "w", encoding="utf-8") as fh:
+            json.dump(
+              {
+                "api": {"critical": api_critical, "high": api_high},
+                "worker": {"critical": worker_critical, "high": worker_high},
+                "total": {"critical": total_critical, "high": total_high},
+                "policy": {
+                  "enabled": gate_enabled,
+                  "max_critical": max_critical,
+                  "max_high": max_high,
+                },
+              },
+              fh,
+              ensure_ascii=False,
+              indent=2,
+            )
+
+          if not gate_enabled:
+            print("CVE gate disabled; report-only mode.")
+            raise SystemExit(0)
+
+          if total_critical > max_critical or total_high > max_high:
+            print(
+              "CVE policy gate failed: "
+              f"critical={total_critical} (max={max_critical}), "
+              f"high={total_high} (max={max_high})"
+            )
+            raise SystemExit(1)
+
+          print("CVE policy gate passed.")
+          PY
+
+      - name: Upload verification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-production-images-artifacts
+          path: |
+            api-latest-attestations.jsonl
+            worker-latest-attestations.jsonl
+            trivy-api-latest.json
+            trivy-worker-latest.json
+            vuln-summary.json
+          retention-days: 30
+
+      - name: Write step summary
+        if: always()
+        run: |
+          {
+            echo "## Verify Production Images"
+            echo
+            echo "- Signature verification: \`completed\`"
+            echo "- SBOM attestation verification: \`completed\`"
+            echo "- CVE policy gate enabled: \`${ENABLE_CVE_POLICY_GATE}\`"
+            if [ -f vuln-summary.json ]; then
+              echo "- Vulnerability summary:"
+              echo '```json'
+              cat vuln-summary.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Send failure alert webhook
+        if: ${{ always() && failure() && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        run: |
+          set -euo pipefail
+          payload="$(cat <<JSON
+          {
+            "event": "verify_production_images_failed",
+            "repository": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
+          JSON
+          )"
+          curl -fsS -X POST "${OPS_ALERT_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            --data "${payload}"
