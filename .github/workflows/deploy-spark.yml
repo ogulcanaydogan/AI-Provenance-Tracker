@@ -67,6 +67,14 @@ on:
           - "github-hosted"
           - "self-hosted"
         default: "github-hosted"
+      cost_override:
+        description: "Run deploy even when cost policy is in block state"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
   push:
     branches: [main]
     paths:
@@ -86,7 +94,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cost-precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      allow_run: ${{ steps.gate.outputs.allow_run }}
+      status: ${{ steps.gate.outputs.status }}
+      override_used: ${{ steps.gate.outputs.override_used }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Evaluate cost policy gate
+        id: gate
+        run: |
+          set -euo pipefail
+          mkdir -p ops/reports
+          python3 scripts/cost_governance_snapshot.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --window-days 30 \
+            --gh-token "${GH_TOKEN}" \
+            --vercel-token "${VERCEL_TOKEN}" \
+            --vercel-project-id "${VERCEL_PROJECT_ID}" \
+            --vercel-team-id "${VERCEL_TEAM_ID}" \
+            --policy-file config/cost_policy.yaml \
+            --workflow-name "${GITHUB_WORKFLOW}" \
+            --output-json ops/reports/deploy_cost_gate.json \
+            --output-md ops/reports/deploy_cost_gate.md \
+            --fail-on-alert-level none
+
+          status="$(python3 - <<'PY'
+          import json
+          payload = json.loads(open('ops/reports/deploy_cost_gate.json', encoding='utf-8').read())
+          print(payload.get('status', 'ok'))
+          PY
+          )"
+
+          override="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.cost_override || 'false' }}" = "true" ]; then
+            override="true"
+          fi
+
+          allow_run="true"
+          if [ "${status}" = "block" ] && [ "${override}" != "true" ]; then
+            allow_run="false"
+            echo "::warning::Cost policy is block. Deploy job is skipped. Re-dispatch with cost_override=true if operationally required."
+          fi
+
+          {
+            echo "status=${status}"
+            echo "override_used=${override}"
+            echo "allow_run=${allow_run}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload cost gate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-spark-cost-gate
+          path: ops/reports/deploy_cost_gate.*
+          retention-days: 14
+
   deploy:
+    needs: cost-precheck
+    if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
     runs-on: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 35
     env:
@@ -474,3 +546,14 @@ jobs:
               echo "- Smoke base URL: \`${{ steps.resolve.outputs.smoke_base_url }}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-skipped:
+    needs: cost-precheck
+    if: ${{ needs.cost-precheck.outputs.allow_run != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report deploy skip reason
+        run: |
+          echo "Deploy Spark Runtime skipped by cost policy gate." >> "$GITHUB_STEP_SUMMARY"
+          echo "- status: ${{ needs.cost-precheck.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- override_used: ${{ needs.cost-precheck.outputs.override_used }}" >> "$GITHUB_STEP_SUMMARY"

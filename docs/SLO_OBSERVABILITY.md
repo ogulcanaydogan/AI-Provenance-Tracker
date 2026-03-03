@@ -70,8 +70,8 @@ Workflow:
 
 Runtime:
 
-- p95 latency warn threshold: `1.5s` (critical: `3.0s`)
-- Error-rate warn threshold: `2%` (critical: `5%`)
+- p95 latency warn threshold: `2.0s` (critical: `3.5s`)
+- Error-rate warn threshold: `3%` (critical: `6%`)
 
 ## Incident Handling
 

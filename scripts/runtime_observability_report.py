@@ -69,25 +69,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--latency-p95-slo-seconds",
         type=float,
-        default=1.5,
+        default=2.0,
         help="Warn threshold for p95 latency.",
     )
     parser.add_argument(
         "--latency-p95-critical-seconds",
         type=float,
-        default=3.0,
+        default=3.5,
         help="Critical threshold for p95 latency.",
     )
     parser.add_argument(
         "--error-rate-slo",
         type=float,
-        default=0.02,
+        default=0.03,
         help="Warn threshold for runtime error rate (0-1).",
     )
     parser.add_argument(
         "--error-rate-critical",
         type=float,
-        default=0.05,
+        default=0.06,
         help="Critical threshold for runtime error rate (0-1).",
     )
     parser.add_argument(

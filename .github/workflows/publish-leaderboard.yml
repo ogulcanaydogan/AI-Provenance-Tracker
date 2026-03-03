@@ -77,7 +77,13 @@ jobs:
             --output-json benchmark/results/latest/dataset_health.json \
             --output-md benchmark/results/latest/dataset_health.md \
             --target-total 1000 \
-            --warn-total 500
+            --warn-total 850 \
+            --task-target ai_vs_human_detection=450 \
+            --task-target source_attribution=200 \
+            --task-target tamper_detection=250 \
+            --task-target audio_ai_vs_human_detection=50 \
+            --task-target video_ai_vs_human_detection=50 \
+            --enforce
       - name: Stop backend
         if: always()
         run: |

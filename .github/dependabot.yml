@@ -9,20 +9,16 @@ updates:
       day: "monday"
       time: "05:00"
       timezone: "Europe/Istanbul"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     rebase-strategy: "disabled"
     groups:
-      pip-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      pip-major:
+      pip-weekly-rollup:
         patterns:
           - "*"
         update-types:
           - "major"
+          - "minor"
+          - "patch"
     labels:
       - "dependencies"
       - "python"
@@ -38,20 +34,16 @@ updates:
       day: "monday"
       time: "05:15"
       timezone: "Europe/Istanbul"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     rebase-strategy: "disabled"
     groups:
-      npm-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      npm-major:
+      npm-weekly-rollup:
         patterns:
           - "*"
         update-types:
           - "major"
+          - "minor"
+          - "patch"
     labels:
       - "dependencies"
       - "javascript"
@@ -67,20 +59,16 @@ updates:
       day: "monday"
       time: "05:30"
       timezone: "Europe/Istanbul"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     rebase-strategy: "disabled"
     groups:
-      actions-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      actions-major:
+      actions-weekly-rollup:
         patterns:
           - "*"
         update-types:
           - "major"
+          - "minor"
+          - "patch"
     labels:
       - "dependencies"
       - "ci"

@@ -15,6 +15,24 @@ from pathlib import Path
 from typing import Any
 
 
+DEFAULT_POLICY: dict[str, Any] = {
+    "policy_version": "2026-03-03.hybrid-v1",
+    "monthly_cap_usd": 50.0,
+    "warn_threshold_pct": 80.0,
+    "block_threshold_pct": 95.0,
+    "override_label": "cost-override-approved",
+    "non_essential_workflows": [
+        "Public Provenance Benchmark",
+        "Publish Service Images",
+        "Deploy Spark Runtime",
+    ],
+    "cost_model": {
+        "github_actions_usd_per_minute": 0.008,
+        "vercel_usd_per_deployment": 0.02,
+    },
+}
+
+
 @dataclass(slots=True)
 class Alert:
     level: str
@@ -51,6 +69,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warn-failure-rate", type=float, default=0.20)
     parser.add_argument("--warn-vercel-deployments", type=int, default=120)
     parser.add_argument("--critical-vercel-deployments", type=int, default=200)
+    parser.add_argument(
+        "--policy-file",
+        default="config/cost_policy.yaml",
+        help="Cost policy file (YAML/JSON-compatible).",
+    )
+    parser.add_argument(
+        "--workflow-name",
+        default=os.getenv("GITHUB_WORKFLOW", ""),
+        help="Current workflow name used for non-essential workflow gating.",
+    )
     parser.add_argument(
         "--output-json",
         default="ops/reports/cost_governance_snapshot.json",
@@ -138,7 +166,7 @@ def _duration_minutes(run: dict[str, Any]) -> float:
 
 
 def _summarize_github(runs: list[dict[str, Any]]) -> dict[str, Any]:
-    totals = {
+    totals: dict[str, Any] = {
         "total_runs": len(runs),
         "success_runs": 0,
         "failed_runs": 0,
@@ -273,6 +301,139 @@ def _fetch_vercel_summary(
     }
 
 
+def _coerce_yaml_scalar(raw: str) -> Any:
+    value = raw.strip()
+    lowered = value.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"null", "none", "~"}:
+        return None
+    if value.startswith('"') and value.endswith('"'):
+        return value[1:-1]
+    if value.startswith("'") and value.endswith("'"):
+        return value[1:-1]
+    try:
+        if "." in value:
+            return float(value)
+        return int(value)
+    except ValueError:
+        return value
+
+
+def _parse_simple_yaml(text: str) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    current_key: str | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            if current_key is None:
+                continue
+            data.setdefault(current_key, [])
+            if isinstance(data[current_key], list):
+                data[current_key].append(_coerce_yaml_scalar(stripped[2:]))
+            continue
+        if ":" not in stripped:
+            continue
+        key, raw_value = stripped.split(":", 1)
+        key = key.strip()
+        raw_value = raw_value.strip()
+        if not raw_value:
+            data[key] = []
+            current_key = key
+            continue
+        data[key] = _coerce_yaml_scalar(raw_value)
+        current_key = key
+    return data
+
+
+def _load_policy(path: Path) -> dict[str, Any]:
+    policy: dict[str, Any] = json.loads(json.dumps(DEFAULT_POLICY))
+    if not path.exists():
+        policy["policy_source"] = "default"
+        return policy
+
+    text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        policy["policy_source"] = f"{path} (empty -> default)"
+        return policy
+
+    parsed: dict[str, Any]
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = _parse_simple_yaml(text)
+
+    if not isinstance(parsed, dict):
+        policy["policy_source"] = f"{path} (invalid -> default)"
+        return policy
+
+    for key in (
+        "policy_version",
+        "monthly_cap_usd",
+        "warn_threshold_pct",
+        "block_threshold_pct",
+        "override_label",
+        "non_essential_workflows",
+    ):
+        if key in parsed:
+            policy[key] = parsed[key]
+
+    if isinstance(parsed.get("cost_model"), dict):
+        policy["cost_model"].update(parsed["cost_model"])
+
+    policy["policy_source"] = str(path)
+    return policy
+
+
+def _evaluate_budget_status(
+    github_summary: dict[str, Any],
+    vercel_summary: dict[str, Any],
+    policy: dict[str, Any],
+    workflow_name: str,
+) -> dict[str, Any]:
+    gh_rate = float(policy.get("cost_model", {}).get("github_actions_usd_per_minute", 0.008))
+    vercel_rate = float(policy.get("cost_model", {}).get("vercel_usd_per_deployment", 0.02))
+
+    runtime_minutes = float(github_summary.get("total_runtime_minutes") or 0.0)
+    deployments = int(vercel_summary.get("total_deployments") or 0) if vercel_summary.get("status") == "ok" else 0
+
+    estimated = round((runtime_minutes * gh_rate) + (deployments * vercel_rate), 4)
+    cap = float(policy.get("monthly_cap_usd") or 0.0)
+    utilization_pct = round((estimated / cap) * 100.0, 2) if cap > 0 else 0.0
+
+    warn_pct = float(policy.get("warn_threshold_pct") or 80.0)
+    block_pct = float(policy.get("block_threshold_pct") or 95.0)
+    if utilization_pct >= block_pct:
+        status = "block"
+    elif utilization_pct >= warn_pct:
+        status = "warn"
+    else:
+        status = "ok"
+
+    non_essential = {
+        str(item).strip()
+        for item in (policy.get("non_essential_workflows") or [])
+        if str(item).strip()
+    }
+    is_non_essential_workflow = workflow_name.strip() in non_essential if workflow_name else False
+    non_essential_allowed = not (status == "block" and is_non_essential_workflow)
+
+    return {
+        "status": status,
+        "remaining_budget": round(max(cap - estimated, 0.0), 4),
+        "estimated_spend_usd": estimated,
+        "monthly_cap_usd": cap,
+        "budget_utilization_pct": utilization_pct,
+        "policy_version": str(policy.get("policy_version") or "unknown"),
+        "workflow_name": workflow_name,
+        "is_non_essential_workflow": is_non_essential_workflow,
+        "non_essential_allowed": non_essential_allowed,
+    }
+
+
 def _level_rank(level: str) -> int:
     mapping = {"none": 0, "warn": 1, "critical": 2}
     return mapping.get(level, 0)
@@ -282,6 +443,7 @@ def _build_alerts(
     github_summary: dict[str, Any],
     vercel_summary: dict[str, Any],
     args: argparse.Namespace,
+    budget_state: dict[str, Any],
 ) -> list[Alert]:
     alerts: list[Alert] = []
 
@@ -346,6 +508,30 @@ def _build_alerts(
                     ),
                 )
             )
+
+    if budget_state["status"] == "warn":
+        alerts.append(
+            Alert(
+                level="warn",
+                source="cost_policy",
+                message=(
+                    f"Budget utilization is {budget_state['budget_utilization_pct']:.2f}% "
+                    f"(warn threshold reached)."
+                ),
+            )
+        )
+    elif budget_state["status"] == "block":
+        alerts.append(
+            Alert(
+                level="critical",
+                source="cost_policy",
+                message=(
+                    f"Budget utilization is {budget_state['budget_utilization_pct']:.2f}% "
+                    "(block threshold reached)."
+                ),
+            )
+        )
+
     return alerts
 
 
@@ -359,6 +545,8 @@ def _build_markdown(
     window_days: int,
     github_summary: dict[str, Any],
     vercel_summary: dict[str, Any],
+    budget_state: dict[str, Any],
+    policy: dict[str, Any],
     alerts: list[Alert],
 ) -> str:
     lines = [
@@ -367,6 +555,19 @@ def _build_markdown(
         f"- Repository: `{repo}`",
         f"- Generated: `{generated_at}`",
         f"- Window: `{window_days} days`",
+        "",
+        "## Cost Policy",
+        "",
+        f"- Policy version: `{budget_state['policy_version']}`",
+        f"- Policy source: `{policy.get('policy_source', 'default')}`",
+        f"- Monthly cap (USD): `{budget_state['monthly_cap_usd']}`",
+        f"- Estimated spend (USD): `{budget_state['estimated_spend_usd']}`",
+        f"- Remaining budget (USD): `{budget_state['remaining_budget']}`",
+        f"- Utilization: `{budget_state['budget_utilization_pct']:.2f}%`",
+        f"- Status: `{budget_state['status']}`",
+        f"- Workflow under evaluation: `{budget_state['workflow_name'] or 'n/a'}`",
+        f"- Non-essential workflow: `{budget_state['is_non_essential_workflow']}`",
+        f"- Non-essential allowed: `{budget_state['non_essential_allowed']}`",
         "",
         "## GitHub Actions",
         "",
@@ -422,6 +623,9 @@ def run() -> int:
     if not args.gh_token:
         raise RuntimeError("Missing GitHub token. Set --gh-token or GITHUB_TOKEN.")
 
+    policy_path = Path(args.policy_file).expanduser().resolve()
+    policy = _load_policy(policy_path)
+
     github_runs = _fetch_github_runs(owner, repo, args.gh_token, since)
     github_summary = _summarize_github(github_runs)
     vercel_summary = _fetch_vercel_summary(
@@ -431,12 +635,24 @@ def run() -> int:
         since=since,
     )
 
-    alerts = _build_alerts(github_summary, vercel_summary, args)
+    budget_state = _evaluate_budget_status(
+        github_summary=github_summary,
+        vercel_summary=vercel_summary,
+        policy=policy,
+        workflow_name=args.workflow_name,
+    )
+
+    alerts = _build_alerts(github_summary, vercel_summary, args, budget_state)
 
     snapshot = {
         "generated_at": generated_at,
         "repo": args.repo,
         "window_days": args.window_days,
+        "status": budget_state["status"],
+        "remaining_budget": budget_state["remaining_budget"],
+        "policy_version": budget_state["policy_version"],
+        "policy": policy,
+        "budget": budget_state,
         "github_actions": github_summary,
         "vercel": vercel_summary,
         "thresholds": {
@@ -462,6 +678,8 @@ def run() -> int:
             window_days=args.window_days,
             github_summary=github_summary,
             vercel_summary=vercel_summary,
+            budget_state=budget_state,
+            policy=policy,
             alerts=alerts,
         ),
         encoding="utf-8",

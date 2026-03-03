@@ -1,0 +1,11 @@
+{
+  "policy_version": "2026-03-03.moderate-v1",
+  "allowed_npm_registry_hosts": [
+    "registry.npmjs.org"
+  ],
+  "allowed_pip_hosts": [
+    "pypi.org",
+    "files.pythonhosted.org"
+  ],
+  "blocked_package_patterns": []
+}

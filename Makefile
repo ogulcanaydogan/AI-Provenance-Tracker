@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance slo-report runtime-observability build-text-dataset
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance package-policy slo-report runtime-observability build-text-dataset
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -31,6 +31,7 @@ help:
 	@echo "  make benchmark-public Run public provenance benchmark + leaderboard artifacts"
 	@echo "  make benchmark-health Dataset size/coverage tracker toward 1k target"
 	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
+	@echo "  make package-policy Enforce dependency source allow/deny policy"
 	@echo "  make slo-report      Generate observability SLO report from workflow history"
 	@echo "  make runtime-observability Generate runtime latency/error report from /metrics"
 	@echo "  make build-text-dataset Build expanded labeled text corpus from benchmark samples"
@@ -91,10 +92,13 @@ benchmark-public:
 	bash scripts/run_benchmark_public.sh
 
 benchmark-health:
-	python3 benchmark/eval/dataset_health.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-json "$${OUTPUT_JSON:-benchmark/results/latest/dataset_health.json}" --output-md "$${OUTPUT_MD:-benchmark/results/latest/dataset_health.md}" --target-total "$${TARGET_TOTAL:-1000}" --warn-total "$${WARN_TOTAL:-500}" $${ENFORCE:+--enforce}
+	python3 benchmark/eval/dataset_health.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-json "$${OUTPUT_JSON:-benchmark/results/latest/dataset_health.json}" --output-md "$${OUTPUT_MD:-benchmark/results/latest/dataset_health.md}" --target-total "$${TARGET_TOTAL:-1000}" --warn-total "$${WARN_TOTAL:-850}" --task-target "ai_vs_human_detection=$${TARGET_DETECTION:-450}" --task-target "source_attribution=$${TARGET_ATTRIBUTION:-200}" --task-target "tamper_detection=$${TARGET_TAMPER:-250}" --task-target "audio_ai_vs_human_detection=$${TARGET_AUDIO:-50}" --task-target "video_ai_vs_human_detection=$${TARGET_VIDEO:-50}" $${ENFORCE:+--enforce}
 
 cost-governance:
-	python3 scripts/cost_governance_snapshot.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-30}" --output-json "$${OUTPUT_JSON:-ops/reports/cost_governance_snapshot.json}" --output-md "$${OUTPUT_MD:-ops/reports/cost_governance_snapshot.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --vercel-token "$${VERCEL_TOKEN:-}" --vercel-project-id "$${VERCEL_PROJECT_ID:-}" --vercel-team-id "$${VERCEL_TEAM_ID:-}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
+	python3 scripts/cost_governance_snapshot.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-30}" --output-json "$${OUTPUT_JSON:-ops/reports/cost_governance_snapshot.json}" --output-md "$${OUTPUT_MD:-ops/reports/cost_governance_snapshot.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --vercel-token "$${VERCEL_TOKEN:-}" --vercel-project-id "$${VERCEL_PROJECT_ID:-}" --vercel-team-id "$${VERCEL_TEAM_ID:-}" --policy-file "$${POLICY_FILE:-config/cost_policy.yaml}" --workflow-name "$${WORKFLOW_NAME:-$${GITHUB_WORKFLOW:-local-cli}}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
+
+package-policy:
+	python3 scripts/check_package_policy.py --policy-file "$${POLICY_FILE:-config/package_policy.yaml}" --npm-lock "$${NPM_LOCK:-frontend/package-lock.json}" --requirements "$${REQUIREMENTS_FILE:-backend/requirements.txt}" --output-json "$${OUTPUT_JSON:-ops/reports/package_policy_report.json}" --output-md "$${OUTPUT_MD:-ops/reports/package_policy_report.md}"
 
 slo-report:
 	python3 scripts/slo_observability_report.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-7}" --output-json "$${OUTPUT_JSON:-ops/reports/slo_observability_report.json}" --output-md "$${OUTPUT_MD:-ops/reports/slo_observability_report.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"

@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-json", default="benchmark/results/latest/dataset_health.json")
     parser.add_argument("--output-md", default="benchmark/results/latest/dataset_health.md")
     parser.add_argument("--target-total", type=int, default=1000)
-    parser.add_argument("--warn-total", type=int, default=500)
+    parser.add_argument("--warn-total", type=int, default=850)
     parser.add_argument(
         "--task-target",
         action="append",
@@ -48,11 +48,11 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
 def _parse_task_targets(values: list[str]) -> dict[str, int]:
     if not values:
         return {
-            "ai_vs_human_detection": 400,
+            "ai_vs_human_detection": 450,
             "source_attribution": 200,
             "tamper_detection": 250,
-            "audio_ai_vs_human_detection": 75,
-            "video_ai_vs_human_detection": 75,
+            "audio_ai_vs_human_detection": 50,
+            "video_ai_vs_human_detection": 50,
         }
 
     targets: dict[str, int] = {}

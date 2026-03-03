@@ -41,6 +41,7 @@ jobs:
                 run_smoke: "true",
                 rollback_on_smoke_failure: "true",
                 runner_type: "self-hosted",
+                cost_override: "false",
               },
             });
 

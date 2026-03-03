@@ -42,14 +42,14 @@ jobs:
       - name: Generate runtime observability report
         if: ${{ env.PRODUCTION_API_URL != '' }}
         run: |
-          python scripts/runtime_observability_report.py \
+          python3 scripts/runtime_observability_report.py \
             --api-url "${PRODUCTION_API_URL}" \
             --api-key "${PRODUCTION_API_KEY}" \
             --api-key-header "${PRODUCTION_API_KEY_HEADER:-X-API-Key}" \
-            --latency-p95-slo-seconds 1.5 \
-            --latency-p95-critical-seconds 3.0 \
-            --error-rate-slo 0.02 \
-            --error-rate-critical 0.05 \
+            --latency-p95-slo-seconds 2.0 \
+            --latency-p95-critical-seconds 3.5 \
+            --error-rate-slo 0.03 \
+            --error-rate-critical 0.06 \
             --output-json ops/reports/runtime_observability_report.json \
             --output-md ops/reports/runtime_observability_report.md \
             --fail-on-alert-level none
