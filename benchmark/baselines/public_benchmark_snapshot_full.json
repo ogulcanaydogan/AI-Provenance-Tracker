@@ -1,0 +1,37 @@
+{
+  "snapshot_version": "2026-03-03-v2.0-full",
+  "source_results": "benchmark/results/latest/benchmark_results.json",
+  "notes": "Full profile regression baseline for nightly benchmark quality checks.",
+  "metrics": [
+    {
+      "path": "tasks.ai_vs_human_detection.f1",
+      "baseline": 0.64,
+      "max_drop": 0.1
+    },
+    {
+      "path": "tasks.ai_vs_human_detection.roc_auc",
+      "baseline": 0.9,
+      "max_drop": 0.08
+    },
+    {
+      "path": "tasks.source_attribution.accuracy",
+      "baseline": 0.62,
+      "max_drop": 0.1
+    },
+    {
+      "path": "tasks.tamper_detection.robustness_score",
+      "baseline": 0.85,
+      "max_drop": 0.08
+    },
+    {
+      "path": "tasks.audio_ai_vs_human_detection.f1",
+      "baseline": 0.74,
+      "max_drop": 0.12
+    },
+    {
+      "path": "tasks.video_ai_vs_human_detection.f1",
+      "baseline": 0.74,
+      "max_drop": 0.12
+    }
+  ]
+}

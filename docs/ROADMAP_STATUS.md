@@ -1,12 +1,13 @@
 # Roadmap Status
 
-Last updated: 2026-03-03 (closure sprint execution complete)
+Last updated: 2026-03-03 (Benchmark 2.0 sprint wiring + dataset expansion)
 
 ## Overall
 
 - Product roadmap in `README.md` is feature-complete (`20/20` checked).
 - Credibility-first sprint objectives are implemented and extended with closure hardening.
 - Operational rollout remains completed on Spark (self-hosted path + smoke evidence).
+- Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 
 ## Baseline Lock
 
@@ -24,6 +25,37 @@ Last updated: 2026-03-03 (closure sprint execution complete)
   - audio (experimental): 50
   - video (experimental): 50
 - Dataset health gate now enforces this target set in benchmark CI.
+
+## Evolution Track Status (Benchmark 2.0)
+
+### 1) Dataset scale-up (1000 -> 1500)
+- Completed in dataset files with balanced growth:
+  - detection: 675
+  - source attribution: 300
+  - tamper robustness: 375
+  - audio (experimental): 75
+  - video (experimental): 75
+- Optional metadata fields added on new rows:
+  - `data_origin`
+  - `generator_id`
+  - `license_ref`
+
+### 2) PR-lite + Nightly full benchmark profiles
+- Added profile configs:
+  - `benchmark/config/benchmark_profiles.yaml`
+  - `benchmark/config/benchmark_targets.yaml`
+- Benchmark runner now supports:
+  - `--profile smoke|full`
+  - `--profiles-config <path>`
+- Dataset health now supports:
+  - `--targets-config <path>`
+  - `--target-profile smoke_v2|full_v2`
+- Workflow routing:
+  - PR/push main => smoke profile
+  - nightly schedule => full profile
+- Baselines split:
+  - `benchmark/baselines/public_benchmark_snapshot_smoke.json`
+  - `benchmark/baselines/public_benchmark_snapshot_full.json`
 
 ### 2) Hybrid cost governance
 - `config/cost_policy.yaml` added as policy source of truth.
@@ -74,6 +106,8 @@ Last updated: 2026-03-03 (closure sprint execution complete)
 
 ## Remaining Blockers
 
-- None for roadmap closure scope.
-- Operational deploy completion is verified with pinned images + self-hosted runner + smoke pass.
-- Next stage is evolution track (larger benchmark diversity, stricter supply-chain policy, deeper runtime analytics).
+- No blocker for roadmap closure scope.
+- For Benchmark 2.0 acceptance closure, next required evidence:
+  - successful PR smoke run with new profile config
+  - successful nightly full run with 1500 target enforcement
+  - baseline tuning if nightly regression thresholds are too strict

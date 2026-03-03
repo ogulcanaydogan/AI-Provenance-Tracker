@@ -23,8 +23,18 @@ Optional fields:
 - `source_model_family` (attribution task)
 - `predicted_model_family_baseline` (heuristic attribution baseline)
 
+## Profiles (Benchmark 2.0)
+
+- `smoke` profile (PR-lite): fast regression gate, capped subset (~260 samples)
+- `full` profile (nightly): full quality run over 1500 samples
+- Audio/video metrics remain **experimental** in both profiles
+
+Config files:
+- `benchmark/config/benchmark_profiles.yaml`
+- `benchmark/config/benchmark_targets.yaml`
+
 ## Run locally (single command)
-`make benchmark-public` now auto-starts a local backend (`127.0.0.1:8000`) when needed:
+`make benchmark-public` runs the smoke profile and auto-starts a local backend (`127.0.0.1:8000`) when needed:
 
 ```bash
 make benchmark-public
@@ -33,6 +43,10 @@ make benchmark-public
 Useful overrides:
 
 ```bash
+# Explicit profile selection
+make benchmark-public-smoke
+make benchmark-public-full
+
 # Use an already-running remote backend
 BACKEND_URL=https://your-api.example.com AUTO_START_BACKEND=false make benchmark-public
 
@@ -47,10 +61,12 @@ python benchmark/eval/run_public_benchmark.py \
   --datasets-dir benchmark/datasets \
   --output-dir benchmark/results/latest \
   --leaderboard-output benchmark/leaderboard/leaderboard.json \
-  --model-id baseline-heuristic-v1.0-live \
+  --model-id baseline-heuristic-v2.0-live \
   --decision-threshold 0.45 \
   --backend-url http://127.0.0.1:8000 \
-  --live-mode true
+  --live-mode true \
+  --profile smoke \
+  --profiles-config benchmark/config/benchmark_profiles.yaml
 ```
 
 ## Outputs
@@ -62,18 +78,26 @@ python benchmark/eval/run_public_benchmark.py \
 - `benchmark/leaderboard/leaderboard.json`
 - `benchmark/results/latest/dataset_health.json`
 - `benchmark/results/latest/dataset_health.md`
+- `benchmark/baselines/public_benchmark_snapshot_smoke.json`
+- `benchmark/baselines/public_benchmark_snapshot_full.json`
 
 Open `benchmark/leaderboard/index.html` to view leaderboard results.
 
 ## Publish as public page
 - Workflow: `.github/workflows/publish-leaderboard.yml`
-- It rebuilds benchmark artifacts, checks regression gates, and publishes `benchmark/leaderboard` to GitHub Pages.
+- It runs nightly (and on manual dispatch), rebuilds full-profile benchmark artifacts, checks regression gates, and publishes `benchmark/leaderboard` to GitHub Pages.
 - `scored_samples.jsonl` is uploaded as a build artifact for reproducibility.
 
 ## Dataset growth gate
-- CI benchmark workflow enforces the 1k corpus objective with task thresholds:
-  - detection: 450
-  - attribution: 200
-  - tamper: 250
-  - audio (experimental): 50
-  - video (experimental): 50
+- PR/push smoke gate enforces `smoke_v2` targets:
+  - detection: 120
+  - attribution: 50
+  - tamper: 60
+  - audio (experimental): 15
+  - video (experimental): 15
+- Nightly full gate enforces `full_v2` targets:
+  - detection: 675
+  - attribution: 300
+  - tamper: 375
+  - audio (experimental): 75
+  - video (experimental): 75
