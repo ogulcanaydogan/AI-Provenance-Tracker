@@ -102,6 +102,12 @@ gh workflow run deploy-spark.yml \
   -f cost_override=false
 ```
 
+Latest validated production-style run:
+
+- Commit SHA: `5420984dea938b57f349fa9e8408ec581828e966`
+- Run: [Deploy Spark Runtime #22615452126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615452126)
+- Result: `Deploy to Spark` executed (non-skipped) and smoke test passed.
+
 Cost gate note:
 
 - `Deploy Spark Runtime` is subject to cost-policy block mode.

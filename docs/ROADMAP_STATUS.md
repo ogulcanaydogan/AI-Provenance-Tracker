@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-03 (closure sprint hardening)
+Last updated: 2026-03-03 (closure sprint execution complete)
 
 ## Overall
 
@@ -64,13 +64,16 @@ Last updated: 2026-03-03 (closure sprint hardening)
 
 ## Operational Evidence (Latest Recorded)
 
-- Multi-arch publish + SBOM+attestation (success): [22226784059](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226784059)
-- Chained deploy dispatch (success): [22227033913](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227033913)
-- Deploy Spark Runtime (success): [22227037725](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227037725)
-- Cost governance run (success): [22226797967](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797967)
-- SLO observability run (success): [22226797959](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797959)
+- Merge commit SHA (closure sprint): `5420984dea938b57f349fa9e8408ec581828e966`
+- CI on `main` (success): [22615177023](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615177023)
+- CodeQL on `main` (success): [22615177014](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615177014)
+- Public benchmark on `main` (success): [22615176966](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615176966)
+- Publish service images on `main` (success): [22615176974](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615176974)
+- Manual Deploy Spark Runtime (success): [22615452126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615452126)
+- Manual deploy verification: `Deploy to Spark` step executed (non-skipped) and smoke test passed in run `22615452126`.
 
 ## Remaining Blockers
 
 - None for roadmap closure scope.
+- Operational deploy completion is verified with pinned images + self-hosted runner + smoke pass.
 - Next stage is evolution track (larger benchmark diversity, stricter supply-chain policy, deeper runtime analytics).
