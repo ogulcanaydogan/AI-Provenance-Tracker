@@ -53,25 +53,14 @@ jobs:
             --output-md benchmark/results/ci/cost_gate.md \
             --fail-on-alert-level none
 
-          status="$(python3 - <<'PY'
-          import json
-          payload = json.loads(open("benchmark/results/ci/cost_gate.json", encoding="utf-8").read())
-          print(payload.get("status", "ok"))
-          PY
-          )"
+          status="$(python3 -c 'import json; payload=json.loads(open("benchmark/results/ci/cost_gate.json", encoding="utf-8").read()); print(payload.get("status","ok"))')"
 
           override="false"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.cost_override || 'false' }}" = "true" ]; then
             override="true"
           fi
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            has_label="$(python3 - <<'PY'
-            import json, os
-            payload = json.loads(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8").read())
-            labels = [item.get("name", "") for item in payload.get("pull_request", {}).get("labels", [])]
-            print("true" if "cost-override-approved" in labels else "false")
-            PY
-            )"
+            has_label="$(python3 -c 'import json, os; payload=json.loads(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8").read()); labels=[item.get("name","") for item in payload.get("pull_request",{}).get("labels",[])]; print("true" if "cost-override-approved" in labels else "false")')"
             if [ "${has_label}" = "true" ]; then
               override="true"
             fi
