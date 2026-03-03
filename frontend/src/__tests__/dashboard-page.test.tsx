@@ -15,7 +15,6 @@ import * as api from "@/lib/api";
 const mockGetDashboard = vi.mocked(api.getDashboard);
 const mockGetEvaluation = vi.mocked(api.getEvaluation);
 const mockGetXCollectEstimate = vi.mocked(api.getXCollectEstimate);
-const _mockGetExportUrl = vi.mocked(api.getExportUrl);
 
 /* ── Mock next/link ───────────────────────────────────────────────── */
 

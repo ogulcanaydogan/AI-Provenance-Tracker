@@ -11,7 +11,6 @@ vi.mock("@/lib/api", () => ({
 import * as api from "@/lib/api";
 
 const mockGetHistory = vi.mocked(api.getHistory);
-const _mockGetExportUrl = vi.mocked(api.getExportUrl);
 
 /* ── Mock next/link ───────────────────────────────────────────────── */
 
