@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import httpx
@@ -18,6 +19,10 @@ def _json_response(url: str, payload: dict, status_code: int = 200) -> httpx.Res
 async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
     old_token = settings.x_bearer_token
     settings.x_bearer_token = "test-token"
+    now = datetime.now(UTC)
+
+    def ts(minutes_ago: int) -> str:
+        return (now - timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
 
     async def fake_get(self, url, **kwargs):  # noqa: ARG001
         path = str(url)
@@ -45,7 +50,7 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                         {
                             "id": "1001",
                             "author_id": "111",
-                            "created_at": "2026-02-11T10:00:00.000Z",
+                            "created_at": ts(60),
                             "text": "Official update #yapay https://example.com/update",
                             "lang": "en",
                             "public_metrics": {
@@ -90,7 +95,7 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                         {
                             "id": "2001",
                             "author_id": "222",
-                            "created_at": "2026-02-11T10:08:00.000Z",
+                            "created_at": ts(52),
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
                             "public_metrics": {
@@ -108,7 +113,7 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                         {
                             "id": "2002",
                             "author_id": "333",
-                            "created_at": "2026-02-11T10:15:00.000Z",
+                            "created_at": ts(45),
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
                             "public_metrics": {
@@ -153,7 +158,7 @@ async def test_collect_x_intel_returns_schema_payload(client: AsyncClient):
                         {
                             "id": "3001",
                             "author_id": "444",
-                            "created_at": "2026-02-11T10:20:00.000Z",
+                            "created_at": ts(40),
                             "text": "Breaking #yapay https://example.com/update",
                             "lang": "en",
                             "public_metrics": {
