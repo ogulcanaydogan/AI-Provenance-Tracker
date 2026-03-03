@@ -1,18 +1,23 @@
 # Supply Chain Security
 
-This document describes image integrity controls used in the Spark production path.
+This document defines image integrity and dependency-source controls for Spark production deploys.
 
 ## Controls Enabled
 
 1. Multi-arch image publishing (`linux/amd64,linux/arm64`)
-2. Keyless cosign signature on published GHCR images
+2. Keyless cosign signature on GHCR images
 3. SBOM generation (SPDX JSON) per image
-4. Keyless cosign SBOM attestation
-5. Vulnerability scanning (Trivy) on published images with optional policy gate
-6. Deploy-time verification gate before Spark rollout:
+4. Keyless SBOM attestation (`spdxjson`)
+5. Trivy vulnerability scan per image (`HIGH,CRITICAL`)
+6. Moderate CVE gate:
+   - `CRITICAL` threshold is blocking
+   - `HIGH` threshold is warning by default (optional hard-fail)
+7. Package allow/deny policy check on lockfiles/requirements before image publish
+8. Deploy-time verification gate before Spark rollout:
    - signature verification (`cosign verify`)
    - SBOM attestation verification (`cosign verify-attestation --type spdxjson`)
-7. Daily production-tag integrity verification workflow (`verify-production-images.yml`)
+9. Daily production-tag integrity verification workflow (`verify-production-images.yml`)
+10. Release provenance note artifact for each published component/tag
 
 ## Workflows
 
@@ -29,23 +34,41 @@ Production pinned deploys should run with:
 - `verify_signatures=true`
 
 If signature or attestation verification fails, deploy must not proceed.
-If `ENABLE_CVE_POLICY_GATE=true`, publish/verification workflows fail when vulnerability
-counts exceed configured thresholds.
-
-## Evidence Artifacts
-
-Publish workflow uploads SBOM artifacts for each component/tag.
-Deploy summaries include whether verification gates were enabled.
-Verification workflow uploads latest-tag attestations and vulnerability reports.
 
 ## CVE Policy Variables
 
-- `ENABLE_CVE_POLICY_GATE` (default `false`)
+- `CVE_FAIL_ON_CRITICAL` (default `true`)
+- `CVE_FAIL_ON_HIGH` (default `false`)
 - `CVE_MAX_CRITICAL` (default `0`)
-- `CVE_MAX_HIGH` (default `0`)
+- `CVE_MAX_HIGH` (default `25`)
 
-## Next Hardening Steps
+## Package Policy
 
-1. Record provenance attestations in release notes automatically.
-2. Add package allowlist/denylist policy checks.
-3. Add periodic verification against release tags in addition to `latest`.
+- Config: `config/package_policy.yaml`
+- Script: `scripts/check_package_policy.py`
+- Artifact: `ops/reports/package_policy_report.{json,md}`
+
+The publish workflow fails when policy violations are detected.
+
+## Release Provenance Note
+
+- Script: `scripts/generate_release_provenance_note.py`
+- Artifact: `release-provenance-<component>-<sha>.{json,md}`
+
+Each note records:
+
+- image ref + digest
+- keyless signing status
+- SBOM/attestation metadata
+- vulnerability summary
+
+## Evidence Artifacts
+
+Publish workflow uploads:
+
+- SBOM artifacts
+- Trivy reports
+- package policy report
+- release provenance notes
+
+Deploy summaries include whether verification gates were enabled and passed.

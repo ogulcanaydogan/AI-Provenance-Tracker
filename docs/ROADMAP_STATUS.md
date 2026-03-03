@@ -1,95 +1,76 @@
 # Roadmap Status
 
-Last updated: 2026-03-03 (runtime observability depth upgrade)
+Last updated: 2026-03-03 (closure sprint hardening)
 
 ## Overall
 
 - Product roadmap in `README.md` is feature-complete (`20/20` checked).
-- Credibility-first sprint objectives are implemented in code and CI.
-- Operational rollout is completed (self-hosted Spark deploy + smoke pass).
+- Credibility-first sprint objectives are implemented and extended with closure hardening.
+- Operational rollout remains completed on Spark (self-hosted path + smoke evidence).
 
-## Completed Workstreams
+## Baseline Lock
 
-### Workstream 1: Public claim reframe
-- `README.md` explicitly marks audio/video as experimental.
-- Limitation language is prominent and aligned with probabilistic output.
+- Baseline branch: `main`
+- Baseline SHA at sprint start: `1ca7c39`
+- `feature/sast-cleanup-a11y-perf` integration: **already merged into main**
 
-### Workstream 2: Benchmark v1.0 live mode
-- Live scoring benchmark runner is active (`benchmark/eval/run_public_benchmark.py`).
-- Dataset contract no longer depends on fixture `baseline_score`.
-- Artifacts include:
-  - `benchmark_results.json`
-  - `scored_samples.jsonl`
-  - regression reports
-- One-command local benchmark pipeline:
-  - `make benchmark-public` (auto-starts local backend when needed).
+## Closure Sprint Status
 
-### Workstream 3: C2PA real verification
-- `backend/app/services/c2pa_verifier.py` uses real `c2patool` verification flow.
-- Consensus uses manifest/signature state rather than marker heuristics.
+### 1) Dataset scale-up (500 -> 1000)
+- Completed with balanced distribution:
+  - detection: 450
+  - source attribution: 200
+  - tamper robustness: 250
+  - audio (experimental): 50
+  - video (experimental): 50
+- Dataset health gate now enforces this target set in benchmark CI.
 
-### Workstream 4: Reality Defender integration hardening
-- Provider mapping and error handling is implemented in consensus engine.
-- Contract tests cover success/timeout/error/malformed payload paths.
+### 2) Hybrid cost governance
+- `config/cost_policy.yaml` added as policy source of truth.
+- `scripts/cost_governance_snapshot.py` now emits:
+  - `status` (`ok|warn|block`)
+  - `remaining_budget`
+  - `policy_version`
+- Non-essential workflow gating added for:
+  - `Public Provenance Benchmark`
+  - `Publish Service Images`
+  - `Deploy Spark Runtime`
+- Override mechanisms:
+  - PR label: `cost-override-approved`
+  - Manual dispatch input: `cost_override=true`
 
-### Workstream 5: Scientific humility pack
-- `docs/METHODOLOGY_LIMITATIONS.md` and benchmark data statement are present.
-- README includes explicit do/don't usage guidance for high-stakes contexts.
+### 3) Moderate supply-chain enforcement
+- Package policy control added:
+  - `config/package_policy.yaml`
+  - `scripts/check_package_policy.py`
+- Publish pipeline now performs:
+  - package policy check (blocking)
+  - moderate CVE gate (`critical` fail, `high` warn by default)
+  - release provenance note generation (`scripts/generate_release_provenance_note.py`)
 
-### Workstream 6: CI/release/evidence
-- CI runs live benchmark + regression checks.
-- Leaderboard publishing includes `scored_samples.jsonl` artifacts.
-- Benchmark outputs include version, dataset hashes, run command, commit SHA, provider matrix.
+### 4) Observability threshold tuning
+- Runtime thresholds tuned to reduce false positives:
+  - error-rate warn/critical: `3% / 6%`
+  - p95 latency warn/critical: `2.0s / 3.5s`
+- Updated assets:
+  - `deploy/monitoring/prometheus/provenance-alert-rules.yml`
+  - `deploy/monitoring/grafana/runtime-observability-dashboard.json`
+  - `.github/workflows/slo-observability-report.yml`
 
-## Operational Status
+### 5) Noise stabilization
+- Dependabot changed to weekly rollup mode with lower PR concurrency.
+- Vercel comment guard remains soft-fail on `403/404` (no failing noise runs).
+- PR template includes explicit noise-control checklist item.
 
-### Done
-- Spark deploy workflow is implemented with smoke + rollback flow.
-- Pinned GHCR image mode is implemented for Spark deploy.
-- Self-hosted Spark runner is online with labels: `self-hosted`, `Linux`, `ARM64`, `spark`.
-- Runner persistence is configured via `systemd` user service (`github-actions-runner.service`).
-- GHCR publish pipeline now builds multi-arch images (`linux/amd64,linux/arm64`).
-- GHCR publish pipeline signs backend/worker images with keyless cosign.
-- GHCR publish pipeline emits SBOM artifacts and keyless SBOM attestations.
-- GHCR publish pipeline performs Trivy scans and supports configurable CVE policy gates.
-- Real production deploy executed on self-hosted runner with pinned images and smoke test success.
-- Publish -> deploy chaining is enabled (`.github/workflows/deploy-spark-after-publish.yml`) to auto-dispatch pinned Spark deploy for the same SHA.
-- Spark deploy verifies cosign signatures for pinned images before deploy (`verify_signatures=true`).
-- Spark deploy verifies SBOM attestations (`spdxjson`) before deploy in pinned mode.
-- Daily production-tag verification workflow is enabled (`.github/workflows/verify-production-images.yml`).
-- Cost governance automation is enabled (`.github/workflows/cost-governance.yml`).
-- SLO observability automation is enabled (`.github/workflows/slo-observability-report.yml`).
-- Runtime observability report now tracks p95/p99 latency and 5xx error-rate from `/metrics`.
-- Runtime Grafana dashboard and Prometheus alert templates are versioned in `deploy/monitoring/`.
-- Benchmark pipelines now emit dataset health reports toward the 1k target.
+## Operational Evidence (Latest Recorded)
 
-### Remaining blockers
-- None for roadmap completion.
-- GitHub-hosted runners still cannot reach private Spark network directly (expected), but this is mitigated by the self-hosted runner path.
-
-## Operational Evidence (Latest)
-
-- Multi-arch publish run with SBOM+attestation (success): [22226784059](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226784059)
-- Chained dispatch run (success): [22227033913](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227033913)
-- Deploy Spark Runtime run (success): [22227037725](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227037725)
+- Multi-arch publish + SBOM+attestation (success): [22226784059](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226784059)
+- Chained deploy dispatch (success): [22227033913](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227033913)
+- Deploy Spark Runtime (success): [22227037725](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227037725)
 - Cost governance run (success): [22226797967](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797967)
 - SLO observability run (success): [22226797959](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797959)
-- Last successful production deploy commit SHA: `94b5c2a5a45abd59734a0f4cd26862d10b0b3f43`
-- Deploy step status: `Deploy to Spark` executed (non-skipped) and passed.
-- Smoke status: `Run Spark smoke test` passed (`checks_passed=4/4`).
-- Verification status: cosign signature + SBOM attestation checks passed before deploy.
 
-## Steady-State Next Actions
+## Remaining Blockers
 
-1. Keep weekly benchmark publish + evidence pack cadence.
-2. Keep pinned deploys tied to commit SHA tags and recorded in release notes.
-3. Keep runner and token hygiene (periodic rotation, service health checks).
-4. Review cost and SLO reports weekly and resolve warning-level alerts.
-5. Periodically review vulnerability reports and tighten CVE thresholds when stable.
-
-## Evolution Backlog (Priority Order)
-
-1. Evaluation growth: expand public benchmark dataset beyond 1k samples with per-domain balance targets.
-2. Observability depth: tune threshold baselines per environment after two weeks of runtime metrics.
-3. Cost governance depth: add explicit monthly budget caps with escalation playbook.
-4. Supply-chain depth: add release-attestation notes and package policy allow/deny lists.
+- None for roadmap closure scope.
+- Next stage is evolution track (larger benchmark diversity, stricter supply-chain policy, deeper runtime analytics).

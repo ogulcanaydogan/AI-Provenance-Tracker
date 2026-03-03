@@ -19,3 +19,4 @@
 - [ ] Tests added/updated
 - [ ] Documentation updated (if applicable)
 - [ ] No secrets or credentials committed
+- [ ] CI noise control reviewed (Dependabot grouping / Vercel comment behavior)

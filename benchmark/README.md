@@ -60,6 +60,8 @@ python benchmark/eval/run_public_benchmark.py \
 - `benchmark/results/latest/regression_check.json`
 - `benchmark/results/latest/regression_check.md`
 - `benchmark/leaderboard/leaderboard.json`
+- `benchmark/results/latest/dataset_health.json`
+- `benchmark/results/latest/dataset_health.md`
 
 Open `benchmark/leaderboard/index.html` to view leaderboard results.
 
@@ -67,3 +69,11 @@ Open `benchmark/leaderboard/index.html` to view leaderboard results.
 - Workflow: `.github/workflows/publish-leaderboard.yml`
 - It rebuilds benchmark artifacts, checks regression gates, and publishes `benchmark/leaderboard` to GitHub Pages.
 - `scored_samples.jsonl` is uploaded as a build artifact for reproducibility.
+
+## Dataset growth gate
+- CI benchmark workflow enforces the 1k corpus objective with task thresholds:
+  - detection: 450
+  - attribution: 200
+  - tamper: 250
+  - audio (experimental): 50
+  - video (experimental): 50

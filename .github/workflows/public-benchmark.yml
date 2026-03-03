@@ -2,6 +2,15 @@ name: Public Provenance Benchmark
 
 on:
   workflow_dispatch:
+    inputs:
+      cost_override:
+        description: "Run benchmark even when cost policy is in block state"
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
   push:
     branches: [main]
     paths:
@@ -13,7 +22,83 @@ on:
       - ".github/workflows/public-benchmark.yml"
 
 jobs:
+  cost-precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      allow_run: ${{ steps.gate.outputs.allow_run }}
+      status: ${{ steps.gate.outputs.status }}
+      override_used: ${{ steps.gate.outputs.override_used }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Evaluate cost policy gate
+        id: gate
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark/results/ci
+          python3 scripts/cost_governance_snapshot.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --window-days 30 \
+            --gh-token "${GH_TOKEN}" \
+            --vercel-token "${VERCEL_TOKEN}" \
+            --vercel-project-id "${VERCEL_PROJECT_ID}" \
+            --vercel-team-id "${VERCEL_TEAM_ID}" \
+            --policy-file config/cost_policy.yaml \
+            --workflow-name "${GITHUB_WORKFLOW}" \
+            --output-json benchmark/results/ci/cost_gate.json \
+            --output-md benchmark/results/ci/cost_gate.md \
+            --fail-on-alert-level none
+
+          status="$(python3 - <<'PY'
+          import json
+          payload = json.loads(open("benchmark/results/ci/cost_gate.json", encoding="utf-8").read())
+          print(payload.get("status", "ok"))
+          PY
+          )"
+
+          override="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.cost_override || 'false' }}" = "true" ]; then
+            override="true"
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            has_label="$(python3 - <<'PY'
+            import json, os
+            payload = json.loads(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8").read())
+            labels = [item.get("name", "") for item in payload.get("pull_request", {}).get("labels", [])]
+            print("true" if "cost-override-approved" in labels else "false")
+            PY
+            )"
+            if [ "${has_label}" = "true" ]; then
+              override="true"
+            fi
+          fi
+
+          allow_run="true"
+          if [ "${status}" = "block" ] && [ "${override}" != "true" ]; then
+            allow_run="false"
+            echo "::warning::Cost policy is block. Public benchmark job is skipped. Add cost-override-approved label or dispatch with cost_override=true."
+          fi
+
+          {
+            echo "status=${status}"
+            echo "override_used=${override}"
+            echo "allow_run=${allow_run}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload cost gate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-benchmark-cost-gate
+          path: benchmark/results/ci/cost_gate.*
+          retention-days: 14
+
   benchmark:
+    needs: cost-precheck
+    if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -73,7 +158,13 @@ jobs:
             --output-json benchmark/results/ci/dataset_health.json \
             --output-md benchmark/results/ci/dataset_health.md \
             --target-total 1000 \
-            --warn-total 500
+            --warn-total 850 \
+            --task-target ai_vs_human_detection=450 \
+            --task-target source_attribution=200 \
+            --task-target tamper_detection=250 \
+            --task-target audio_ai_vs_human_detection=50 \
+            --task-target video_ai_vs_human_detection=50 \
+            --enforce
       - name: Stop backend
         if: always()
         run: |
@@ -86,3 +177,14 @@ jobs:
           name: public-benchmark-artifacts
           path: benchmark/results/ci
           retention-days: 14
+
+  benchmark-skipped:
+    needs: cost-precheck
+    if: ${{ needs.cost-precheck.outputs.allow_run != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report benchmark skip reason
+        run: |
+          echo "Public benchmark skipped by cost policy gate." >> "$GITHUB_STEP_SUMMARY"
+          echo "- status: ${{ needs.cost-precheck.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- override_used: ${{ needs.cost-precheck.outputs.override_used }}" >> "$GITHUB_STEP_SUMMARY"

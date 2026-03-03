@@ -1,37 +1,62 @@
 # Cost Governance
 
-This runbook defines cost controls for the production toolchain and explains how to avoid accidental quota burn.
+This runbook defines cost controls for CI/CD spend and monthly budget protection.
 
 ## Objectives
 
-1. Keep CI/CD spend predictable.
+1. Keep CI/CD spend predictable under a monthly cap.
 2. Detect abnormal usage spikes early.
-3. Avoid noisy/manual checks by automating weekly snapshots.
+3. Block non-essential workflows when budget risk reaches block threshold.
+4. Allow explicit override for urgent operational runs.
 
 ## Controls in Place
 
-### Vercel
+### Policy file (source of truth)
 
-- Frontend deploy guard is enabled through:
-  - `frontend/vercel.json`
-  - `frontend/scripts/vercel-ignore.sh`
-- Non-frontend commits skip Vercel builds.
-- Manual override is possible with `FORCE_VERCEL_BUILD=1`.
+- `config/cost_policy.yaml`
+- Required fields:
+  - `monthly_cap_usd`
+  - `warn_threshold_pct`
+  - `block_threshold_pct`
+  - `override_label`
+  - `non_essential_workflows`
+  - `cost_model.github_actions_usd_per_minute`
+  - `cost_model.vercel_usd_per_deployment`
 
-### GitHub Actions
+### Snapshot + status computation
 
-- Weekly governance workflow:
-  - `.github/workflows/cost-governance.yml`
-- Snapshot script:
-  - `scripts/cost_governance_snapshot.py`
-- Captures 30-day usage proxy:
-  - total run count
-  - failure rate
-  - runtime minutes by workflow
+- Workflow: `.github/workflows/cost-governance.yml`
+- Script: `scripts/cost_governance_snapshot.py`
+- Schedule: daily (`05:20 UTC`) + `workflow_dispatch`
 
-### Optional Vercel Usage Proxy
+Snapshot outputs now include:
 
-If configured, the same report tracks deployment volume via Vercel API.
+- `status` (`ok|warn|block`)
+- `remaining_budget`
+- `policy_version`
+- `budget.estimated_spend_usd`
+- `budget.non_essential_allowed`
+
+### Enforcement behavior (hybrid)
+
+When `status=block`:
+
+- Non-essential workflows are skipped by default.
+- Override paths:
+  - PR label: `cost-override-approved` (for PR workflows)
+  - `workflow_dispatch` input: `cost_override=true` (for manual runs)
+
+## Non-essential workflows
+
+Defined in `config/cost_policy.yaml`:
+
+- `Public Provenance Benchmark`
+- `Publish Service Images`
+- `Deploy Spark Runtime`
+
+## Optional Vercel usage proxy
+
+If configured, report also tracks Vercel deployment volume.
 
 - Secret: `VERCEL_TOKEN`
 - Variable: `VERCEL_PROJECT_ID`
@@ -50,17 +75,9 @@ Outputs:
 - `ops/reports/cost_governance_snapshot.json`
 - `ops/reports/cost_governance_snapshot.md`
 
-## Budget Thresholds
-
-Default warning/critical thresholds are set in the script and can be tuned via CLI flags.
-
-- GitHub runtime warning: `1200` minutes (30 days)
-- GitHub runtime critical: `2400` minutes (30 days)
-- Workflow failure-rate warning: `20%`
-- Vercel deployments warning/critical: `120 / 200` (30 days)
-
 ## Operational Policy
 
-1. If warning-level alerts appear: reduce deploy churn and retry loops.
-2. If critical alerts appear: freeze non-essential deploys until root cause is addressed.
-3. Keep `OPS_ALERT_WEBHOOK_URL` configured to receive automated alert payloads.
+1. `warn`: reduce deploy churn, investigate retry loops and flaky workflows.
+2. `block`: hold non-essential workflows unless explicit override is approved.
+3. Keep `OPS_ALERT_WEBHOOK_URL` configured for alert fanout.
+4. Record override reason in PR/dispatched run notes for auditability.

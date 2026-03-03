@@ -14,9 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      ENABLE_CVE_POLICY_GATE: ${{ vars.ENABLE_CVE_POLICY_GATE || 'false' }}
+      CVE_FAIL_ON_CRITICAL: ${{ vars.CVE_FAIL_ON_CRITICAL || 'true' }}
+      CVE_FAIL_ON_HIGH: ${{ vars.CVE_FAIL_ON_HIGH || 'false' }}
       CVE_MAX_CRITICAL: ${{ vars.CVE_MAX_CRITICAL || '0' }}
-      CVE_MAX_HIGH: ${{ vars.CVE_MAX_HIGH || '0' }}
+      CVE_MAX_HIGH: ${{ vars.CVE_MAX_HIGH || '25' }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
       - name: Install cosign
@@ -78,11 +79,11 @@ jobs:
           python3 - <<'PY'
           import json
           import os
-          import sys
 
-          gate_enabled = os.getenv("ENABLE_CVE_POLICY_GATE", "false").strip().lower() in {"1", "true", "yes", "on"}
+          fail_on_critical = os.getenv("CVE_FAIL_ON_CRITICAL", "true").strip().lower() in {"1", "true", "yes", "on"}
+          fail_on_high = os.getenv("CVE_FAIL_ON_HIGH", "false").strip().lower() in {"1", "true", "yes", "on"}
           max_critical = int(os.getenv("CVE_MAX_CRITICAL", "0"))
-          max_high = int(os.getenv("CVE_MAX_HIGH", "0"))
+          max_high = int(os.getenv("CVE_MAX_HIGH", "25"))
 
           def count(path: str) -> tuple[int, int]:
             payload = json.loads(open(path, encoding="utf-8").read())
@@ -116,7 +117,8 @@ jobs:
                 "worker": {"critical": worker_critical, "high": worker_high},
                 "total": {"critical": total_critical, "high": total_high},
                 "policy": {
-                  "enabled": gate_enabled,
+                  "fail_on_critical": fail_on_critical,
+                  "fail_on_high": fail_on_high,
                   "max_critical": max_critical,
                   "max_high": max_high,
                 },
@@ -126,19 +128,26 @@ jobs:
               indent=2,
             )
 
-          if not gate_enabled:
-            print("CVE gate disabled; report-only mode.")
-            raise SystemExit(0)
-
-          if total_critical > max_critical or total_high > max_high:
+          if fail_on_critical and total_critical > max_critical:
             print(
-              "CVE policy gate failed: "
-              f"critical={total_critical} (max={max_critical}), "
-              f"high={total_high} (max={max_high})"
+              "CVE policy gate failed (critical): "
+              f"critical={total_critical} (max={max_critical})"
             )
             raise SystemExit(1)
 
-          print("CVE policy gate passed.")
+          if total_high > max_high:
+            if fail_on_high:
+              print(
+                "CVE policy gate failed (high): "
+                f"high={total_high} (max={max_high})"
+              )
+              raise SystemExit(1)
+            print(
+              "::warning::High severity vulnerability threshold exceeded "
+              f"(high={total_high}, max={max_high}) but fail_on_high=false."
+            )
+
+          print("CVE policy gate passed under moderate enforcement.")
           PY
 
       - name: Upload verification artifacts
@@ -161,7 +170,8 @@ jobs:
             echo
             echo "- Signature verification: \`completed\`"
             echo "- SBOM attestation verification: \`completed\`"
-            echo "- CVE policy gate enabled: \`${ENABLE_CVE_POLICY_GATE}\`"
+            echo "- CVE fail on critical: \`${CVE_FAIL_ON_CRITICAL}\`"
+            echo "- CVE fail on high: \`${CVE_FAIL_ON_HIGH}\`"
             if [ -f vuln-summary.json ]; then
               echo "- Vulnerability summary:"
               echo '```json'

@@ -1,0 +1,16 @@
+{
+  "policy_version": "2026-03-03.hybrid-v1",
+  "monthly_cap_usd": 50.0,
+  "warn_threshold_pct": 80.0,
+  "block_threshold_pct": 95.0,
+  "override_label": "cost-override-approved",
+  "non_essential_workflows": [
+    "Public Provenance Benchmark",
+    "Publish Service Images",
+    "Deploy Spark Runtime"
+  ],
+  "cost_model": {
+    "github_actions_usd_per_minute": 0.008,
+    "vercel_usd_per_deployment": 0.02
+  }
+}

@@ -3,7 +3,7 @@ name: Cost Governance Snapshot
 on:
   workflow_dispatch:
   schedule:
-    - cron: "20 5 * * 1"
+    - cron: "20 5 * * *"
 
 permissions:
   contents: read
@@ -27,16 +27,29 @@ jobs:
           python-version: "3.12"
       - name: Generate cost governance snapshot
         run: |
-          python scripts/cost_governance_snapshot.py \
+          python3 scripts/cost_governance_snapshot.py \
             --repo "${REPO}" \
             --window-days 30 \
             --gh-token "${GH_TOKEN}" \
             --vercel-token "${VERCEL_TOKEN}" \
             --vercel-project-id "${VERCEL_PROJECT_ID}" \
             --vercel-team-id "${VERCEL_TEAM_ID}" \
+            --policy-file config/cost_policy.yaml \
+            --workflow-name "${GITHUB_WORKFLOW}" \
             --output-json ops/reports/cost_governance_snapshot.json \
             --output-md ops/reports/cost_governance_snapshot.md \
             --fail-on-alert-level none
+      - name: Append policy status to summary
+        run: |
+          python3 - <<'PY'
+          import json
+          payload = json.loads(open("ops/reports/cost_governance_snapshot.json", encoding="utf-8").read())
+          print("## Cost Policy Status")
+          print("")
+          print(f"- Status: `{payload.get('status', 'unknown')}`")
+          print(f"- Remaining budget: `{payload.get('remaining_budget', 'n/a')}`")
+          print(f"- Policy version: `{payload.get('policy_version', 'n/a')}`")
+          PY >> "$GITHUB_STEP_SUMMARY"
       - name: Append snapshot to summary
         run: |
           cat ops/reports/cost_governance_snapshot.md >> "$GITHUB_STEP_SUMMARY"

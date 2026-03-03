@@ -9,13 +9,13 @@ This benchmark provides a reproducible, detector-backed baseline for:
 5. Video AI-vs-human detection (**experimental**)
 
 ## Included files
-- `detection_multidomain.jsonl` (220)
-- `source_attribution.jsonl` (100)
-- `tamper_robustness.jsonl` (120)
-- `audio_detection.jsonl` (30, experimental)
-- `video_detection.jsonl` (30, experimental)
+- `detection_multidomain.jsonl` (450)
+- `source_attribution.jsonl` (200)
+- `tamper_robustness.jsonl` (250)
+- `audio_detection.jsonl` (50, experimental)
+- `video_detection.jsonl` (50, experimental)
 
-Total rows: **500**
+Total rows: **1000**
 
 ## Schema
 ### Shared fields (live benchmark input)
@@ -33,7 +33,8 @@ Total rows: **500**
 
 ## Sampling notes
 - This is a public seed corpus for transparent CI/evaluation plumbing, not a population-representative internet sample.
-- Audio/video coverage is intentionally small and marked experimental.
+- Dataset growth from 500 -> 1000 uses controlled augmentation metadata (`transform`) to increase coverage while preserving reproducible references.
+- Audio/video coverage remains intentionally small and marked experimental.
 - Attribution is currently heuristic and should be interpreted as a baseline, not forensic proof.
 
 ## Known limitations

@@ -18,6 +18,8 @@ AUTO_BACKEND_HOST="${AUTO_BACKEND_HOST:-127.0.0.1}"
 AUTO_BACKEND_PORT="${AUTO_BACKEND_PORT:-8000}"
 BASELINE_SNAPSHOT="${BASELINE_SNAPSHOT:-benchmark/baselines/public_benchmark_snapshot.json}"
 SKIP_REGRESSION_CHECK="${SKIP_REGRESSION_CHECK:-false}"
+RUN_DATASET_HEALTH_CHECK="${RUN_DATASET_HEALTH_CHECK:-true}"
+DATASET_HEALTH_ENFORCE="${DATASET_HEALTH_ENFORCE:-true}"
 
 is_true() {
   case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
@@ -134,6 +136,26 @@ else
     --baseline "$BASELINE_SNAPSHOT" \
     --report-json "$OUTPUT_DIR/regression_check.json" \
     --report-md "$OUTPUT_DIR/regression_check.md"
+fi
+
+if is_true "$RUN_DATASET_HEALTH_CHECK"; then
+  health_enforce_flag=""
+  if is_true "$DATASET_HEALTH_ENFORCE"; then
+    health_enforce_flag="--enforce"
+  fi
+
+  "$BENCHMARK_PYTHON" benchmark/eval/dataset_health.py \
+    --datasets-dir "$DATASETS_DIR" \
+    --output-json "$OUTPUT_DIR/dataset_health.json" \
+    --output-md "$OUTPUT_DIR/dataset_health.md" \
+    --target-total 1000 \
+    --warn-total 850 \
+    --task-target "ai_vs_human_detection=450" \
+    --task-target "source_attribution=200" \
+    --task-target "tamper_detection=250" \
+    --task-target "audio_ai_vs_human_detection=50" \
+    --task-target "video_ai_vs_human_detection=50" \
+    $health_enforce_flag
 fi
 
 echo "Benchmark pipeline completed. Artifacts: $OUTPUT_DIR"

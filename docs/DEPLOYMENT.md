@@ -59,9 +59,10 @@ Optional repository variables:
 - `SPARK_VERIFY_SIGNATURES` (default recommended: `true`)
 - `PRODUCTION_API_URL` (enables runtime observability report from `/metrics`)
 - `PRODUCTION_API_KEY_HEADER` (defaults to `X-API-Key` when API key auth is required)
-- `ENABLE_CVE_POLICY_GATE` (optional strict mode for publish/verify workflows)
+- `CVE_FAIL_ON_CRITICAL` (default `true`)
+- `CVE_FAIL_ON_HIGH` (default `false`)
 - `CVE_MAX_CRITICAL` (default `0`)
-- `CVE_MAX_HIGH` (default `0`)
+- `CVE_MAX_HIGH` (default `25`)
 
 Optional repository secrets:
 
@@ -97,8 +98,14 @@ gh workflow run deploy-spark.yml \
   -f deploy_frontend=false \
   -f run_smoke=true \
   -f rollback_on_smoke_failure=true \
-  -f runner_type=self-hosted
+  -f runner_type=self-hosted \
+  -f cost_override=false
 ```
+
+Cost gate note:
+
+- `Deploy Spark Runtime` is subject to cost-policy block mode.
+- For emergency/manual override, dispatch with `cost_override=true`.
 
 ### Option B: Manual SSH deploy script
 
