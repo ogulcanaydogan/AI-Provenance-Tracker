@@ -38,6 +38,8 @@ Self-hosted runner runbook:
 - `docs/SUPPLY_CHAIN_SECURITY.md`
 - `docs/COST_GOVERNANCE.md`
 - `docs/SLO_OBSERVABILITY.md`
+- `deploy/monitoring/grafana/runtime-observability-dashboard.json`
+- `deploy/monitoring/prometheus/provenance-alert-rules.yml`
 
 Required repository secrets:
 
@@ -55,9 +57,15 @@ Optional repository variables:
 - `SPARK_RUN_SMOKE`
 - `SPARK_ROLLBACK_ON_SMOKE_FAILURE`
 - `SPARK_VERIFY_SIGNATURES` (default recommended: `true`)
+- `PRODUCTION_API_URL` (enables runtime observability report from `/metrics`)
+- `PRODUCTION_API_KEY_HEADER` (defaults to `X-API-Key` when API key auth is required)
 - `ENABLE_CVE_POLICY_GATE` (optional strict mode for publish/verify workflows)
 - `CVE_MAX_CRITICAL` (default `0`)
 - `CVE_MAX_HIGH` (default `0`)
+
+Optional repository secrets:
+
+- `PRODUCTION_API_KEY` (only if `/metrics` is protected)
 
 Pinned image mode (recommended for reproducibility):
 

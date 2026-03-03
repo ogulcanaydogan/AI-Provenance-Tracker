@@ -1,0 +1,44 @@
+groups:
+  - name: ai-provenance-runtime
+    interval: 30s
+    rules:
+      - alert: AIProvenanceHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5..|5xx",handler!~"/health|/metrics|/docs|/redoc|/openapi.json"}[5m]))
+            /
+            sum(rate(http_requests_total{handler!~"/health|/metrics|/docs|/redoc|/openapi.json"}[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          service: ai-provenance-api
+        annotations:
+          summary: "AI Provenance runtime error rate is above 5%"
+          description: "5xx ratio exceeded 5% over a 5m window for 10m."
+
+      - alert: AIProvenanceHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(http_request_duration_seconds_bucket{handler!~"/health|/metrics|/docs|/redoc|/openapi.json"}[5m])
+            )
+          ) > 1.5
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-provenance-api
+        annotations:
+          summary: "AI Provenance p95 latency is above 1.5s"
+          description: "p95 latency SLO breached for 15m."
+
+      - alert: AIProvenanceMetricsTargetDown
+        expr: up{job="provenance-tracker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: ai-provenance-api
+        annotations:
+          summary: "AI Provenance metrics target is down"
+          description: "Prometheus cannot scrape the provenance-tracker target for 5m."

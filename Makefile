@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance slo-report build-text-dataset
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance slo-report runtime-observability build-text-dataset
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -32,6 +32,7 @@ help:
 	@echo "  make benchmark-health Dataset size/coverage tracker toward 1k target"
 	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
 	@echo "  make slo-report      Generate observability SLO report from workflow history"
+	@echo "  make runtime-observability Generate runtime latency/error report from /metrics"
 	@echo "  make build-text-dataset Build expanded labeled text corpus from benchmark samples"
 
 install:
@@ -97,6 +98,9 @@ cost-governance:
 
 slo-report:
 	python3 scripts/slo_observability_report.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-7}" --output-json "$${OUTPUT_JSON:-ops/reports/slo_observability_report.json}" --output-md "$${OUTPUT_MD:-ops/reports/slo_observability_report.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
+
+runtime-observability:
+	python3 scripts/runtime_observability_report.py --metrics-url "$${METRICS_URL:-$${PRODUCTION_METRICS_URL:-}}" --api-url "$${API_URL:-$${PRODUCTION_API_URL:-}}" --api-key "$${API_KEY:-$${PRODUCTION_API_KEY:-}}" --api-key-header "$${API_KEY_HEADER:-$${PRODUCTION_API_KEY_HEADER:-X-API-Key}}" --output-json "$${OUTPUT_JSON:-ops/reports/runtime_observability_report.json}" --output-md "$${OUTPUT_MD:-ops/reports/runtime_observability_report.md}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"
 
 build-text-dataset:
 	python3 backend/scripts/build_text_training_dataset.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output "$${OUTPUT:-backend/evidence/samples/text_labeled_expanded.jsonl}" --min-chars "$${MIN_CHARS:-80}"

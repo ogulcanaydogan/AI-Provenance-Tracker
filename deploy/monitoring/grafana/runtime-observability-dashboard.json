@@ -1,0 +1,103 @@
+{
+  "title": "AI Provenance Runtime Observability",
+  "uid": "apt-runtime-observability",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "timezone": "browser",
+  "tags": ["ai-provenance", "runtime", "slo"],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "handler",
+        "type": "query",
+        "datasource": "Prometheus",
+        "definition": "label_values(http_requests_total, handler)",
+        "query": "label_values(http_requests_total, handler)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request Rate (rps)",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{handler=~\"$handler\",handler!~\"/health|/metrics|/docs|/redoc|/openapi.json\"}[5m]))",
+          "legendFormat": "rps"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error Rate (5xx)",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..|5xx\",handler=~\"$handler\",handler!~\"/health|/metrics|/docs|/redoc|/openapi.json\"}[5m])) / sum(rate(http_requests_total{handler=~\"$handler\",handler!~\"/health|/metrics|/docs|/redoc|/openapi.json\"}[5m]))",
+          "legendFormat": "error-rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.02},
+              {"color": "red", "value": 0.05}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latency P95 (seconds)",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{handler=~\"$handler\",handler!~\"/health|/metrics|/docs|/redoc|/openapi.json\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1.5},
+              {"color": "red", "value": 3.0}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "In-flight Requests",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(http_requests_inprogress{handler=~\"$handler\",handler!~\"/health|/metrics|/docs|/redoc|/openapi.json\"})",
+          "legendFormat": "inflight"
+        }
+      ]
+    }
+  ]
+}

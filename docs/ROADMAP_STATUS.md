@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-02 (evolution controls expanded)
+Last updated: 2026-03-03 (runtime observability depth upgrade)
 
 ## Overall
 
@@ -59,6 +59,8 @@ Last updated: 2026-03-02 (evolution controls expanded)
 - Daily production-tag verification workflow is enabled (`.github/workflows/verify-production-images.yml`).
 - Cost governance automation is enabled (`.github/workflows/cost-governance.yml`).
 - SLO observability automation is enabled (`.github/workflows/slo-observability-report.yml`).
+- Runtime observability report now tracks p95/p99 latency and 5xx error-rate from `/metrics`.
+- Runtime Grafana dashboard and Prometheus alert templates are versioned in `deploy/monitoring/`.
 - Benchmark pipelines now emit dataset health reports toward the 1k target.
 
 ### Remaining blockers
@@ -88,6 +90,6 @@ Last updated: 2026-03-02 (evolution controls expanded)
 ## Evolution Backlog (Priority Order)
 
 1. Evaluation growth: expand public benchmark dataset beyond 1k samples with per-domain balance targets.
-2. Observability depth: add runtime latency/error dashboards (beyond workflow success proxies).
+2. Observability depth: tune threshold baselines per environment after two weeks of runtime metrics.
 3. Cost governance depth: add explicit monthly budget caps with escalation playbook.
 4. Supply-chain depth: add release-attestation notes and package policy allow/deny lists.

@@ -17,6 +17,9 @@ jobs:
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+      PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+      PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+      PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,11 +39,31 @@ jobs:
       - name: Append report to summary
         run: |
           cat ops/reports/slo_observability_report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Generate runtime observability report
+        if: ${{ env.PRODUCTION_API_URL != '' }}
+        run: |
+          python scripts/runtime_observability_report.py \
+            --api-url "${PRODUCTION_API_URL}" \
+            --api-key "${PRODUCTION_API_KEY}" \
+            --api-key-header "${PRODUCTION_API_KEY_HEADER:-X-API-Key}" \
+            --latency-p95-slo-seconds 1.5 \
+            --latency-p95-critical-seconds 3.0 \
+            --error-rate-slo 0.02 \
+            --error-rate-critical 0.05 \
+            --output-json ops/reports/runtime_observability_report.json \
+            --output-md ops/reports/runtime_observability_report.md \
+            --fail-on-alert-level none
+      - name: Append runtime report to summary
+        if: ${{ env.PRODUCTION_API_URL != '' }}
+        run: |
+          cat ops/reports/runtime_observability_report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
         with:
           name: slo-observability-report
-          path: ops/reports/slo_observability_report.*
+          path: |
+            ops/reports/slo_observability_report.*
+            ops/reports/runtime_observability_report.*
           retention-days: 30
       - name: Send SLO alert webhook
         if: ${{ always() && env.OPS_ALERT_WEBHOOK_URL != '' }}
@@ -51,9 +74,16 @@ jobs:
           import os
           import urllib.request
 
-          path = "ops/reports/slo_observability_report.json"
-          payload = json.loads(open(path, encoding="utf-8").read())
-          alerts = payload.get("alerts", [])
+          alerts = []
+          slo_path = "ops/reports/slo_observability_report.json"
+          runtime_path = "ops/reports/runtime_observability_report.json"
+
+          if os.path.exists(slo_path):
+              payload = json.loads(open(slo_path, encoding="utf-8").read())
+              alerts.extend(payload.get("alerts", []))
+          if os.path.exists(runtime_path):
+              payload = json.loads(open(runtime_path, encoding="utf-8").read())
+              alerts.extend(payload.get("alerts", []))
           if not alerts:
               raise SystemExit(0)
 

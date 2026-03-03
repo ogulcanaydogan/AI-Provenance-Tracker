@@ -661,11 +661,19 @@ SLO observability report:
 make slo-report REPO=ogulcanaydogan/AI-Provenance-Tracker GH_TOKEN=$GH_TOKEN
 ```
 
+Runtime latency/error report from production `/metrics`:
+
+```bash
+make runtime-observability API_URL=https://your-api.example.com
+```
+
 See:
 
 - `docs/COST_GOVERNANCE.md`
 - `docs/SLO_OBSERVABILITY.md`
 - `docs/SUPPLY_CHAIN_SECURITY.md`
+- `deploy/monitoring/grafana/runtime-observability-dashboard.json`
+- `deploy/monitoring/prometheus/provenance-alert-rules.yml`
 
 Daily production image integrity verification (signature + SBOM attestation + vulnerability report):
 
