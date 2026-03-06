@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-03 (Benchmark 2.0 sprint wiring + dataset expansion)
+Last updated: 2026-03-06 (Benchmark 2.0 evidence finalization)
 
 ## Overall
 
@@ -104,10 +104,23 @@ Last updated: 2026-03-03 (Benchmark 2.0 sprint wiring + dataset expansion)
 - Manual Deploy Spark Runtime (success): [22615452126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615452126)
 - Manual deploy verification: `Deploy to Spark` step executed (non-skipped) and smoke test passed in run `22615452126`.
 
+## Benchmark 2.0 Finalization Evidence (40c63d2)
+
+- Commit pushed to `main`: `40c63d2`
+- CI (push) success: [22756880035](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880035)
+- CodeQL (push) success: [22756880031](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880031)
+- Public Benchmark smoke (push) success: [22756880058](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880058)
+  - smoke profile verification in logs:
+    - `target_profile=\"smoke_v2\"`
+    - baseline `public_benchmark_snapshot_smoke.json`
+- Public Benchmark full (manual workflow_dispatch) success: [22757012096](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22757012096)
+  - full profile verification in logs:
+    - `target_profile=\"full_v2\"`
+    - baseline `public_benchmark_snapshot_full.json`
+
 ## Remaining Blockers
 
 - No blocker for roadmap closure scope.
-- For Benchmark 2.0 acceptance closure, next required evidence:
-  - successful PR smoke run with new profile config
-  - successful nightly full run with 1500 target enforcement
-  - baseline tuning if nightly regression thresholds are too strict
+- Benchmark 2.0 closure is pending only first real nightly schedule run for `Public Provenance Benchmark`:
+  - Next expected cron window after this update: **2026-03-07 02:00 UTC**.
+  - Once that scheduled run succeeds, mark status as `Benchmark 2.0 completed`.
