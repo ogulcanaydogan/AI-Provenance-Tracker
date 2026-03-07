@@ -11,6 +11,14 @@ on:
           - "false"
           - "true"
         default: "false"
+      benchmark_profile:
+        description: "Benchmark profile to run"
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
+        default: smoke
   push:
     branches: [main]
     paths:
@@ -20,6 +28,8 @@ on:
     paths:
       - "benchmark/**"
       - ".github/workflows/public-benchmark.yml"
+  schedule:
+    - cron: "0 2 * * *"
 
 jobs:
   cost-precheck:
@@ -92,6 +102,27 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - name: Resolve benchmark profile
+        id: profile
+        run: |
+          set -euo pipefail
+          profile="smoke"
+          target_profile="smoke_v2"
+          baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            profile="full"
+            target_profile="full_v2"
+            baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.benchmark_profile || 'smoke' }}" = "full" ]; then
+            profile="full"
+            target_profile="full_v2"
+            baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
+          fi
+          {
+            echo "profile=${profile}"
+            echo "target_profile=${target_profile}"
+            echo "baseline_snapshot=${baseline_snapshot}"
+          } >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -132,12 +163,14 @@ jobs:
             --model-id baseline-heuristic-ci \
             --decision-threshold 0.45 \
             --backend-url http://127.0.0.1:8000 \
-            --live-mode true
+            --live-mode true \
+            --profile "${{ steps.profile.outputs.profile }}" \
+            --profiles-config benchmark/config/benchmark_profiles.yaml
       - name: Check benchmark regressions
         run: |
           python benchmark/eval/check_benchmark_regression.py \
             --current benchmark/results/ci/benchmark_results.json \
-            --baseline benchmark/baselines/public_benchmark_snapshot.json \
+            --baseline "${{ steps.profile.outputs.baseline_snapshot }}" \
             --report-json benchmark/results/ci/regression_check.json \
             --report-md benchmark/results/ci/regression_check.md
       - name: Generate dataset health report
@@ -146,13 +179,8 @@ jobs:
             --datasets-dir benchmark/datasets \
             --output-json benchmark/results/ci/dataset_health.json \
             --output-md benchmark/results/ci/dataset_health.md \
-            --target-total 1000 \
-            --warn-total 850 \
-            --task-target ai_vs_human_detection=450 \
-            --task-target source_attribution=200 \
-            --task-target tamper_detection=250 \
-            --task-target audio_ai_vs_human_detection=50 \
-            --task-target video_ai_vs_human_detection=50 \
+            --targets-config benchmark/config/benchmark_targets.yaml \
+            --target-profile "${{ steps.profile.outputs.target_profile }}" \
             --enforce
       - name: Stop backend
         if: always()

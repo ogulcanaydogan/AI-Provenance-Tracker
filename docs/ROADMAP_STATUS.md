@@ -1,12 +1,13 @@
 # Roadmap Status
 
-Last updated: 2026-03-03 (closure sprint hardening)
+Last updated: 2026-03-07 (Benchmark 2.0 completed)
 
 ## Overall
 
 - Product roadmap in `README.md` is feature-complete (`20/20` checked).
 - Credibility-first sprint objectives are implemented and extended with closure hardening.
 - Operational rollout remains completed on Spark (self-hosted path + smoke evidence).
+- Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 
 ## Baseline Lock
 
@@ -24,6 +25,37 @@ Last updated: 2026-03-03 (closure sprint hardening)
   - audio (experimental): 50
   - video (experimental): 50
 - Dataset health gate now enforces this target set in benchmark CI.
+
+## Evolution Track Status (Benchmark 2.0)
+
+### 1) Dataset scale-up (1000 -> 1500)
+- Completed in dataset files with balanced growth:
+  - detection: 675
+  - source attribution: 300
+  - tamper robustness: 375
+  - audio (experimental): 75
+  - video (experimental): 75
+- Optional metadata fields added on new rows:
+  - `data_origin`
+  - `generator_id`
+  - `license_ref`
+
+### 2) PR-lite + Nightly full benchmark profiles
+- Added profile configs:
+  - `benchmark/config/benchmark_profiles.yaml`
+  - `benchmark/config/benchmark_targets.yaml`
+- Benchmark runner now supports:
+  - `--profile smoke|full`
+  - `--profiles-config <path>`
+- Dataset health now supports:
+  - `--targets-config <path>`
+  - `--target-profile smoke_v2|full_v2`
+- Workflow routing:
+  - PR/push main => smoke profile
+  - nightly schedule => full profile
+- Baselines split:
+  - `benchmark/baselines/public_benchmark_snapshot_smoke.json`
+  - `benchmark/baselines/public_benchmark_snapshot_full.json`
 
 ### 2) Hybrid cost governance
 - `config/cost_policy.yaml` added as policy source of truth.
@@ -64,13 +96,31 @@ Last updated: 2026-03-03 (closure sprint hardening)
 
 ## Operational Evidence (Latest Recorded)
 
-- Multi-arch publish + SBOM+attestation (success): [22226784059](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226784059)
-- Chained deploy dispatch (success): [22227033913](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227033913)
-- Deploy Spark Runtime (success): [22227037725](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22227037725)
-- Cost governance run (success): [22226797967](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797967)
-- SLO observability run (success): [22226797959](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22226797959)
+- Merge commit SHA (closure sprint): `5420984dea938b57f349fa9e8408ec581828e966`
+- CI on `main` (success): [22615177023](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615177023)
+- CodeQL on `main` (success): [22615177014](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615177014)
+- Public benchmark on `main` (success): [22615176966](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615176966)
+- Publish service images on `main` (success): [22615176974](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615176974)
+- Manual Deploy Spark Runtime (success): [22615452126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615452126)
+- Manual deploy verification: `Deploy to Spark` step executed (non-skipped) and smoke test passed in run `22615452126`.
+
+## Benchmark 2.0 Finalization Evidence (40c63d2)
+
+- Commit pushed to `main`: `40c63d2`
+- CI (push) success: [22756880035](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880035)
+- CodeQL (push) success: [22756880031](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880031)
+- Public Benchmark smoke (push) success: [22756880058](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22756880058)
+  - smoke profile verification in logs:
+    - `target_profile=\"smoke_v2\"`
+    - baseline `public_benchmark_snapshot_smoke.json`
+- Public Benchmark full (manual workflow_dispatch) success: [22757012096](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22757012096)
+  - full profile verification in logs:
+    - `target_profile=\"full_v2\"`
+    - baseline `public_benchmark_snapshot_full.json`
+- Public Benchmark full (scheduled nightly) success: [22790452715](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22790452715)
+  - scheduled run confirms nightly full profile path on `main`
 
 ## Remaining Blockers
 
-- None for roadmap closure scope.
-- Next stage is evolution track (larger benchmark diversity, stricter supply-chain policy, deeper runtime analytics).
+- No blocker for roadmap closure scope.
+- Benchmark 2.0 status: **completed** (smoke + manual full + scheduled nightly full verified).

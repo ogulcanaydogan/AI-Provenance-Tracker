@@ -17,6 +17,24 @@ from typing import Any
 from uuid import uuid4
 
 
+DEFAULT_PROFILE_LIMITS: dict[str, dict[str, int]] = {
+    "full": {
+        "ai_vs_human_detection": 675,
+        "source_attribution": 300,
+        "tamper_detection": 375,
+        "audio_ai_vs_human_detection": 75,
+        "video_ai_vs_human_detection": 75,
+    },
+    "smoke": {
+        "ai_vs_human_detection": 120,
+        "source_attribution": 50,
+        "tamper_detection": 60,
+        "audio_ai_vs_human_detection": 15,
+        "video_ai_vs_human_detection": 15,
+    },
+}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run public benchmark baseline.")
     parser.add_argument(
@@ -65,12 +83,103 @@ def parse_args() -> argparse.Namespace:
         default="true",
         help="Use live backend detector scoring (true/false).",
     )
+    parser.add_argument(
+        "--profile",
+        default="full",
+        help="Benchmark profile selector (smoke|full).",
+    )
+    parser.add_argument(
+        "--profiles-config",
+        default="benchmark/config/benchmark_profiles.yaml",
+        help="Optional profile limits config path.",
+    )
     return parser.parse_args()
 
 
 def _to_bool(value: str) -> bool:
     normalized = (value or "").strip().lower()
     return normalized not in {"0", "false", "no", "off"}
+
+
+def _coerce_yaml_scalar(raw: str) -> Any:
+    value = raw.strip()
+    lowered = value.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"null", "none"}:
+        return None
+    if value.startswith(("'", '"')) and value.endswith(("'", '"')) and len(value) >= 2:
+        return value[1:-1]
+    try:
+        if "." in value:
+            return float(value)
+        return int(value)
+    except ValueError:
+        return value
+
+
+def _parse_simple_yaml(text: str) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    current_key: str | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            if current_key is None:
+                continue
+            data.setdefault(current_key, [])
+            if isinstance(data[current_key], list):
+                data[current_key].append(_coerce_yaml_scalar(stripped[2:]))
+            continue
+        if ":" not in stripped:
+            continue
+        key, raw_value = stripped.split(":", 1)
+        key = key.strip()
+        raw_value = raw_value.strip()
+        if not raw_value:
+            current_key = key
+            data[key] = []
+            continue
+        current_key = key
+        data[key] = _coerce_yaml_scalar(raw_value)
+    return data
+
+
+def _load_profiles_config(path: Path) -> dict[str, dict[str, int]]:
+    if not path.exists():
+        return dict(DEFAULT_PROFILE_LIMITS)
+    text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        return dict(DEFAULT_PROFILE_LIMITS)
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        payload = _parse_simple_yaml(text)
+
+    profile_node = payload.get("profiles", payload) if isinstance(payload, dict) else {}
+    if not isinstance(profile_node, dict):
+        return dict(DEFAULT_PROFILE_LIMITS)
+
+    parsed: dict[str, dict[str, int]] = {}
+    for profile_name, raw_limits in profile_node.items():
+        if not isinstance(profile_name, str) or not isinstance(raw_limits, dict):
+            continue
+        limits: dict[str, int] = {}
+        for task, raw_limit in raw_limits.items():
+            if not isinstance(task, str):
+                continue
+            try:
+                limits[task] = int(raw_limit)
+            except (TypeError, ValueError):
+                continue
+        if limits:
+            parsed[profile_name] = limits
+
+    if not parsed:
+        return dict(DEFAULT_PROFILE_LIMITS)
+    return parsed
 
 
 def _safe_div(num: float, den: float) -> float:
@@ -380,15 +489,21 @@ def _score_rows_live(
             )
 
         cached = cache[cache_key]
+        enriched = dict(row)
+        enriched["sample_id"] = str(row["sample_id"])
+        enriched["task"] = str(row.get("task", cached.get("task", "")))
+        enriched["domain"] = str(row.get("domain", cached.get("domain", "")))
+        enriched["label_is_ai"] = int(row["label_is_ai"])
+        enriched["input_ref"] = str(row["input_ref"])
         scored_rows.append(
             {
-                **cached,
-                "sample_id": str(row["sample_id"]),
-                "task": str(row.get("task", cached.get("task", ""))),
-                "domain": str(row.get("domain", cached.get("domain", ""))),
-                "transform": row.get("transform"),
-                "label_is_ai": int(row["label_is_ai"]),
-                "input_ref": str(row["input_ref"]),
+                **enriched,
+                "status": cached.get("status", "error"),
+                "score": cached.get("score"),
+                "prediction": cached.get("prediction"),
+                "provider_statuses": cached.get("provider_statuses", {}),
+                "http_status": cached.get("http_status"),
+                "error": cached.get("error", ""),
             }
         )
     return scored_rows
@@ -399,15 +514,16 @@ def _score_rows_precomputed(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for row in rows:
         score = row.get("score")
         status = "ok" if isinstance(score, (int, float)) else "error"
+        enriched = dict(row)
+        enriched["sample_id"] = str(row["sample_id"])
+        enriched["task"] = str(row.get("task", "unknown"))
+        enriched["modality"] = str(row.get("modality", "text"))
+        enriched["domain"] = str(row.get("domain", ""))
+        enriched["label_is_ai"] = int(row["label_is_ai"])
+        enriched["input_ref"] = str(row["input_ref"])
         scored_rows.append(
             {
-                "sample_id": str(row["sample_id"]),
-                "task": str(row.get("task", "unknown")),
-                "modality": str(row.get("modality", "text")),
-                "domain": str(row.get("domain", "")),
-                "transform": row.get("transform"),
-                "label_is_ai": int(row["label_is_ai"]),
-                "input_ref": str(row["input_ref"]),
+                **enriched,
                 "status": status,
                 "score": float(score) if isinstance(score, (int, float)) else None,
                 "prediction": int(float(score) >= 0.5) if isinstance(score, (int, float)) else None,
@@ -417,6 +533,36 @@ def _score_rows_precomputed(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return scored_rows
+
+
+def _stable_hash(sample_id: str, commit_sha: str, profile: str) -> str:
+    payload = f"{commit_sha}:{profile}:{sample_id}".encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _select_profile_rows(
+    rows: list[dict[str, Any]],
+    *,
+    task: str,
+    profile: str,
+    profile_limits: dict[str, dict[str, int]],
+    commit_sha: str,
+) -> list[dict[str, Any]]:
+    if profile not in profile_limits:
+        raise ValueError(
+            f"Unknown benchmark profile '{profile}'. Available: {', '.join(sorted(profile_limits))}"
+        )
+    task_limit = int(profile_limits[profile].get(task, len(rows)))
+    if task_limit <= 0:
+        return []
+    if task_limit >= len(rows):
+        return list(rows)
+
+    ranked = sorted(
+        rows,
+        key=lambda item: _stable_hash(str(item.get("sample_id", "")), commit_sha, profile),
+    )
+    return ranked[:task_limit]
 
 
 def _roc_auc(labels: list[int], scores: list[float]) -> float:
@@ -750,45 +896,85 @@ def _write_scored_samples(path: Path, rows: list[dict[str, Any]]) -> None:
 def run() -> int:
     args = parse_args()
     live_mode = _to_bool(args.live_mode)
+    profile = str(args.profile or "full").strip().lower()
 
     repo_root = Path(__file__).resolve().parents[2]
+    commit_sha = _git_commit_sha(repo_root)
     datasets_dir = Path(args.datasets_dir).expanduser().resolve()
     output_dir = Path(args.output_dir).expanduser().resolve()
     leaderboard_path = Path(args.leaderboard_output).expanduser().resolve()
+    profiles_config_path = Path(args.profiles_config).expanduser().resolve()
+    profile_limits = _load_profiles_config(profiles_config_path)
 
-    detection_rows = _load_jsonl(datasets_dir / "detection_multidomain.jsonl")
-    attribution_rows = _load_jsonl(datasets_dir / "source_attribution.jsonl")
-    tamper_rows = _load_jsonl(datasets_dir / "tamper_robustness.jsonl")
-    audio_rows = _load_optional_jsonl(datasets_dir / "audio_detection.jsonl")
-    video_rows = _load_optional_jsonl(datasets_dir / "video_detection.jsonl")
+    raw_detection_rows = _load_jsonl(datasets_dir / "detection_multidomain.jsonl")
+    raw_attribution_rows = _load_jsonl(datasets_dir / "source_attribution.jsonl")
+    raw_tamper_rows = _load_jsonl(datasets_dir / "tamper_robustness.jsonl")
+    raw_audio_rows = _load_optional_jsonl(datasets_dir / "audio_detection.jsonl")
+    raw_video_rows = _load_optional_jsonl(datasets_dir / "video_detection.jsonl")
 
     _validate_required_fields(
-        detection_rows,
+        raw_detection_rows,
         "detection_multidomain.jsonl",
         ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref"),
     )
     _validate_required_fields(
-        attribution_rows,
+        raw_attribution_rows,
         "source_attribution.jsonl",
         ("sample_id", "source_model_family", "predicted_model_family_baseline"),
     )
     _validate_required_fields(
-        tamper_rows,
+        raw_tamper_rows,
         "tamper_robustness.jsonl",
         ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref", "transform"),
     )
-    if audio_rows:
+    if raw_audio_rows:
         _validate_required_fields(
-            audio_rows,
+            raw_audio_rows,
             "audio_detection.jsonl",
             ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref"),
         )
-    if video_rows:
+    if raw_video_rows:
         _validate_required_fields(
-            video_rows,
+            raw_video_rows,
             "video_detection.jsonl",
             ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref"),
         )
+
+    detection_rows = _select_profile_rows(
+        raw_detection_rows,
+        task="ai_vs_human_detection",
+        profile=profile,
+        profile_limits=profile_limits,
+        commit_sha=commit_sha,
+    )
+    attribution_rows = _select_profile_rows(
+        raw_attribution_rows,
+        task="source_attribution",
+        profile=profile,
+        profile_limits=profile_limits,
+        commit_sha=commit_sha,
+    )
+    tamper_rows = _select_profile_rows(
+        raw_tamper_rows,
+        task="tamper_detection",
+        profile=profile,
+        profile_limits=profile_limits,
+        commit_sha=commit_sha,
+    )
+    audio_rows = _select_profile_rows(
+        raw_audio_rows,
+        task="audio_ai_vs_human_detection",
+        profile=profile,
+        profile_limits=profile_limits,
+        commit_sha=commit_sha,
+    )
+    video_rows = _select_profile_rows(
+        raw_video_rows,
+        task="video_ai_vs_human_detection",
+        profile=profile,
+        profile_limits=profile_limits,
+        commit_sha=commit_sha,
+    )
 
     if live_mode:
         scored_detection_rows = _score_rows_live(
@@ -831,13 +1017,16 @@ def run() -> int:
 
     results = {
         "generated_at": datetime.now(UTC).isoformat(),
-        "benchmark_version": "v1.0-live",
+        "benchmark_version": "v2.0-live",
         "live_mode": live_mode,
         "backend_url": args.backend_url,
+        "profile": profile,
+        "profiles_config_path": str(profiles_config_path),
+        "profile_limits": profile_limits.get(profile, {}),
         "run_metadata": {
             "model_id": args.model_id,
             "decision_threshold": args.decision_threshold,
-            "git_commit_sha": _git_commit_sha(repo_root),
+            "git_commit_sha": commit_sha,
             "run_command": (
                 "python benchmark/eval/run_public_benchmark.py "
                 f"--datasets-dir {args.datasets_dir} "
@@ -846,7 +1035,9 @@ def run() -> int:
                 f"--model-id {args.model_id} "
                 f"--decision-threshold {args.decision_threshold} "
                 f"--backend-url {args.backend_url} "
-                f"--live-mode {str(live_mode).lower()}"
+                f"--live-mode {str(live_mode).lower()} "
+                f"--profile {profile} "
+                f"--profiles-config {args.profiles_config}"
             ),
         },
         "datasets": {
@@ -855,6 +1046,13 @@ def run() -> int:
             "tamper_robustness": len(tamper_rows),
             "audio_detection": len(audio_rows),
             "video_detection": len(video_rows),
+        },
+        "datasets_full_available": {
+            "detection_multidomain": len(raw_detection_rows),
+            "source_attribution": len(raw_attribution_rows),
+            "tamper_robustness": len(raw_tamper_rows),
+            "audio_detection": len(raw_audio_rows),
+            "video_detection": len(raw_video_rows),
         },
         "dataset_hashes": {
             "detection_multidomain": _sha256(datasets_dir / "detection_multidomain.jsonl"),

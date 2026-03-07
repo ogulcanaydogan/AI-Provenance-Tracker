@@ -7,16 +7,20 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATASETS_DIR="${DATASETS_DIR:-benchmark/datasets}"
 OUTPUT_DIR="${OUTPUT_DIR:-benchmark/results/latest}"
 LEADERBOARD_OUTPUT="${LEADERBOARD_OUTPUT:-benchmark/leaderboard/leaderboard.json}"
-MODEL_ID="${MODEL_ID:-baseline-heuristic-v1.0-live}"
+MODEL_ID="${MODEL_ID:-baseline-heuristic-v2.0-live}"
 DECISION_THRESHOLD="${DECISION_THRESHOLD:-0.45}"
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8000}"
 API_KEY="${API_KEY:-}"
 API_KEY_HEADER="${API_KEY_HEADER:-X-API-Key}"
 LIVE_MODE="${LIVE_MODE:-true}"
+BENCHMARK_PROFILE="${BENCHMARK_PROFILE:-smoke}"
+PROFILES_CONFIG="${PROFILES_CONFIG:-benchmark/config/benchmark_profiles.yaml}"
+TARGETS_CONFIG="${TARGETS_CONFIG:-benchmark/config/benchmark_targets.yaml}"
+TARGET_PROFILE="${TARGET_PROFILE:-}"
 AUTO_START_BACKEND="${AUTO_START_BACKEND:-true}"
 AUTO_BACKEND_HOST="${AUTO_BACKEND_HOST:-127.0.0.1}"
 AUTO_BACKEND_PORT="${AUTO_BACKEND_PORT:-8000}"
-BASELINE_SNAPSHOT="${BASELINE_SNAPSHOT:-benchmark/baselines/public_benchmark_snapshot.json}"
+BASELINE_SNAPSHOT="${BASELINE_SNAPSHOT:-}"
 SKIP_REGRESSION_CHECK="${SKIP_REGRESSION_CHECK:-false}"
 RUN_DATASET_HEALTH_CHECK="${RUN_DATASET_HEALTH_CHECK:-true}"
 DATASET_HEALTH_ENFORCE="${DATASET_HEALTH_ENFORCE:-true}"
@@ -64,6 +68,20 @@ BACKEND_PID_PATH="${OUTPUT_DIR_ABS}/backend.pid"
 HEALTH_URL="${BACKEND_URL%/}/health"
 BENCHMARK_PYTHON="$(resolve_python "${BENCHMARK_PYTHON:-}")"
 BACKEND_PYTHON="$(resolve_python "${BACKEND_PYTHON:-}")"
+
+if [ -z "$TARGET_PROFILE" ]; then
+  case "$BENCHMARK_PROFILE" in
+    smoke) TARGET_PROFILE="smoke_v2" ;;
+    *) TARGET_PROFILE="full_v2" ;;
+  esac
+fi
+
+if [ -z "$BASELINE_SNAPSHOT" ]; then
+  case "$BENCHMARK_PROFILE" in
+    smoke) BASELINE_SNAPSHOT="benchmark/baselines/public_benchmark_snapshot_smoke.json" ;;
+    *) BASELINE_SNAPSHOT="benchmark/baselines/public_benchmark_snapshot_full.json" ;;
+  esac
+fi
 
 backend_pid=""
 started_backend="false"
@@ -126,7 +144,9 @@ cd "$ROOT_DIR"
   --backend-url "$BACKEND_URL" \
   --api-key "$API_KEY" \
   --api-key-header "$API_KEY_HEADER" \
-  --live-mode "$LIVE_MODE"
+  --live-mode "$LIVE_MODE" \
+  --profile "$BENCHMARK_PROFILE" \
+  --profiles-config "$PROFILES_CONFIG"
 
 if is_true "$SKIP_REGRESSION_CHECK"; then
   echo "Skipping regression check (SKIP_REGRESSION_CHECK=$SKIP_REGRESSION_CHECK)"
@@ -148,13 +168,8 @@ if is_true "$RUN_DATASET_HEALTH_CHECK"; then
     --datasets-dir "$DATASETS_DIR" \
     --output-json "$OUTPUT_DIR/dataset_health.json" \
     --output-md "$OUTPUT_DIR/dataset_health.md" \
-    --target-total 1000 \
-    --warn-total 850 \
-    --task-target "ai_vs_human_detection=450" \
-    --task-target "source_attribution=200" \
-    --task-target "tamper_detection=250" \
-    --task-target "audio_ai_vs_human_detection=50" \
-    --task-target "video_ai_vs_human_detection=50" \
+    --targets-config "$TARGETS_CONFIG" \
+    --target-profile "$TARGET_PROFILE" \
     $health_enforce_flag
 fi
 
