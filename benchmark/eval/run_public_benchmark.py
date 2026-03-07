@@ -535,8 +535,8 @@ def _score_rows_precomputed(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return scored_rows
 
 
-def _stable_hash(sample_id: str, commit_sha: str, profile: str) -> str:
-    payload = f"{commit_sha}:{profile}:{sample_id}".encode("utf-8")
+def _stable_hash(sample_id: str, profile: str) -> str:
+    payload = f"{profile}:{sample_id}".encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -546,7 +546,6 @@ def _select_profile_rows(
     task: str,
     profile: str,
     profile_limits: dict[str, dict[str, int]],
-    commit_sha: str,
 ) -> list[dict[str, Any]]:
     if profile not in profile_limits:
         raise ValueError(
@@ -560,7 +559,7 @@ def _select_profile_rows(
 
     ranked = sorted(
         rows,
-        key=lambda item: _stable_hash(str(item.get("sample_id", "")), commit_sha, profile),
+        key=lambda item: _stable_hash(str(item.get("sample_id", "")), profile),
     )
     return ranked[:task_limit]
 
@@ -945,35 +944,30 @@ def run() -> int:
         task="ai_vs_human_detection",
         profile=profile,
         profile_limits=profile_limits,
-        commit_sha=commit_sha,
     )
     attribution_rows = _select_profile_rows(
         raw_attribution_rows,
         task="source_attribution",
         profile=profile,
         profile_limits=profile_limits,
-        commit_sha=commit_sha,
     )
     tamper_rows = _select_profile_rows(
         raw_tamper_rows,
         task="tamper_detection",
         profile=profile,
         profile_limits=profile_limits,
-        commit_sha=commit_sha,
     )
     audio_rows = _select_profile_rows(
         raw_audio_rows,
         task="audio_ai_vs_human_detection",
         profile=profile,
         profile_limits=profile_limits,
-        commit_sha=commit_sha,
     )
     video_rows = _select_profile_rows(
         raw_video_rows,
         task="video_ai_vs_human_detection",
         profile=profile,
         profile_limits=profile_limits,
-        commit_sha=commit_sha,
     )
 
     if live_mode:
