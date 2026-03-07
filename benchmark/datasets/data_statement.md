@@ -1,4 +1,4 @@
-# Public Benchmark Data Statement (v1.0-live)
+# Public Benchmark Data Statement (v2.0)
 
 ## Purpose
 This benchmark provides a reproducible, detector-backed baseline for:
@@ -9,13 +9,13 @@ This benchmark provides a reproducible, detector-backed baseline for:
 5. Video AI-vs-human detection (**experimental**)
 
 ## Included files
-- `detection_multidomain.jsonl` (450)
-- `source_attribution.jsonl` (200)
-- `tamper_robustness.jsonl` (250)
-- `audio_detection.jsonl` (50, experimental)
-- `video_detection.jsonl` (50, experimental)
+- `detection_multidomain.jsonl` (675)
+- `source_attribution.jsonl` (300)
+- `tamper_robustness.jsonl` (375)
+- `audio_detection.jsonl` (75, experimental)
+- `video_detection.jsonl` (75, experimental)
 
-Total rows: **1000**
+Total rows: **1500**
 
 ## Schema
 ### Shared fields (live benchmark input)
@@ -30,10 +30,13 @@ Total rows: **1000**
 - `transform` (`clean|paraphrase|translate|human_edit`) for tamper robustness
 - `source_model_family` for source attribution ground truth
 - `predicted_model_family_baseline` for heuristic attribution baseline output
+- `data_origin` (`synthetic|public_human|transformed`)
+- `generator_id` (synthetic lineage hint)
+- `license_ref` (public content license reference)
 
 ## Sampling notes
 - This is a public seed corpus for transparent CI/evaluation plumbing, not a population-representative internet sample.
-- Dataset growth from 500 -> 1000 uses controlled augmentation metadata (`transform`) to increase coverage while preserving reproducible references.
+- Dataset growth from 500 -> 1000 -> 1500 uses controlled augmentation metadata (`transform`) plus provenance metadata (`data_origin`, `generator_id`, `license_ref`) to increase coverage while preserving reproducible references.
 - Audio/video coverage remains intentionally small and marked experimental.
 - Attribution is currently heuristic and should be interpreted as a baseline, not forensic proof.
 

@@ -2,11 +2,8 @@ name: Publish Benchmark Leaderboard
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "benchmark/**"
-      - ".github/workflows/publish-leaderboard.yml"
+  schedule:
+    - cron: "30 2 * * *"
 
 permissions:
   contents: read
@@ -21,8 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install backend dependencies
@@ -62,12 +59,14 @@ jobs:
             --model-id baseline-heuristic-pages \
             --decision-threshold 0.45 \
             --backend-url http://127.0.0.1:8000 \
-            --live-mode true
+            --live-mode true \
+            --profile full \
+            --profiles-config benchmark/config/benchmark_profiles.yaml
       - name: Check benchmark regressions
         run: |
           python benchmark/eval/check_benchmark_regression.py \
             --current benchmark/results/latest/benchmark_results.json \
-            --baseline benchmark/baselines/public_benchmark_snapshot.json \
+            --baseline benchmark/baselines/public_benchmark_snapshot_full.json \
             --report-json benchmark/results/latest/regression_check.json \
             --report-md benchmark/results/latest/regression_check.md
       - name: Generate dataset health report
@@ -76,13 +75,8 @@ jobs:
             --datasets-dir benchmark/datasets \
             --output-json benchmark/results/latest/dataset_health.json \
             --output-md benchmark/results/latest/dataset_health.md \
-            --target-total 1000 \
-            --warn-total 850 \
-            --task-target ai_vs_human_detection=450 \
-            --task-target source_attribution=200 \
-            --task-target tamper_detection=250 \
-            --task-target audio_ai_vs_human_detection=50 \
-            --task-target video_ai_vs_human_detection=50 \
+            --targets-config benchmark/config/benchmark_targets.yaml \
+            --target-profile full_v2 \
             --enforce
       - name: Stop backend
         if: always()
@@ -91,7 +85,7 @@ jobs:
             kill "$(cat benchmark/results/latest/backend.pid)" || true
           fi
       - name: Upload benchmark run artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-run-artifacts
           path: |
@@ -104,7 +98,7 @@ jobs:
             benchmark/results/latest/dataset_health.md
           retention-days: 14
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: benchmark/leaderboard
       - name: Deploy disabled notice

@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "smoke": {
+      "ai_vs_human_detection": 120,
+      "source_attribution": 50,
+      "tamper_detection": 60,
+      "audio_ai_vs_human_detection": 15,
+      "video_ai_vs_human_detection": 15
+    },
+    "full": {
+      "ai_vs_human_detection": 675,
+      "source_attribution": 300,
+      "tamper_detection": 375,
+      "audio_ai_vs_human_detection": 75,
+      "video_ai_vs_human_detection": 75
+    }
+  }
+}

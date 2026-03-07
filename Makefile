@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-health cost-governance package-policy slo-report runtime-observability build-text-dataset
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-public-smoke benchmark-public-full benchmark-public-nightly benchmark-health cost-governance package-policy slo-report runtime-observability build-text-dataset
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -28,7 +28,10 @@ help:
 	@echo "  make intel-pipeline  Run collect->report->benchmark->pack"
 	@echo "  make intel-weekly-cycle  Run one weekly cycle and auto-compare with previous run"
 	@echo "  make smoke-prod      Smoke test deployed /detect endpoints"
-	@echo "  make benchmark-public Run public provenance benchmark + leaderboard artifacts"
+	@echo "  make benchmark-public Run smoke profile public provenance benchmark"
+	@echo "  make benchmark-public-smoke Explicit smoke profile benchmark run"
+	@echo "  make benchmark-public-full Full profile benchmark run"
+	@echo "  make benchmark-public-nightly Alias for full profile benchmark run"
 	@echo "  make benchmark-health Dataset size/coverage tracker toward 1k target"
 	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
 	@echo "  make package-policy Enforce dependency source allow/deny policy"
@@ -89,10 +92,18 @@ smoke-prod:
 	cd backend && python3 scripts/smoke_detect_prod.py --base-url "$${BASE_URL:?Set BASE_URL}" --api-key "$${API_KEY:-}" --api-key-header "$${API_KEY_HEADER:-X-API-Key}" --output "$${OUTPUT:-evidence/smoke/prod_detect_smoke.json}"
 
 benchmark-public:
-	bash scripts/run_benchmark_public.sh
+	BENCHMARK_PROFILE=smoke TARGET_PROFILE=smoke_v2 BASELINE_SNAPSHOT=benchmark/baselines/public_benchmark_snapshot_smoke.json bash scripts/run_benchmark_public.sh
+
+benchmark-public-smoke:
+	BENCHMARK_PROFILE=smoke TARGET_PROFILE=smoke_v2 BASELINE_SNAPSHOT=benchmark/baselines/public_benchmark_snapshot_smoke.json bash scripts/run_benchmark_public.sh
+
+benchmark-public-full:
+	BENCHMARK_PROFILE=full TARGET_PROFILE=full_v2 BASELINE_SNAPSHOT=benchmark/baselines/public_benchmark_snapshot_full.json bash scripts/run_benchmark_public.sh
+
+benchmark-public-nightly: benchmark-public-full
 
 benchmark-health:
-	python3 benchmark/eval/dataset_health.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-json "$${OUTPUT_JSON:-benchmark/results/latest/dataset_health.json}" --output-md "$${OUTPUT_MD:-benchmark/results/latest/dataset_health.md}" --target-total "$${TARGET_TOTAL:-1000}" --warn-total "$${WARN_TOTAL:-850}" --task-target "ai_vs_human_detection=$${TARGET_DETECTION:-450}" --task-target "source_attribution=$${TARGET_ATTRIBUTION:-200}" --task-target "tamper_detection=$${TARGET_TAMPER:-250}" --task-target "audio_ai_vs_human_detection=$${TARGET_AUDIO:-50}" --task-target "video_ai_vs_human_detection=$${TARGET_VIDEO:-50}" $${ENFORCE:+--enforce}
+	python3 benchmark/eval/dataset_health.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output-json "$${OUTPUT_JSON:-benchmark/results/latest/dataset_health.json}" --output-md "$${OUTPUT_MD:-benchmark/results/latest/dataset_health.md}" --targets-config "$${TARGETS_CONFIG:-benchmark/config/benchmark_targets.yaml}" --target-profile "$${TARGET_PROFILE:-full_v2}" $${TARGET_TOTAL:+--target-total "$${TARGET_TOTAL}"} $${WARN_TOTAL:+--warn-total "$${WARN_TOTAL}"} $${TARGET_DETECTION:+--task-target "ai_vs_human_detection=$${TARGET_DETECTION}"} $${TARGET_ATTRIBUTION:+--task-target "source_attribution=$${TARGET_ATTRIBUTION}"} $${TARGET_TAMPER:+--task-target "tamper_detection=$${TARGET_TAMPER}"} $${TARGET_AUDIO:+--task-target "audio_ai_vs_human_detection=$${TARGET_AUDIO}"} $${TARGET_VIDEO:+--task-target "video_ai_vs_human_detection=$${TARGET_VIDEO}"} $${ENFORCE:+--enforce}
 
 cost-governance:
 	python3 scripts/cost_governance_snapshot.py --repo "$${REPO:-$${GITHUB_REPOSITORY:?Set REPO or GITHUB_REPOSITORY}}" --window-days "$${WINDOW_DAYS:-30}" --output-json "$${OUTPUT_JSON:-ops/reports/cost_governance_snapshot.json}" --output-md "$${OUTPUT_MD:-ops/reports/cost_governance_snapshot.md}" --gh-token "$${GH_TOKEN:-$${GITHUB_TOKEN:-}}" --vercel-token "$${VERCEL_TOKEN:-}" --vercel-project-id "$${VERCEL_PROJECT_ID:-}" --vercel-team-id "$${VERCEL_TEAM_ID:-}" --policy-file "$${POLICY_FILE:-config/cost_policy.yaml}" --workflow-name "$${WORKFLOW_NAME:-$${GITHUB_WORKFLOW:-local-cli}}" --fail-on-alert-level "$${FAIL_ON_ALERT_LEVEL:-none}"

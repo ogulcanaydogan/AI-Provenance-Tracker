@@ -1,0 +1,26 @@
+{
+  "targets": {
+    "smoke_v2": {
+      "target_total": 260,
+      "warn_total": 220,
+      "task_targets": {
+        "ai_vs_human_detection": 120,
+        "source_attribution": 50,
+        "tamper_detection": 60,
+        "audio_ai_vs_human_detection": 15,
+        "video_ai_vs_human_detection": 15
+      }
+    },
+    "full_v2": {
+      "target_total": 1500,
+      "warn_total": 1350,
+      "task_targets": {
+        "ai_vs_human_detection": 675,
+        "source_attribution": 300,
+        "tamper_detection": 375,
+        "audio_ai_vs_human_detection": 75,
+        "video_ai_vs_human_detection": 75
+      }
+    }
+  }
+}
