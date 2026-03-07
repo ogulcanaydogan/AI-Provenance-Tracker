@@ -13,6 +13,20 @@ Analyses text and images in production mode, with audio/video detection exposed 
 
 ---
 
+## Latest Release
+
+- Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+- Latest verified closure runs:
+  - CI: [22799906812](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906812)
+  - CodeQL: [22799906819](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906819)
+  - Public Benchmark: [22799906813](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906813)
+  - Publish Service Images: [22799906815](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906815)
+  - Deploy Spark Runtime: [22800021410](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22800021410)
+  - Scheduled smoke: [22798881836](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22798881836)
+  - Scheduled nightly benchmark: [22790452715](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22790452715)
+
+---
+
 ## Limitations and Safe Use
 
 - Detection scores are probabilistic and can produce both false positives and false negatives.

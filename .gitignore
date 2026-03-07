@@ -95,3 +95,7 @@ crash.log
 # X intelligence data (personal/collected data)
 backend/x_intel_input*.json
 backend/x_trust_report*.json
+
+# Local benchmark workspace artifacts
+benchmark/results/latest/dataset_health.json
+benchmark/results/latest/dataset_health.md

@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-07 (Benchmark 2.0 completed)
+Last updated: 2026-03-07 (v1.0.0 closure finalized)
 
 ## Overall
 
@@ -8,6 +8,7 @@ Last updated: 2026-03-07 (Benchmark 2.0 completed)
 - Credibility-first sprint objectives are implemented and extended with closure hardening.
 - Operational rollout remains completed on Spark (self-hosted path + smoke evidence).
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
+- Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
 
 ## Baseline Lock
 
@@ -124,3 +125,16 @@ Last updated: 2026-03-07 (Benchmark 2.0 completed)
 
 - No blocker for roadmap closure scope.
 - Benchmark 2.0 status: **completed** (smoke + manual full + scheduled nightly full verified).
+- Final state: **Operationally complete / attention-free**.
+
+## v1.0.0 Evidence Lock (Latest Verified)
+
+- Release tag + GitHub Release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+- CI success: [22799906812](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906812)
+- CodeQL success: [22799906819](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906819)
+- Public Benchmark success: [22799906813](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906813)
+- Publish Service Images success: [22799906815](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22799906815)
+- Deploy Spark Runtime success: [22800021410](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22800021410)
+- Scheduled Production Smoke success: [22798881836](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22798881836)
+- Scheduled Nightly Benchmark success: [22790452715](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22790452715)
+- Closed stale ops issue: [#19](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/19)
