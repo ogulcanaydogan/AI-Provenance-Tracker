@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-06 (Benchmark 2.0 evidence finalization)
+Last updated: 2026-03-07 (Benchmark 2.0 completed)
 
 ## Overall
 
@@ -117,10 +117,10 @@ Last updated: 2026-03-06 (Benchmark 2.0 evidence finalization)
   - full profile verification in logs:
     - `target_profile=\"full_v2\"`
     - baseline `public_benchmark_snapshot_full.json`
+- Public Benchmark full (scheduled nightly) success: [22790452715](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22790452715)
+  - scheduled run confirms nightly full profile path on `main`
 
 ## Remaining Blockers
 
 - No blocker for roadmap closure scope.
-- Benchmark 2.0 closure is pending only first real nightly schedule run for `Public Provenance Benchmark`:
-  - Next expected cron window after this update: **2026-03-07 02:00 UTC**.
-  - Once that scheduled run succeeds, mark status as `Benchmark 2.0 completed`.
+- Benchmark 2.0 status: **completed** (smoke + manual full + scheduled nightly full verified).
