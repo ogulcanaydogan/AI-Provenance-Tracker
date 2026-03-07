@@ -52,14 +52,12 @@ def test_select_profile_rows_is_deterministic() -> None:
         task="ai_vs_human_detection",
         profile="smoke",
         profile_limits=limits,
-        commit_sha="abc123",
     )
     second = run_benchmark_module._select_profile_rows(
         rows,
         task="ai_vs_human_detection",
         profile="smoke",
         profile_limits=limits,
-        commit_sha="abc123",
     )
 
     assert len(first) == 7
@@ -74,7 +72,6 @@ def test_select_profile_rows_unknown_profile_raises() -> None:
             task="ai_vs_human_detection",
             profile="unknown_profile",
             profile_limits={"smoke": {"ai_vs_human_detection": 1}},
-            commit_sha="abc123",
         )
 
 
