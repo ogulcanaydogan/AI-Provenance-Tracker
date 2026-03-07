@@ -106,7 +106,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Evaluate cost policy gate
         id: gate
         run: |
@@ -150,7 +150,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deploy-spark-cost-gate
           path: ops/reports/deploy_cost_gate.*
@@ -179,7 +179,7 @@ jobs:
       SPARK_SMOKE_API_KEY_HEADER: ${{ vars.SPARK_SMOKE_API_KEY_HEADER || 'X-API-Key' }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -305,7 +305,7 @@ jobs:
 
       - name: Install cosign for signature verification
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Verify pinned image signatures (cosign keyless)
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
@@ -400,7 +400,7 @@ jobs:
 
       - name: Set up Python for smoke test
         if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -484,7 +484,7 @@ jobs:
 
       - name: Upload Spark smoke artifacts
         if: ${{ always() && steps.resolve.outputs.run_smoke == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spark-deploy-smoke
           path: backend/evidence/smoke

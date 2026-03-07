@@ -21,8 +21,8 @@ jobs:
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Generate cost governance snapshot
@@ -54,7 +54,7 @@ jobs:
         run: |
           cat ops/reports/cost_governance_snapshot.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload governance artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cost-governance-snapshot
           path: ops/reports/cost_governance_snapshot.*

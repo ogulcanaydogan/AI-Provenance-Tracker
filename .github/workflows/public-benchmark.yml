@@ -44,7 +44,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Evaluate cost policy gate
         id: gate
         run: |
@@ -89,7 +89,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: public-benchmark-cost-gate
           path: benchmark/results/ci/cost_gate.*
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Resolve benchmark profile
         id: profile
         run: |
@@ -123,7 +123,7 @@ jobs:
             echo "target_profile=${target_profile}"
             echo "baseline_snapshot=${baseline_snapshot}"
           } >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install backend dependencies
@@ -189,7 +189,7 @@ jobs:
             kill "$(cat benchmark/results/ci/backend.pid)" || true
           fi
       - name: Upload benchmark artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: public-benchmark-artifacts
           path: benchmark/results/ci
