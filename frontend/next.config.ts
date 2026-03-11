@@ -1,6 +1,28 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
+function extractOrigin(rawUrl: string | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+const connectSrcValues = new Set<string>([
+  "'self'",
+  "http://localhost:*",
+  "https://*.vercel.app",
+]);
+
+for (const value of [process.env.NEXT_PUBLIC_API_URL, process.env.SPARK_PUBLIC_API_URL]) {
+  const origin = extractOrigin(value);
+  if (origin) connectSrcValues.add(origin);
+}
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -34,7 +56,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' http://localhost:* https://*.vercel.app",
+      `connect-src ${Array.from(connectSrcValues).join(" ")}`,
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

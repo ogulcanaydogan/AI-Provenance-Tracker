@@ -13,7 +13,11 @@ import {
   Verdict,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function normalizeApiUrl(rawUrl: string | undefined): string {
+  return (rawUrl || "http://localhost:8000").replace(/\/+$/, "");
+}
+
+const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 export type TextStreamEvent =
   | "started"
@@ -260,8 +264,28 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+function mapNetworkError(error: unknown): Error {
+  if (error instanceof TypeError && /Failed to fetch/i.test(error.message)) {
+    return new Error(
+      `Cannot reach API at ${API_URL}. Check NEXT_PUBLIC_API_URL and allowed CORS/CSP origins.`
+    );
+  }
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error("Request failed");
+}
+
+async function request(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    throw mapNetworkError(error);
+  }
+}
+
 export async function detectText(text: string): Promise<DetectionResult> {
-  const response = await fetch(`${API_URL}/api/v1/detect/text`, {
+  const response = await request(`${API_URL}/api/v1/detect/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -336,7 +360,7 @@ export async function detectTextStream(
   text: string,
   onProgress?: (progress: TextStreamProgress) => void,
 ): Promise<DetectionResult> {
-  const response = await fetch(`${API_URL}/api/v1/detect/stream/text`, {
+  const response = await request(`${API_URL}/api/v1/detect/stream/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -407,7 +431,7 @@ export async function detectTextStream(
 export async function detectImage(file: File): Promise<DetectionResult> {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch(`${API_URL}/api/v1/detect/image`, {
+  const response = await request(`${API_URL}/api/v1/detect/image`, {
     method: "POST",
     body: formData,
   });
@@ -418,7 +442,7 @@ export async function detectImage(file: File): Promise<DetectionResult> {
 export async function detectAudio(file: File): Promise<DetectionResult> {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch(`${API_URL}/api/v1/detect/audio`, {
+  const response = await request(`${API_URL}/api/v1/detect/audio`, {
     method: "POST",
     body: formData,
   });
@@ -429,7 +453,7 @@ export async function detectAudio(file: File): Promise<DetectionResult> {
 export async function detectVideo(file: File): Promise<DetectionResult> {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch(`${API_URL}/api/v1/detect/video`, {
+  const response = await request(`${API_URL}/api/v1/detect/video`, {
     method: "POST",
     body: formData,
   });
@@ -449,7 +473,7 @@ export async function getHistory(
   });
   if (contentType) params.set("content_type", contentType);
 
-  const response = await fetch(
+  const response = await request(
     `${API_URL}/api/v1/analyze/history?${params.toString()}`
   );
   const payload = await handleResponse<BackendHistoryResponse>(response);
@@ -475,7 +499,7 @@ export function getExportUrl(
 }
 
 export async function getAnalysis(id: string): Promise<DetectionResult> {
-  const response = await fetch(`${API_URL}/api/v1/analyze/detailed`, {
+  const response = await request(`${API_URL}/api/v1/analyze/detailed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -495,13 +519,13 @@ export async function getAnalysis(id: string): Promise<DetectionResult> {
 
 export async function getDashboard(days = 14): Promise<BackendDashboardResponse> {
   const boundedDays = Math.max(1, Math.min(days, 90));
-  const response = await fetch(`${API_URL}/api/v1/analyze/dashboard?days=${boundedDays}`);
+  const response = await request(`${API_URL}/api/v1/analyze/dashboard?days=${boundedDays}`);
   return handleResponse<BackendDashboardResponse>(response);
 }
 
 export async function getEvaluation(days = 90): Promise<BackendEvaluationResponse> {
   const boundedDays = Math.max(1, Math.min(days, 365));
-  const response = await fetch(`${API_URL}/api/v1/analyze/evaluation?days=${boundedDays}`);
+  const response = await request(`${API_URL}/api/v1/analyze/evaluation?days=${boundedDays}`);
   return handleResponse<BackendEvaluationResponse>(response);
 }
 
@@ -515,7 +539,7 @@ export async function getXCollectEstimate(
       ? undefined
       : Math.max(1, Math.min(payload.max_pages, 10));
 
-  const response = await fetch(`${API_URL}/api/v1/intel/x/collect/estimate`, {
+  const response = await request(`${API_URL}/api/v1/intel/x/collect/estimate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

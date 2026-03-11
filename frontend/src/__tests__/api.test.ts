@@ -59,6 +59,14 @@ describe("detectText", () => {
 
     await expect(detectText("short")).rejects.toThrow("Validation error");
   });
+
+  it("maps fetch network failures to actionable API URL error", async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    await expect(detectText("network")).rejects.toThrow(
+      "Cannot reach API at http://localhost:8000. Check NEXT_PUBLIC_API_URL and allowed CORS/CSP origins.",
+    );
+  });
 });
 
 describe("getHistory", () => {
