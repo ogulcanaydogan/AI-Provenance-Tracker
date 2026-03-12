@@ -66,12 +66,31 @@ jobs:
             FP_PENALTY="${{ github.event.inputs.fp_penalty }}" \
             RUN_NAME="v11_text_fp_a100_${{ github.run_id }}"
 
+      - name: Resolve trained model path
+        run: |
+          MODEL_PATH="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          latest_path = Path("backend/evidence/models/text/latest.json")
+          payload = json.loads(latest_path.read_text(encoding="utf-8"))
+          print(payload.get("model_path", ""))
+          PY
+          )"
+          if [ -z "$MODEL_PATH" ]; then
+            echo "Could not resolve model path from backend/evidence/models/text/latest.json" >&2
+            exit 1
+          fi
+          echo "TEXT_DETECTION_MODEL_PATH=$MODEL_PATH" >> "$GITHUB_ENV"
+          echo "Resolved model path: $MODEL_PATH"
+
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
 
       - name: Upload training artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: text-training-artifacts-a100
@@ -114,12 +133,31 @@ jobs:
         run: |
           make sweep-text-v100 EXECUTE=1 PROFILE="${{ matrix.profile }}"
 
+      - name: Resolve trained model path
+        run: |
+          MODEL_PATH="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          latest_path = Path("backend/evidence/models/text/latest.json")
+          payload = json.loads(latest_path.read_text(encoding="utf-8"))
+          print(payload.get("model_path", ""))
+          PY
+          )"
+          if [ -z "$MODEL_PATH" ]; then
+            echo "Could not resolve model path from backend/evidence/models/text/latest.json" >&2
+            exit 1
+          fi
+          echo "TEXT_DETECTION_MODEL_PATH=$MODEL_PATH" >> "$GITHUB_ENV"
+          echo "Resolved model path: $MODEL_PATH"
+
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
 
       - name: Upload training artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: text-training-artifacts-${{ matrix.profile }}
