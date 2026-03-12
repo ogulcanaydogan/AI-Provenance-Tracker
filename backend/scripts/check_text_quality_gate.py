@@ -27,6 +27,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _to_float(value: Any, default: float) -> float:
+    """Parse numeric values without treating 0.0 as missing."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _failures(payload: dict[str, Any], args: argparse.Namespace) -> list[str]:
     failures: list[str] = []
 
@@ -37,15 +47,15 @@ def _failures(payload: dict[str, Any], args: argparse.Namespace) -> list[str]:
     best_metrics = (
         payload.get("best_metrics", {}) if isinstance(payload.get("best_metrics"), dict) else {}
     )
-    fp_rate = float(best_metrics.get("fp_rate", 1.0) or 1.0)
+    fp_rate = _to_float(best_metrics.get("fp_rate"), 1.0)
     if fp_rate > float(args.max_fp_rate):
         failures.append(f"fp_rate {fp_rate:.4f} > max_fp_rate {float(args.max_fp_rate):.4f}")
 
-    ece = float(payload.get("ece", 1.0) or 1.0)
+    ece = _to_float(payload.get("ece"), 1.0)
     if ece > float(args.max_ece):
         failures.append(f"ece {ece:.4f} > max_ece {float(args.max_ece):.4f}")
 
-    margin = float(payload.get("recommended_uncertainty_margin", 1.0) or 1.0)
+    margin = _to_float(payload.get("recommended_uncertainty_margin"), 1.0)
     if margin > float(args.max_uncertainty_margin):
         failures.append(
             f"uncertainty_margin {margin:.4f} > max_uncertainty_margin {float(args.max_uncertainty_margin):.4f}"
@@ -97,9 +107,9 @@ def run() -> int:
         "report": str(report_path),
         "status": "ok",
         "sample_count": int(payload.get("sample_count", 0) or 0),
-        "fp_rate": float(best_metrics.get("fp_rate", 1.0) or 1.0),
-        "ece": float(payload.get("ece", 1.0) or 1.0),
-        "uncertainty_margin": float(payload.get("recommended_uncertainty_margin", 1.0) or 1.0),
+        "fp_rate": _to_float(best_metrics.get("fp_rate"), 1.0),
+        "ece": _to_float(payload.get("ece"), 1.0),
+        "uncertainty_margin": _to_float(payload.get("recommended_uncertainty_margin"), 1.0),
         "failures": _failures(payload, args),
     }
     if summary["failures"]:

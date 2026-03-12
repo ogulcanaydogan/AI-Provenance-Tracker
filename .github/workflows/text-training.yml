@@ -31,6 +31,10 @@ on:
           - v11_fp_sweep_lr25e5_pen18
           - v11_fp_sweep_lr1e5_pen22
         default: all
+      cuda_visible_devices:
+        description: "CUDA_VISIBLE_DEVICES value to pin training GPU(s)"
+        required: true
+        default: "0"
 
 permissions:
   contents: read
@@ -40,6 +44,8 @@ jobs:
     if: ${{ github.event.inputs.training_mode == 'a100_single' }}
     runs-on: [self-hosted, linux, x64, spark, a100]
     timeout-minutes: 360
+    env:
+      CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -114,6 +120,8 @@ jobs:
     if: ${{ github.event.inputs.training_mode == 'v100_sweep' }}
     runs-on: [self-hosted, linux, x64, spark, v100]
     timeout-minutes: 360
+    env:
+      CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
     strategy:
       fail-fast: false
       matrix:
