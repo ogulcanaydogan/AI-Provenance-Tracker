@@ -41,6 +41,7 @@ class Settings(BaseSettings):
 
     # Detection settings
     text_detection_model: str = "roberta-base"
+    text_detection_model_path: str = ""
     image_detection_model: str = "resnet50"
     text_calibration_profile_path: str = "app/detection/text/calibration_profile.json"
     max_text_length: int = 50000

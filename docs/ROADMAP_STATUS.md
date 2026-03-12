@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-07 (v1.0.0 closure finalized)
+Last updated: 2026-03-12 (Platform T&S best-in-class kickoff)
 
 ## Overall
 
@@ -8,7 +8,27 @@ Last updated: 2026-03-07 (v1.0.0 closure finalized)
 - Credibility-first sprint objectives are implemented and extended with closure hardening.
 - Operational rollout remains completed on Spark (self-hosted path + smoke evidence).
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
+- Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## Platform T&S Best-in-Class Track (v1.1 kickoff)
+
+- Domain-aware text calibration enabled:
+  - detector now supports domain profile selection (`news|social|marketing|academic|code-doc|general`) with fallback inference
+  - calibration script now supports per-domain profile generation (`--include-domain-profiles`)
+- API response standardization extended with non-breaking fields:
+  - `model_version`
+  - `calibration_version`
+  - `provider_evidence[]`
+- Benchmark live scoring now sends text domain hints and includes growth-ready profile targets:
+  - `benchmark/config/benchmark_targets.yaml` includes `full_v3` (3000 target)
+  - `benchmark/config/benchmark_profiles.yaml` includes `full_v3` caps
+- Operational command added for recurring calibration refresh:
+  - `make calibrate-text`
+- GPU-aware training pipeline added for v1.1:
+  - training scripts for targeted fine-tuning + V100 sweeps
+  - weekly calibration now enforces FP/ECE quality gate
+  - manual self-hosted workflow for text training (`.github/workflows/text-training.yml`)
 
 ## Baseline Lock
 

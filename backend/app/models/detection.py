@@ -87,6 +87,17 @@ class ProviderConsensusVote(BaseModel):
       verification_status: Optional[Literal["verified", "unverified", "unsupported", "error"]] = None
 
 
+class ProviderEvidence(BaseModel):
+      """Condensed provider evidence for UI/API consumers."""
+      provider: Literal["internal", "copyleaks", "reality_defender", "hive", "c2pa"]
+      probability: float = Field(..., ge=0, le=1)
+      status: Literal["ok", "unavailable", "unsupported", "error"]
+      rationale: str
+      evidence_type: Optional[Literal["c2pa_manifest", "external_api", "heuristic"]] = None
+      evidence_ref: Optional[str] = None
+      verification_status: Optional[Literal["verified", "unverified", "unsupported", "error"]] = None
+
+
 class ConsensusSummary(BaseModel):
       """Weighted consensus output across configured providers."""
       final_probability: float = Field(..., ge=0, le=1)
@@ -100,6 +111,12 @@ class TextDetectionRequest(BaseModel):
       """Request to detect AI-generated text."""
       text: str = Field(..., min_length=1, max_length=50000, description="Text to analyze")
       language: Optional[str] = Field(None, description="Language code (auto-detected if not provided)")
+      domain: Optional[
+          Literal["news", "social", "marketing", "academic", "code-doc", "general"]
+      ] = Field(
+          None,
+          description="Optional domain hint used for domain-aware calibration profile selection",
+      )
 
       model_config = {
           "json_schema_extra": {
@@ -140,6 +157,18 @@ class TextDetectionResponse(BaseModel):
       analysis: TextAnalysis = Field(..., description="Detailed analysis metrics")
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      model_version: Optional[str] = Field(
+          None,
+          description="Detector model version used to generate this result",
+      )
+      calibration_version: Optional[str] = Field(
+          None,
+          description="Calibration profile version used for thresholding",
+      )
+      provider_evidence: list[ProviderEvidence] = Field(
+          default_factory=list,
+          description="Flattened provider evidence list derived from consensus providers",
+      )
       consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
@@ -154,6 +183,9 @@ class ImageDetectionResponse(BaseModel):
       filename: str = Field(..., description="Original filename")
       dimensions: tuple[int, int] = Field(..., description="Image dimensions (width, height)")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      model_version: Optional[str] = Field(None, description="Detector model version")
+      calibration_version: Optional[str] = Field(None, description="Calibration profile version")
+      provider_evidence: list[ProviderEvidence] = Field(default_factory=list)
       consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
@@ -167,6 +199,9 @@ class AudioDetectionResponse(BaseModel):
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       filename: str = Field(..., description="Original filename")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      model_version: Optional[str] = Field(None, description="Detector model version")
+      calibration_version: Optional[str] = Field(None, description="Calibration profile version")
+      provider_evidence: list[ProviderEvidence] = Field(default_factory=list)
       consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 
@@ -180,6 +215,9 @@ class VideoDetectionResponse(BaseModel):
       explanation: str = Field(..., description="Human-readable explanation of the detection")
       filename: str = Field(..., description="Original filename")
       processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+      model_version: Optional[str] = Field(None, description="Detector model version")
+      calibration_version: Optional[str] = Field(None, description="Calibration profile version")
+      provider_evidence: list[ProviderEvidence] = Field(default_factory=list)
       consensus: Optional[ConsensusSummary] = Field(None, description="Multi-provider consensus details")
 
 

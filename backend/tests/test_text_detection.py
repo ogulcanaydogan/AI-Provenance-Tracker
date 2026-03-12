@@ -1,6 +1,9 @@
 """Tests for text detection engine."""
 
+from pathlib import Path
+
 import pytest
+from app.core.config import settings
 from app.detection.text.detector import TextDetector
 
 
@@ -135,3 +138,35 @@ class TestTextPreprocessing:
         assert band_human == "human"
         assert band_uncertain == "uncertain"
         assert reason is not None
+
+    def test_domain_profile_override_resolution(self):
+        detector = TextDetector()
+        detector._calibration_profile["domain_profiles"] = {
+            "news": {"decision_threshold": 0.22, "uncertainty_margin": 0.03},
+            "general": {"decision_threshold": 0.48, "uncertainty_margin": 0.05},
+        }
+
+        news_profile, news_domain = detector._resolve_calibration_profile("news")
+        general_profile, general_domain = detector._resolve_calibration_profile("general")
+
+        assert news_domain == "news"
+        assert general_domain == "general"
+        assert news_profile["decision_threshold"] == 0.22
+        assert general_profile["decision_threshold"] == 0.48
+
+    def test_resolve_model_id_prefers_existing_local_path(self, tmp_path: Path):
+        detector = TextDetector()
+        model_dir = tmp_path / "dummy-model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+
+        original_path = settings.text_detection_model_path
+        original_model = settings.text_detection_model
+        settings.text_detection_model_path = str(model_dir)
+        settings.text_detection_model = "distilroberta-base"
+        try:
+            resolved = detector._resolve_model_id()
+        finally:
+            settings.text_detection_model_path = original_path
+            settings.text_detection_model = original_model
+
+        assert resolved == str(model_dir)

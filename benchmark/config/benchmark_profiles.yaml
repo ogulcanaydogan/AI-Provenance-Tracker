@@ -13,6 +13,13 @@
       "tamper_detection": 375,
       "audio_ai_vs_human_detection": 75,
       "video_ai_vs_human_detection": 75
+    },
+    "full_v3": {
+      "ai_vs_human_detection": 1350,
+      "source_attribution": 600,
+      "tamper_detection": 750,
+      "audio_ai_vs_human_detection": 150,
+      "video_ai_vs_human_detection": 150
     }
   }
 }

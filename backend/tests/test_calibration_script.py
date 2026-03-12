@@ -96,3 +96,39 @@ async def test_score_samples_text_from_input_ref(
 
     assert scores == [(0.22, False)]
     assert skipped == 0
+
+
+@pytest.mark.asyncio
+async def test_score_text_samples_by_domain_normalizes_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script_module()
+    sample_path = tmp_path / "sample.txt"
+    sample_path.write_text("This text fixture is used for per-domain calibration scoring.", encoding="utf-8")
+
+    monkeypatch.setattr(module, "TextDetector", _DummyTextDetector)
+    domain_scores, skipped = await module._score_text_samples_by_domain(
+        [
+            {"input_ref": str(sample_path), "label_is_ai": False, "domain": "science"},
+            {"input_ref": str(sample_path), "label_is_ai": True, "domain": "code"},
+        ]
+    )
+
+    assert skipped == 0
+    assert set(domain_scores.keys()) == {"academic", "code-doc"}
+    assert domain_scores["academic"] == [(0.22, False)]
+    assert domain_scores["code-doc"] == [(0.22, True)]
+
+
+def test_calibration_error_metrics_in_expected_range() -> None:
+    module = _load_script_module()
+    metrics = module._calibration_error_metrics(
+        [
+            (0.9, True),
+            (0.8, True),
+            (0.2, False),
+            (0.1, False),
+        ]
+    )
+    assert 0 <= metrics["ece"] <= 1
+    assert 0 <= metrics["brier_score"] <= 1

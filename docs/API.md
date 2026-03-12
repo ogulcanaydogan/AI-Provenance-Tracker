@@ -116,21 +116,34 @@ Content-Type: application/json
 
 ```json
 {
-  "text": "The text to analyse (50–50 000 characters)."
+  "text": "The text to analyse (50–50 000 characters).",
+  "domain": "news"
 }
 ```
+
+- `domain` is optional and can be one of: `news`, `social`, `marketing`, `academic`, `code-doc`, `general`.
+- If omitted, backend applies automatic domain inference and fallback calibration.
 
 **Response (200):**
 
 ```json
 {
   "analysis_id": "abc123",
-  "content_type": "text",
-  "verdict": "ai_generated",
-  "confidence_score": 0.92,
-  "summary": "High confidence AI-generated text detected.",
-  "signals": [...],
-  "analyzed_at": "2025-06-01T12:00:00Z"
+  "is_ai_generated": true,
+  "confidence": 0.92,
+  "decision_band": "ai",
+  "distance_to_threshold": 0.17,
+  "uncertainty_reason": null,
+  "model_version": "text-detector:roberta-base",
+  "calibration_version": "calibrated-20260312:news",
+  "provider_evidence": [],
+  "consensus": {
+    "final_probability": 0.92,
+    "threshold": 0.5,
+    "is_ai_generated": true,
+    "disagreement": 0.08,
+    "providers": []
+  }
 }
 ```
 

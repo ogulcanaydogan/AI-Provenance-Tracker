@@ -49,6 +49,17 @@ def parse_args() -> argparse.Namespace:
         help="Minimum scored samples required to accept calibration output.",
     )
     parser.add_argument(
+        "--min-domain-samples",
+        type=int,
+        default=40,
+        help="Minimum scored samples required before emitting per-domain calibration entries.",
+    )
+    parser.add_argument(
+        "--include-domain-profiles",
+        action="store_true",
+        help="For text modality, compute per-domain threshold and uncertainty profiles.",
+    )
+    parser.add_argument(
         "--register",
         action="store_true",
         help="Also copy report into registry directory for dashboard trend tracking.",
@@ -98,6 +109,42 @@ def _threshold_metrics(scores: list[tuple[float, bool]], threshold: float) -> di
         "fp": fp,
         "tn": tn,
         "fn": fn,
+    }
+
+
+def _calibration_error_metrics(
+    scores: list[tuple[float, bool]],
+    *,
+    bins: int = 10,
+) -> dict[str, float]:
+    if not scores:
+        return {"ece": 0.0, "brier_score": 0.0}
+
+    probabilities = np.array([score for score, _ in scores], dtype=float)
+    labels = np.array([1.0 if is_ai else 0.0 for _, is_ai in scores], dtype=float)
+    probabilities = np.clip(probabilities, 0.0, 1.0)
+    brier = float(np.mean((probabilities - labels) ** 2))
+
+    bin_edges = np.linspace(0.0, 1.0, bins + 1)
+    ece = 0.0
+    sample_count = len(scores)
+    for index in range(bins):
+        lower = bin_edges[index]
+        upper = bin_edges[index + 1]
+        if index == bins - 1:
+            mask = (probabilities >= lower) & (probabilities <= upper)
+        else:
+            mask = (probabilities >= lower) & (probabilities < upper)
+        if not np.any(mask):
+            continue
+        confidence_bin = float(np.mean(probabilities[mask]))
+        accuracy_bin = float(np.mean(labels[mask]))
+        weight = float(np.sum(mask)) / sample_count
+        ece += abs(confidence_bin - accuracy_bin) * weight
+
+    return {
+        "ece": round(float(ece), 4),
+        "brier_score": round(brier, 4),
     }
 
 
@@ -153,6 +200,28 @@ def _estimate_uncertainty_margin(scores: list[tuple[float, bool]], threshold: fl
     return round(float(np.clip(raw_margin, 0.04, 0.18)), 3)
 
 
+def _normalize_domain(value: Any) -> str:
+    if not isinstance(value, str):
+        return "general"
+    normalized = value.strip().lower().replace("_", "-")
+    aliases = {
+        "news": "news",
+        "social": "social",
+        "marketing": "marketing",
+        "finance": "marketing",
+        "code": "code-doc",
+        "code-doc": "code-doc",
+        "codedoc": "code-doc",
+        "academic": "academic",
+        "education": "academic",
+        "science": "academic",
+        "legal": "academic",
+        "health": "general",
+        "general": "general",
+    }
+    return aliases.get(normalized, "general")
+
+
 async def _score_samples(
     samples: list[dict[str, Any]], content_type: str
 ) -> tuple[list[tuple[float, bool]], int]:
@@ -194,6 +263,26 @@ async def _score_samples(
             continue
         scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
     return scores, skipped_samples
+
+
+async def _score_text_samples_by_domain(
+    samples: list[dict[str, Any]],
+) -> tuple[dict[str, list[tuple[float, bool]]], int]:
+    detector = TextDetector()
+    domain_scores: dict[str, list[tuple[float, bool]]] = {}
+    skipped = 0
+    for sample in samples:
+        modality = str(sample.get("modality", "text")).strip().lower()
+        if modality and modality != "text":
+            continue
+        text = _resolve_text_sample(sample)
+        if not text:
+            skipped += 1
+            continue
+        result = await detector.detect(text)
+        domain = _normalize_domain(sample.get("domain"))
+        domain_scores.setdefault(domain, []).append((float(result.confidence), bool(sample.get("label_is_ai"))))
+    return domain_scores, skipped
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -240,6 +329,7 @@ async def run() -> int:
         ),
     )
     uncertainty_margin = _estimate_uncertainty_margin(scores, best["threshold"])
+    calibration_errors = _calibration_error_metrics(scores)
 
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
@@ -249,9 +339,37 @@ async def run() -> int:
         "skipped_samples": skipped_samples,
         "recommended_threshold": best["threshold"],
         "recommended_uncertainty_margin": uncertainty_margin,
+        "ece": calibration_errors["ece"],
+        "brier_score": calibration_errors["brier_score"],
         "best_metrics": best,
         "all_thresholds": metrics,
     }
+
+    if args.content_type == "text" and args.include_domain_profiles:
+        domain_scores, _domain_skipped = await _score_text_samples_by_domain(samples)
+        domain_profiles: dict[str, dict[str, Any]] = {}
+        for domain, domain_values in sorted(domain_scores.items()):
+            if len(domain_values) < args.min_domain_samples:
+                continue
+            domain_metrics = [_threshold_metrics(domain_values, threshold) for threshold in thresholds]
+            domain_best = max(
+                domain_metrics,
+                key=lambda item: (
+                    item["f1"] - (item["fp_rate"] * 0.35),
+                    item["accuracy"],
+                    -item["fp_rate"],
+                ),
+            )
+            domain_profiles[domain] = {
+                "sample_count": len(domain_values),
+                "recommended_threshold": domain_best["threshold"],
+                "recommended_uncertainty_margin": _estimate_uncertainty_margin(
+                    domain_values, domain_best["threshold"]
+                ),
+                **_calibration_error_metrics(domain_values),
+                "best_metrics": domain_best,
+            }
+        report["domain_profiles"] = domain_profiles
 
     output_path = Path(args.output).expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -269,6 +387,15 @@ async def run() -> int:
             "uncertainty_margin": uncertainty_margin,
             "calibrated_at": datetime.now(UTC).isoformat(),
         }
+        if args.include_domain_profiles and isinstance(report.get("domain_profiles"), dict):
+            profile_payload["domain_profiles"] = {
+                domain: {
+                    "decision_threshold": details["recommended_threshold"],
+                    "uncertainty_margin": details["recommended_uncertainty_margin"],
+                    "sample_count": details["sample_count"],
+                }
+                for domain, details in report["domain_profiles"].items()
+            }
         profile_path = Path(args.profile_output).expanduser()
         if not profile_path.is_absolute():
             profile_path = (BACKEND_ROOT / profile_path).resolve()

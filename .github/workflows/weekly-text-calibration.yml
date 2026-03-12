@@ -35,7 +35,19 @@ jobs:
             --output evidence/calibration/text/latest_text_calibration.json \
             --write-profile \
             --profile-output app/detection/text/calibration_profile.json \
-            --min-samples 100
+            --min-samples 120 \
+            --include-domain-profiles \
+            --min-domain-samples 40
+
+      - name: Enforce text quality gate (FP + ECE)
+        run: |
+          python backend/scripts/check_text_quality_gate.py \
+            --report backend/evidence/calibration/text/latest_text_calibration.json \
+            --max-fp-rate 0.08 \
+            --max-ece 0.08 \
+            --min-sample-count 120 \
+            --output-json backend/evidence/calibration/text/quality_gate.json \
+            --output-md backend/evidence/calibration/text/quality_gate.md
 
       - name: Enforce golden-pair regression gate
         run: |
@@ -49,12 +61,18 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path('backend/evidence/calibration/text/latest_text_calibration.json').read_text(encoding='utf-8'))
+          gate = json.loads(Path('backend/evidence/calibration/text/quality_gate.json').read_text(encoding='utf-8'))
+          domain_profiles = report.get('domain_profiles', {})
           out = Path('calibration-summary.md')
           out.write_text(
               "## Weekly Text Calibration Summary\\n"
               f"- sample_count: {report.get('sample_count')}\\n"
               f"- recommended_threshold: {report.get('recommended_threshold')}\\n"
-              f"- recommended_uncertainty_margin: {report.get('recommended_uncertainty_margin')}\\n",
+              f"- recommended_uncertainty_margin: {report.get('recommended_uncertainty_margin')}\\n"
+              f"- ece: {report.get('ece')}\\n"
+              f"- brier_score: {report.get('brier_score')}\\n"
+              f"- quality_gate: {gate.get('status')}\\n"
+              f"- domain_profiles_count: {len(domain_profiles)}\\n",
               encoding='utf-8',
           )
           print(out.read_text(encoding='utf-8'))
@@ -66,6 +84,8 @@ jobs:
           name: weekly-text-calibration-report
           path: |
             backend/evidence/calibration/text/latest_text_calibration.json
+            backend/evidence/calibration/text/quality_gate.json
+            backend/evidence/calibration/text/quality_gate.md
             calibration-summary.md
           retention-days: 30
 

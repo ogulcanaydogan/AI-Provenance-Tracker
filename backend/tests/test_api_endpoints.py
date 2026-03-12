@@ -79,7 +79,24 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
     assert "analysis" in payload
     assert "explanation" in payload
     assert "consensus" in payload
+    assert "model_version" in payload
+    assert "calibration_version" in payload
+    assert "provider_evidence" in payload
     assert payload["consensus"]["providers"][0]["provider"] == "internal"
+
+
+@pytest.mark.asyncio
+async def test_text_detection_accepts_domain_hint(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/detect/text",
+        json={
+            "text": "This is a sufficiently long sample text for API testing with domain hints." * 4,
+            "domain": "news",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["calibration_version"].endswith(":news")
 
 
 @pytest.mark.asyncio
