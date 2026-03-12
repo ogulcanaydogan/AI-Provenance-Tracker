@@ -243,9 +243,7 @@ class TextDetector:
         """Classify score into human/uncertain/ai using profile thresholds."""
         profile = calibration_profile or self._calibration_profile
         effective_threshold = (
-            float(threshold)
-            if threshold is not None
-            else float(profile["decision_threshold"])
+            float(threshold) if threshold is not None else float(profile["decision_threshold"])
         )
         margin = float(profile["uncertainty_margin"])
         min_words = int(profile["short_text_min_words"])
@@ -688,9 +686,7 @@ class TextDetector:
 
         return "general"
 
-    def _resolve_calibration_profile(
-        self, domain: Optional[str]
-    ) -> tuple[dict[str, object], str]:
+    def _resolve_calibration_profile(self, domain: Optional[str]) -> tuple[dict[str, object], str]:
         normalized_domain = self._normalize_domain(domain) or "general"
         base_profile = {
             **self._calibration_profile,

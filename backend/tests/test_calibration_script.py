@@ -104,7 +104,9 @@ async def test_score_text_samples_by_domain_normalizes_labels(
 ) -> None:
     module = _load_script_module()
     sample_path = tmp_path / "sample.txt"
-    sample_path.write_text("This text fixture is used for per-domain calibration scoring.", encoding="utf-8")
+    sample_path.write_text(
+        "This text fixture is used for per-domain calibration scoring.", encoding="utf-8"
+    )
 
     monkeypatch.setattr(module, "TextDetector", _DummyTextDetector)
     domain_scores, skipped = await module._score_text_samples_by_domain(

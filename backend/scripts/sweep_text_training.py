@@ -9,14 +9,18 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Hyperparameter sweep wrapper for train_text_detector.py")
+    parser = argparse.ArgumentParser(
+        description="Hyperparameter sweep wrapper for train_text_detector.py"
+    )
     parser.add_argument(
         "--execute",
         action="store_true",
         help="Execute commands; otherwise print them only.",
     )
     parser.add_argument("--dataset", default="backend/evidence/samples/text_labeled_expanded.jsonl")
-    parser.add_argument("--hard-negatives", default="backend/evidence/samples/text_hard_negatives.jsonl")
+    parser.add_argument(
+        "--hard-negatives", default="backend/evidence/samples/text_hard_negatives.jsonl"
+    )
     parser.add_argument("--output-dir", default="backend/evidence/models/text")
     parser.add_argument("--base-model", default="distilroberta-base")
     return parser.parse_args()
@@ -46,9 +50,36 @@ def _commands(args: argparse.Namespace) -> list[list[str]]:
     ]
 
     profiles = [
-        ["--run-name", "v11_fp_sweep_lr2e5_pen17", "--learning-rate", "2e-5", "--fp-penalty", "1.7", "--seed", "42"],
-        ["--run-name", "v11_fp_sweep_lr3e5_pen20", "--learning-rate", "3e-5", "--fp-penalty", "2.0", "--seed", "43"],
-        ["--run-name", "v11_fp_sweep_lr15e5_pen15", "--learning-rate", "1.5e-5", "--fp-penalty", "1.5", "--seed", "44"],
+        [
+            "--run-name",
+            "v11_fp_sweep_lr2e5_pen17",
+            "--learning-rate",
+            "2e-5",
+            "--fp-penalty",
+            "1.7",
+            "--seed",
+            "42",
+        ],
+        [
+            "--run-name",
+            "v11_fp_sweep_lr3e5_pen20",
+            "--learning-rate",
+            "3e-5",
+            "--fp-penalty",
+            "2.0",
+            "--seed",
+            "43",
+        ],
+        [
+            "--run-name",
+            "v11_fp_sweep_lr15e5_pen15",
+            "--learning-rate",
+            "1.5e-5",
+            "--fp-penalty",
+            "1.5",
+            "--seed",
+            "44",
+        ],
     ]
 
     return [base + profile for profile in profiles]

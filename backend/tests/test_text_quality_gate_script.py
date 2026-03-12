@@ -8,7 +8,7 @@ from pathlib import Path
 
 def _load_script_module(script_name: str) -> types.ModuleType:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / script_name
-    spec = importlib.util.spec_from_file_location(script_name.replace('.py', ''), script_path)
+    spec = importlib.util.spec_from_file_location(script_name.replace(".py", ""), script_path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

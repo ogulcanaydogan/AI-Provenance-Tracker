@@ -20,7 +20,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-ece", type=float, default=0.08)
     parser.add_argument("--min-sample-count", type=int, default=100)
     parser.add_argument("--max-uncertainty-margin", type=float, default=0.18)
-    parser.add_argument("--output-json", default="backend/evidence/calibration/text/quality_gate.json")
+    parser.add_argument(
+        "--output-json", default="backend/evidence/calibration/text/quality_gate.json"
+    )
     parser.add_argument("--output-md", default="backend/evidence/calibration/text/quality_gate.md")
     return parser.parse_args()
 
@@ -30,16 +32,14 @@ def _failures(payload: dict[str, Any], args: argparse.Namespace) -> list[str]:
 
     sample_count = int(payload.get("sample_count", 0) or 0)
     if sample_count < int(args.min_sample_count):
-        failures.append(
-            f"sample_count {sample_count} < minimum {int(args.min_sample_count)}"
-        )
+        failures.append(f"sample_count {sample_count} < minimum {int(args.min_sample_count)}")
 
-    best_metrics = payload.get("best_metrics", {}) if isinstance(payload.get("best_metrics"), dict) else {}
+    best_metrics = (
+        payload.get("best_metrics", {}) if isinstance(payload.get("best_metrics"), dict) else {}
+    )
     fp_rate = float(best_metrics.get("fp_rate", 1.0) or 1.0)
     if fp_rate > float(args.max_fp_rate):
-        failures.append(
-            f"fp_rate {fp_rate:.4f} > max_fp_rate {float(args.max_fp_rate):.4f}"
-        )
+        failures.append(f"fp_rate {fp_rate:.4f} > max_fp_rate {float(args.max_fp_rate):.4f}")
 
     ece = float(payload.get("ece", 1.0) or 1.0)
     if ece > float(args.max_ece):
@@ -90,7 +90,9 @@ def run() -> int:
     if not isinstance(payload, dict):
         raise SystemExit("Invalid report payload")
 
-    best_metrics = payload.get("best_metrics", {}) if isinstance(payload.get("best_metrics"), dict) else {}
+    best_metrics = (
+        payload.get("best_metrics", {}) if isinstance(payload.get("best_metrics"), dict) else {}
+    )
     summary = {
         "report": str(report_path),
         "status": "ok",

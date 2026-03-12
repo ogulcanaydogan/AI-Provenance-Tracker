@@ -72,7 +72,10 @@ def _format_sse(event: str, payload: dict) -> str:
 
 def _provider_evidence_from_consensus(
     consensus: (
-        TextDetectionResponse | ImageDetectionResponse | AudioDetectionResponse | VideoDetectionResponse
+        TextDetectionResponse
+        | ImageDetectionResponse
+        | AudioDetectionResponse
+        | VideoDetectionResponse
     ),
 ) -> list[ProviderEvidence]:
     if not consensus.consensus:

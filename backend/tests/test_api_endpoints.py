@@ -90,7 +90,8 @@ async def test_text_detection_accepts_domain_hint(client: AsyncClient):
     response = await client.post(
         "/api/v1/detect/text",
         json={
-            "text": "This is a sufficiently long sample text for API testing with domain hints." * 4,
+            "text": "This is a sufficiently long sample text for API testing with domain hints."
+            * 4,
             "domain": "news",
         },
     )

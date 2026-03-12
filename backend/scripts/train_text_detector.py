@@ -74,7 +74,9 @@ class WeightedTrainer(Trainer):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fine-tune text detector with FP-focused objective.")
+    parser = argparse.ArgumentParser(
+        description="Fine-tune text detector with FP-focused objective."
+    )
     parser.add_argument(
         "--dataset",
         default="backend/evidence/samples/text_labeled_expanded.jsonl",
@@ -169,7 +171,9 @@ def _domain_balanced_filter(samples: list[TextSample], min_domain_samples: int) 
     return filtered
 
 
-def _train_eval_split(samples: list[TextSample], eval_ratio: float, seed: int) -> tuple[list[TextSample], list[TextSample]]:
+def _train_eval_split(
+    samples: list[TextSample], eval_ratio: float, seed: int
+) -> tuple[list[TextSample], list[TextSample]]:
     rng = random.Random(seed)
     shuffled = samples[:]
     rng.shuffle(shuffled)
@@ -190,7 +194,9 @@ def _dataset_hash(samples: list[TextSample]) -> str:
     return hasher.hexdigest()
 
 
-def _to_dataset(samples: list[TextSample], tokenizer: AutoTokenizer, max_length: int) -> JsonlTextDataset:
+def _to_dataset(
+    samples: list[TextSample], tokenizer: AutoTokenizer, max_length: int
+) -> JsonlTextDataset:
     texts = [sample.text for sample in samples]
     labels = [sample.label for sample in samples]
     encodings = tokenizer(texts, truncation=True, padding=False, max_length=max_length)
@@ -306,7 +312,11 @@ def run() -> int:
         "dataset_hash": _dataset_hash(samples),
         "dataset_path": str(dataset_path),
         "hard_negatives_path": str(hard_negatives_path),
-        "metrics": {key: float(value) for key, value in eval_metrics.items() if isinstance(value, (int, float))},
+        "metrics": {
+            key: float(value)
+            for key, value in eval_metrics.items()
+            if isinstance(value, (int, float))
+        },
         "device": "cuda" if torch.cuda.is_available() else "cpu",
     }
 
@@ -314,7 +324,12 @@ def run() -> int:
     manifest_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
     latest_pointer = output_root / "latest.json"
-    latest_pointer.write_text(json.dumps({"run_id": run_id, "manifest": str(manifest_path)}, ensure_ascii=False, indent=2), encoding="utf-8")
+    latest_pointer.write_text(
+        json.dumps(
+            {"run_id": run_id, "manifest": str(manifest_path)}, ensure_ascii=False, indent=2
+        ),
+        encoding="utf-8",
+    )
 
     print(f"Training completed: {run_dir}")
     print(f"Manifest: {manifest_path}")

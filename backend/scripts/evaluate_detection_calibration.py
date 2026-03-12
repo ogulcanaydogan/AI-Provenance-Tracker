@@ -281,7 +281,9 @@ async def _score_text_samples_by_domain(
             continue
         result = await detector.detect(text)
         domain = _normalize_domain(sample.get("domain"))
-        domain_scores.setdefault(domain, []).append((float(result.confidence), bool(sample.get("label_is_ai"))))
+        domain_scores.setdefault(domain, []).append(
+            (float(result.confidence), bool(sample.get("label_is_ai")))
+        )
     return domain_scores, skipped
 
 
@@ -351,7 +353,9 @@ async def run() -> int:
         for domain, domain_values in sorted(domain_scores.items()):
             if len(domain_values) < args.min_domain_samples:
                 continue
-            domain_metrics = [_threshold_metrics(domain_values, threshold) for threshold in thresholds]
+            domain_metrics = [
+                _threshold_metrics(domain_values, threshold) for threshold in thresholds
+            ]
             domain_best = max(
                 domain_metrics,
                 key=lambda item: (

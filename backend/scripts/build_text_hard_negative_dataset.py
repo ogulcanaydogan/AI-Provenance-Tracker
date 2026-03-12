@@ -10,7 +10,9 @@ from typing import Any
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract hard negatives from scored benchmark rows.")
+    parser = argparse.ArgumentParser(
+        description="Extract hard negatives from scored benchmark rows."
+    )
     parser.add_argument(
         "--scored-samples",
         default="benchmark/results/latest/scored_samples.jsonl",
