@@ -14,6 +14,9 @@ interface TextAnalysis {
 interface DetectionResult {
   is_ai_generated: boolean;
   confidence: number;
+  decision_band?: "human" | "uncertain" | "ai";
+  distance_to_threshold?: number;
+  uncertainty_reason?: string | null;
   model_prediction: string | null;
   analysis: TextAnalysis;
   explanation: string;
@@ -128,6 +131,9 @@ export default function TextDetector() {
           type="text"
           isAiGenerated={result.is_ai_generated}
           confidence={result.confidence}
+          decisionBand={result.decision_band}
+          uncertaintyReason={result.uncertainty_reason}
+          distanceToThreshold={result.distance_to_threshold}
           modelPrediction={result.model_prediction}
           explanation={result.explanation}
           processingTime={result.processing_time_ms}

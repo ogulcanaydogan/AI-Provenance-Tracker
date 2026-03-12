@@ -91,7 +91,29 @@ async def _apply_consensus(
     )
     result.consensus = consensus
     result.confidence = consensus.final_probability
-    result.is_ai_generated = consensus.is_ai_generated
+    if isinstance(result, TextDetectionResponse):
+        word_count = None
+        sentence_count = None
+        if text:
+            words = re.findall(r"\b\w+\b", text.lower())
+            sentences = [segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()]
+            word_count = len(words)
+            sentence_count = len(sentences)
+        decision_band, distance, reason = text_detector.apply_decision_band(
+            confidence=result.confidence,
+            threshold=consensus.threshold,
+            word_count=word_count,
+            sentence_count=sentence_count,
+        )
+        result.decision_band = decision_band
+        result.distance_to_threshold = distance
+        result.uncertainty_reason = reason
+        result.is_ai_generated = decision_band == "ai"
+        if decision_band != "ai":
+            result.model_prediction = None
+    else:
+        result.is_ai_generated = consensus.is_ai_generated
+
     if result.is_ai_generated and result.model_prediction is None:
         result.model_prediction = AIModel.UNKNOWN
     return result
@@ -170,6 +192,7 @@ async def detect_text_stream(request: TextDetectionRequest) -> StreamingResponse
                     "stage": "internal_scored",
                     "confidence": internal_result.confidence,
                     "is_ai_generated": internal_result.is_ai_generated,
+                    "decision_band": internal_result.decision_band,
                     "model_prediction": internal_result.model_prediction.value
                     if internal_result.model_prediction
                     else None,

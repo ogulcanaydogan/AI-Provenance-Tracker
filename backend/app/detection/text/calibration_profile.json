@@ -1,26 +1,42 @@
 {
-  "version": "v1.0-expanded-corpus",
-  "source": "benchmark/datasets + benchmark/samples/text",
-  "sample_count": 330,
-  "decision_threshold": 0.47,
+  "version": "calibrated-20260312",
+  "decision_threshold": 0.45,
+  "uncertainty_margin": 0.047,
+  "short_text_min_words": 80,
+  "short_text_min_sentences": 3,
   "ml_weight": 0.38,
   "weights": {
-    "perplexity": 0.28,
-    "burstiness": 0.24,
-    "vocabulary_richness": 0.16,
-    "repetition": 0.20,
-    "sentence_length": 0.12
+    "perplexity": 0.2,
+    "burstiness": 0.18,
+    "vocabulary_richness": 0.12,
+    "repetition": 0.16,
+    "sentence_length": 0.1,
+    "punctuation_diversity": 0.08,
+    "stopword_ratio": 0.06,
+    "sentence_length_variance": 0.07,
+    "sentence_length_kurtosis": 0.03
   },
   "ranges": {
     "perplexity_low": 8.0,
     "perplexity_high": 42.0,
     "burstiness_low": 0.12,
     "burstiness_high": 0.72,
-    "vocab_richness_low": 0.20,
+    "vocab_richness_low": 0.2,
     "vocab_richness_high": 0.95,
     "repetition_low": 0.01,
-    "repetition_high": 0.30,
+    "repetition_high": 0.3,
     "sentence_len_low": 8.0,
-    "sentence_len_high": 28.0
-  }
+    "sentence_len_high": 28.0,
+    "punctuation_diversity_low": 0.08,
+    "punctuation_diversity_high": 0.7,
+    "stopword_ratio_low": 0.16,
+    "stopword_ratio_high": 0.62,
+    "sentence_var_low": 2.5,
+    "sentence_var_high": 60.0,
+    "sentence_kurtosis_low": -1.2,
+    "sentence_kurtosis_high": 4.0
+  },
+  "source": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/AI-Provenance-Tracker/benchmark/datasets/detection_multidomain.jsonl",
+  "sample_count": 495,
+  "calibrated_at": "2026-03-12T09:29:48.921355+00:00"
 }

@@ -44,6 +44,11 @@ class EvaluationStore:
                 continue
 
             best_metrics = payload.get("best_metrics", {})
+            fp_count = float(best_metrics.get("fp", 0.0))
+            tn_count = float(best_metrics.get("tn", 0.0))
+            fp_rate = float(best_metrics.get("fp_rate", 0.0))
+            if "fp_rate" not in best_metrics and (fp_count + tn_count) > 0:
+                fp_rate = fp_count / (fp_count + tn_count)
             rows.append(
                 {
                     "generated_at": generated_at,
@@ -55,6 +60,7 @@ class EvaluationStore:
                     "recall": float(best_metrics.get("recall", 0.0)),
                     "f1": float(best_metrics.get("f1", 0.0)),
                     "accuracy": float(best_metrics.get("accuracy", 0.0)),
+                    "false_positive_rate": fp_rate,
                 }
             )
 
@@ -73,6 +79,7 @@ class EvaluationStore:
                 "recall": row["recall"],
                 "f1": row["f1"],
                 "accuracy": row["accuracy"],
+                "false_positive_rate": row["false_positive_rate"],
             }
 
         alerts: list[dict[str, str]] = []
@@ -105,6 +112,7 @@ class EvaluationStore:
                 "recall": row["recall"],
                 "f1": row["f1"],
                 "accuracy": row["accuracy"],
+                "false_positive_rate": row["false_positive_rate"],
             }
             for row in rows
         ]

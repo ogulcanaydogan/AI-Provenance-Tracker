@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -77,7 +78,20 @@ async def batch_detect_text(request: BatchTextDetectionRequest) -> BatchTextDete
                 text=text,
             )
             detection.confidence = detection.consensus.final_probability
-            detection.is_ai_generated = detection.consensus.is_ai_generated
+            words = re.findall(r"\b\w+\b", text.lower())
+            sentences = [segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()]
+            decision_band, distance, reason = text_detector.apply_decision_band(
+                confidence=detection.confidence,
+                threshold=detection.consensus.threshold,
+                word_count=len(words),
+                sentence_count=len(sentences),
+            )
+            detection.decision_band = decision_band
+            detection.distance_to_threshold = distance
+            detection.uncertainty_reason = reason
+            detection.is_ai_generated = decision_band == "ai"
+            if decision_band != "ai":
+                detection.model_prediction = None
             detection.analysis_id = await analysis_store.save_text_result(
                 text=text,
                 result=detection,

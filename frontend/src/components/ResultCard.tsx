@@ -19,6 +19,9 @@ interface ResultCardProps {
   type: "text" | "image";
   isAiGenerated: boolean;
   confidence: number;
+  decisionBand?: "human" | "uncertain" | "ai";
+  uncertaintyReason?: string | null;
+  distanceToThreshold?: number;
   modelPrediction: string | null;
   explanation: string;
   processingTime: number;
@@ -30,6 +33,9 @@ export default function ResultCard({
   type,
   isAiGenerated,
   confidence,
+  decisionBand,
+  uncertaintyReason,
+  distanceToThreshold,
   modelPrediction,
   explanation,
   processingTime,
@@ -43,6 +49,16 @@ export default function ResultCard({
       : confidence > 0.5
       ? "confidence-medium"
       : "confidence-low";
+  const verdictLabel =
+    decisionBand === "uncertain"
+      ? "Uncertain — more text needed"
+      : decisionBand === "human"
+      ? "Likely Human-Created"
+      : decisionBand === "ai"
+      ? "Likely AI-Generated"
+      : isAiGenerated
+      ? "Likely AI-Generated"
+      : "Likely Human-Created";
 
   const isTextAnalysis = (a: TextAnalysis | ImageAnalysis): a is TextAnalysis => {
     return "perplexity" in a;
@@ -55,18 +71,25 @@ export default function ResultCard({
         <div className="flex items-center gap-3">
           <div
             className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-              isAiGenerated ? "bg-red-900/30" : "bg-green-900/30"
+              decisionBand === "uncertain"
+                ? "bg-yellow-900/30"
+                : isAiGenerated
+                ? "bg-red-900/30"
+                : "bg-green-900/30"
             }`}
           >
-            {isAiGenerated ? "🤖" : "👤"}
+            {decisionBand === "uncertain" ? "❓" : isAiGenerated ? "🤖" : "👤"}
           </div>
           <div>
-            <h3 className="font-semibold text-lg">
-              {isAiGenerated ? "Likely AI-Generated" : "Likely Human-Created"}
-            </h3>
+            <h3 className="font-semibold text-lg">{verdictLabel}</h3>
             {modelPrediction && (
               <p className="text-gray-500 text-sm">
                 Predicted model: {modelPrediction}
+              </p>
+            )}
+            {distanceToThreshold !== undefined && (
+              <p className="text-gray-500 text-xs">
+                Distance to threshold: {distanceToThreshold.toFixed(3)}
               </p>
             )}
           </div>
@@ -83,6 +106,9 @@ export default function ResultCard({
       {/* Explanation */}
       <div className="mb-6 p-4 bg-[#171717] rounded-lg">
         <p className="text-gray-300">{explanation}</p>
+        {decisionBand === "uncertain" && uncertaintyReason && (
+          <p className="text-yellow-300 text-sm mt-2">{uncertaintyReason}</p>
+        )}
       </div>
 
       {/* Analysis Details */}

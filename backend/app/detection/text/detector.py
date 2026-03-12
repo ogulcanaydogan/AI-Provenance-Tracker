@@ -20,12 +20,59 @@ except ImportError:
     ML_AVAILABLE = False
     torch = None
 
-from app.models.detection import (
-    AIModel,
-    TextAnalysis,
-    TextDetectionResponse,
-)
 from app.core.config import settings
+from app.models.detection import AIModel, TextAnalysis, TextDetectionResponse
+
+
+STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "he",
+    "in",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "that",
+    "the",
+    "to",
+    "was",
+    "were",
+    "will",
+    "with",
+    "this",
+    "these",
+    "those",
+    "you",
+    "your",
+    "we",
+    "our",
+    "they",
+    "their",
+    "i",
+    "me",
+    "my",
+    "or",
+    "if",
+    "then",
+    "than",
+    "but",
+    "about",
+    "into",
+    "over",
+    "under",
+    "not",
+}
 
 
 class TextDetector:
@@ -37,7 +84,7 @@ class TextDetector:
     2. Perplexity analysis - AI text tends to have lower perplexity
     3. Burstiness - AI text has more uniform sentence structure
     4. Vocabulary analysis - Word choice patterns
-    5. Structural analysis - Paragraph and sentence patterns
+    5. Stylometry analysis - punctuation/stopwords/sentence moments
     """
 
     def __init__(self, lazy_load: bool = True) -> None:
@@ -63,8 +110,6 @@ class TextDetector:
 
         self._loading = True
         try:
-            # Use a lightweight model for AI text detection
-            # In production, you'd fine-tune this on AI vs human text
             model_name = "distilroberta-base"
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -76,7 +121,6 @@ class TextDetector:
             self.model.eval()
             self.model_loaded = True
         except Exception:
-            # Fallback to heuristics if model loading fails
             self.model_loaded = False
         finally:
             self._loading = False
@@ -91,43 +135,55 @@ class TextDetector:
         Returns:
             TextDetectionResponse with detection results
         """
-        # Lazy load model on first request (if ML available)
         if ML_AVAILABLE and not self.model_loaded and not self._loading:
             self._load_model()
 
         start_time = time.time()
 
-        # Clean and prepare text
         cleaned_text = self._preprocess_text(text)
         sentences = self._split_sentences(cleaned_text)
         words = self._tokenize(cleaned_text)
 
-        # Calculate statistical signals
         perplexity = self._calculate_perplexity(cleaned_text, words)
         burstiness = self._calculate_burstiness(sentences)
         vocab_richness = self._calculate_vocabulary_richness(words)
         avg_sentence_length = self._calculate_avg_sentence_length(sentences)
         repetition = self._calculate_repetition_score(cleaned_text)
+        punctuation_diversity = self._calculate_punctuation_diversity(cleaned_text)
+        stopword_ratio = self._calculate_stopword_ratio(words)
+        sentence_variance, sentence_kurtosis = self._calculate_sentence_length_moments(sentences)
 
-        # Get ML model prediction if available
         ml_score = self._get_ml_prediction(text) if self.model_loaded else None
 
-        # Combine signals into final prediction
-        is_ai, confidence, model_pred = self._make_prediction(
+        (
+            is_ai,
+            confidence,
+            model_pred,
+            decision_band,
+            distance_to_threshold,
+            uncertainty_reason,
+        ) = self._make_prediction(
             perplexity=perplexity,
             burstiness=burstiness,
             vocab_richness=vocab_richness,
             avg_sentence_length=avg_sentence_length,
             repetition=repetition,
+            punctuation_diversity=punctuation_diversity,
+            stopword_ratio=stopword_ratio,
+            sentence_length_variance=sentence_variance,
+            sentence_length_kurtosis=sentence_kurtosis,
+            word_count=len(words),
+            sentence_count=len(sentences),
             ml_score=ml_score,
         )
 
-        # Generate explanation
         explanation = self._generate_explanation(
-            is_ai=is_ai,
+            decision_band=decision_band,
             confidence=confidence,
             perplexity=perplexity,
             burstiness=burstiness,
+            distance_to_threshold=distance_to_threshold,
+            uncertainty_reason=uncertainty_reason,
             ml_score=ml_score,
         )
 
@@ -136,6 +192,9 @@ class TextDetector:
         return TextDetectionResponse(
             is_ai_generated=is_ai,
             confidence=confidence,
+            decision_band=decision_band,
+            distance_to_threshold=distance_to_threshold,
+            uncertainty_reason=uncertainty_reason,
             model_prediction=model_pred,
             analysis=TextAnalysis(
                 perplexity=perplexity,
@@ -143,10 +202,50 @@ class TextDetector:
                 vocabulary_richness=vocab_richness,
                 average_sentence_length=avg_sentence_length,
                 repetition_score=repetition,
+                punctuation_diversity=punctuation_diversity,
+                stopword_ratio=stopword_ratio,
+                sentence_length_variance=sentence_variance,
+                sentence_length_kurtosis=sentence_kurtosis,
             ),
             explanation=explanation,
             processing_time_ms=processing_time,
         )
+
+    def apply_decision_band(
+        self,
+        *,
+        confidence: float,
+        threshold: Optional[float] = None,
+        word_count: Optional[int] = None,
+        sentence_count: Optional[int] = None,
+    ) -> tuple[str, float, Optional[str]]:
+        """Classify score into human/uncertain/ai using profile thresholds."""
+        effective_threshold = (
+            float(threshold)
+            if threshold is not None
+            else float(self._calibration_profile["decision_threshold"])
+        )
+        margin = float(self._calibration_profile["uncertainty_margin"])
+        min_words = int(self._calibration_profile["short_text_min_words"])
+        min_sentences = int(self._calibration_profile["short_text_min_sentences"])
+        distance = round(abs(float(confidence) - effective_threshold), 3)
+
+        if word_count is not None and sentence_count is not None:
+            if word_count < min_words or sentence_count < min_sentences:
+                reason = (
+                    "Insufficient text signal: "
+                    f"needs >= {min_words} words and >= {min_sentences} sentences."
+                )
+                return "uncertain", distance, reason
+
+        lower_bound = effective_threshold - margin
+        upper_bound = effective_threshold + margin
+        if lower_bound <= confidence <= upper_bound:
+            reason = f"Score falls inside uncertainty margin (+/-{margin:.2f}) around threshold."
+            return "uncertain", distance, reason
+        if confidence > upper_bound:
+            return "ai", distance, None
+        return "human", distance, None
 
     def _get_ml_prediction(self, text: str) -> Optional[float]:
         """Get prediction from transformer model."""
@@ -154,7 +253,6 @@ class TextDetector:
             return None
 
         try:
-            # Truncate text to model's max length
             inputs = self.tokenizer(
                 text,
                 return_tensors="pt",
@@ -167,7 +265,6 @@ class TextDetector:
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 probs = torch.softmax(outputs.logits, dim=-1)
-                # Assume label 1 is "AI-generated"
                 ai_prob = probs[0][1].item()
 
             return ai_prob
@@ -187,8 +284,7 @@ class TextDetector:
 
     def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into words."""
-        words = re.findall(r"\b\w+\b", text.lower())
-        return words
+        return re.findall(r"\b\w+\b", text.lower())
 
     def _calculate_perplexity(self, text: str, words: list[str]) -> float:
         """
@@ -228,7 +324,6 @@ class TextDetector:
         std_length = np.std(lengths)
         burstiness = std_length / mean_length
         normalized = min(1.0, burstiness / 0.8)
-
         return round(normalized, 3)
 
     def _calculate_vocabulary_richness(self, words: list[str]) -> float:
@@ -240,7 +335,6 @@ class TextDetector:
         total_words = len(words)
         richness = unique_words / math.sqrt(total_words)
         normalized = min(1.0, richness / 10)
-
         return round(normalized, 3)
 
     def _calculate_avg_sentence_length(self, sentences: list[str]) -> float:
@@ -249,7 +343,7 @@ class TextDetector:
             return 0.0
 
         lengths = [len(s.split()) for s in sentences]
-        return round(np.mean(lengths), 1)
+        return round(float(np.mean(lengths)), 1)
 
     def _calculate_repetition_score(self, text: str) -> float:
         """Detect phrase repetition patterns."""
@@ -262,23 +356,60 @@ class TextDetector:
 
         repeated = sum(1 for count in trigram_counts.values() if count > 1)
         total = len(trigrams)
-
         if total == 0:
             return 0.0
 
         repetition_rate = repeated / total
         return round(min(1.0, repetition_rate * 10), 3)
 
+    def _calculate_punctuation_diversity(self, text: str) -> float:
+        """Calculate punctuation diversity ratio."""
+        punctuation_marks = re.findall(r"[.,!?;:'\"()\-]", text)
+        total = len(punctuation_marks)
+        if total == 0:
+            return 0.0
+        return round(min(1.0, len(set(punctuation_marks)) / total), 3)
+
+    def _calculate_stopword_ratio(self, words: list[str]) -> float:
+        """Calculate stopword ratio for stylometric smoothing."""
+        if not words:
+            return 0.0
+        stopword_hits = sum(1 for word in words if word in STOPWORDS)
+        return round(stopword_hits / len(words), 3)
+
+    def _calculate_sentence_length_moments(self, sentences: list[str]) -> tuple[float, float]:
+        """Calculate variance and kurtosis over sentence lengths."""
+        if len(sentences) < 3:
+            return 0.0, 0.0
+
+        lengths = np.array([len(s.split()) for s in sentences], dtype=float)
+        variance = float(np.var(lengths))
+        centered = lengths - float(np.mean(lengths))
+        m2 = float(np.mean(centered**2))
+        if m2 <= 1e-9:
+            kurtosis = 0.0
+        else:
+            m4 = float(np.mean(centered**4))
+            kurtosis = (m4 / (m2**2)) - 3.0
+        return round(max(0.0, variance), 3), round(kurtosis, 3)
+
     def _make_prediction(
         self,
+        *,
         perplexity: float,
         burstiness: float,
         vocab_richness: float,
         avg_sentence_length: float,
         repetition: float,
+        punctuation_diversity: float,
+        stopword_ratio: float,
+        sentence_length_variance: float,
+        sentence_length_kurtosis: float,
+        word_count: int,
+        sentence_count: int,
         ml_score: Optional[float] = None,
-    ) -> tuple[bool, float, Optional[AIModel]]:
-        """Combine all signals using a calibrated profile from expanded benchmark samples."""
+    ) -> tuple[bool, float, Optional[AIModel], str, float, Optional[str]]:
+        """Combine signals using a calibrated profile from expanded labeled samples."""
         ranges = self._calibration_profile["ranges"]
         weights = self._calibration_profile["weights"]
 
@@ -307,6 +438,26 @@ class TextDetector:
             low=float(ranges["sentence_len_low"]),
             high=float(ranges["sentence_len_high"]),
         )
+        punctuation_signal = self._normalize_inverse(
+            punctuation_diversity,
+            low=float(ranges["punctuation_diversity_low"]),
+            high=float(ranges["punctuation_diversity_high"]),
+        )
+        stopword_signal = self._normalize_inverse(
+            stopword_ratio,
+            low=float(ranges["stopword_ratio_low"]),
+            high=float(ranges["stopword_ratio_high"]),
+        )
+        sentence_variance_signal = self._normalize_inverse(
+            sentence_length_variance,
+            low=float(ranges["sentence_var_low"]),
+            high=float(ranges["sentence_var_high"]),
+        )
+        sentence_kurtosis_signal = self._normalize_inverse(
+            sentence_length_kurtosis,
+            low=float(ranges["sentence_kurtosis_low"]),
+            high=float(ranges["sentence_kurtosis_high"]),
+        )
 
         heuristic_score = (
             perplexity_signal * float(weights["perplexity"])
@@ -314,6 +465,10 @@ class TextDetector:
             + vocabulary_signal * float(weights["vocabulary_richness"])
             + repetition_signal * float(weights["repetition"])
             + sentence_signal * float(weights["sentence_length"])
+            + punctuation_signal * float(weights["punctuation_diversity"])
+            + stopword_signal * float(weights["stopword_ratio"])
+            + sentence_variance_signal * float(weights["sentence_length_variance"])
+            + sentence_kurtosis_signal * float(weights["sentence_length_kurtosis"])
         )
 
         if ml_score is not None:
@@ -324,9 +479,14 @@ class TextDetector:
 
         confidence = float(np.clip(confidence, 0.02, 0.98))
         threshold = float(self._calibration_profile["decision_threshold"])
-        is_ai = confidence >= threshold
+        decision_band, distance_to_threshold, uncertainty_reason = self.apply_decision_band(
+            confidence=confidence,
+            threshold=threshold,
+            word_count=word_count,
+            sentence_count=sentence_count,
+        )
+        is_ai = decision_band == "ai"
 
-        # Model attribution based on patterns
         model_pred = None
         if is_ai:
             if avg_sentence_length > 20 and burstiness < 0.4:
@@ -336,20 +496,34 @@ class TextDetector:
             else:
                 model_pred = AIModel.GPT35
 
-        return is_ai, round(confidence, 3), model_pred
+        return (
+            is_ai,
+            round(confidence, 3),
+            model_pred,
+            decision_band,
+            distance_to_threshold,
+            uncertainty_reason,
+        )
 
     def _load_calibration_profile(self) -> dict[str, object]:
         """Load detector calibration profile generated from larger labeled corpora."""
         default_profile: dict[str, object] = {
-            "version": "default-v1",
+            "version": "default-v2-tristate",
             "decision_threshold": 0.5,
-            "ml_weight": 0.35,
+            "uncertainty_margin": 0.08,
+            "short_text_min_words": 80,
+            "short_text_min_sentences": 3,
+            "ml_weight": 0.32,
             "weights": {
-                "perplexity": 0.28,
-                "burstiness": 0.24,
-                "vocabulary_richness": 0.16,
-                "repetition": 0.20,
-                "sentence_length": 0.12,
+                "perplexity": 0.2,
+                "burstiness": 0.18,
+                "vocabulary_richness": 0.12,
+                "repetition": 0.16,
+                "sentence_length": 0.1,
+                "punctuation_diversity": 0.08,
+                "stopword_ratio": 0.06,
+                "sentence_length_variance": 0.07,
+                "sentence_length_kurtosis": 0.03,
             },
             "ranges": {
                 "perplexity_low": 8.0,
@@ -362,6 +536,14 @@ class TextDetector:
                 "repetition_high": 0.30,
                 "sentence_len_low": 8.0,
                 "sentence_len_high": 28.0,
+                "punctuation_diversity_low": 0.08,
+                "punctuation_diversity_high": 0.70,
+                "stopword_ratio_low": 0.16,
+                "stopword_ratio_high": 0.62,
+                "sentence_var_low": 2.5,
+                "sentence_var_high": 60.0,
+                "sentence_kurtosis_low": -1.2,
+                "sentence_kurtosis_high": 4.0,
             },
         }
 
@@ -412,17 +594,28 @@ class TextDetector:
 
     def _generate_explanation(
         self,
-        is_ai: bool,
+        *,
+        decision_band: str,
         confidence: float,
         perplexity: float,
         burstiness: float,
+        distance_to_threshold: float,
+        uncertainty_reason: Optional[str],
         ml_score: Optional[float] = None,
     ) -> str:
         """Generate human-readable explanation."""
-        verdict = "likely AI-generated" if is_ai else "likely human-written"
-        conf_level = "high" if confidence > 0.75 else "moderate" if confidence > 0.5 else "low"
+        if decision_band == "ai":
+            verdict = "likely AI-generated"
+        elif decision_band == "human":
+            verdict = "likely human-written"
+        else:
+            verdict = "uncertain"
 
-        reasons = []
+        conf_level = "high" if confidence > 0.75 else "moderate" if confidence > 0.5 else "low"
+        reasons: list[str] = []
+
+        if uncertainty_reason:
+            reasons.append(uncertainty_reason)
 
         if ml_score is not None:
             if ml_score > 0.7:
@@ -440,5 +633,8 @@ class TextDetector:
             reasons.append("natural variation in sentence complexity")
 
         reason_text = ", ".join(reasons) if reasons else "mixed signals"
-
-        return f"Text appears {verdict} ({conf_level} confidence). Key indicators: {reason_text}."
+        return (
+            f"Text appears {verdict} ({conf_level} confidence). "
+            f"Distance to threshold: {distance_to_threshold:.3f}. "
+            f"Key indicators: {reason_text}."
+        )

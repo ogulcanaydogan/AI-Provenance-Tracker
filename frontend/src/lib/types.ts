@@ -38,6 +38,10 @@ export interface TextDetectionAnalysis {
   vocabulary_richness: number;
   average_sentence_length: number;
   repetition_score: number;
+  punctuation_diversity: number;
+  stopword_ratio: number;
+  sentence_length_variance: number;
+  sentence_length_kurtosis: number;
 }
 
 export interface ImageDetectionAnalysis {
@@ -85,6 +89,9 @@ export interface BackendTextDetectionResponse {
   analysis_id?: string | null;
   is_ai_generated: boolean;
   confidence: number; // 0-1
+  decision_band: "human" | "uncertain" | "ai";
+  distance_to_threshold: number;
+  uncertainty_reason?: string | null;
   model_prediction: string | null;
   analysis: TextDetectionAnalysis;
   explanation: string;
@@ -203,6 +210,7 @@ export interface BackendEvaluationTrendItem {
   recall: number;
   f1: number;
   accuracy: number;
+  false_positive_rate: number;
 }
 
 export interface BackendEvaluationResponse {
@@ -219,6 +227,7 @@ export interface BackendEvaluationResponse {
       recall: number;
       f1: number;
       accuracy: number;
+      false_positive_rate: number;
     }
   >;
   trend: BackendEvaluationTrendItem[];

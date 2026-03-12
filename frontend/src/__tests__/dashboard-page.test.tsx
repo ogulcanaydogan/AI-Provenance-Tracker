@@ -64,6 +64,7 @@ const mockEvaluation = {
       recall: 0.78,
       f1: 0.81,
       accuracy: 0.82,
+      false_positive_rate: 0.06,
     },
   },
   trend: [
@@ -77,6 +78,7 @@ const mockEvaluation = {
       recall: 0.78,
       f1: 0.81,
       accuracy: 0.82,
+      false_positive_rate: 0.06,
     },
   ],
   alerts: [],

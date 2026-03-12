@@ -1,0 +1,79 @@
+name: Weekly Text Calibration Refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 2 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  calibrate-text:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e ".[dev]"
+
+      - name: Run text calibration refresh
+        run: |
+          cd backend
+          python scripts/evaluate_detection_calibration.py \
+            --input ../benchmark/datasets/detection_multidomain.jsonl \
+            --content-type text \
+            --output evidence/calibration/text/latest_text_calibration.json \
+            --write-profile \
+            --profile-output app/detection/text/calibration_profile.json \
+            --min-samples 100
+
+      - name: Enforce golden-pair regression gate
+        run: |
+          cd backend
+          pytest tests/test_text_detector_golden_pairs.py -q -o addopts=''
+
+      - name: Build calibration summary
+        id: summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('backend/evidence/calibration/text/latest_text_calibration.json').read_text(encoding='utf-8'))
+          out = Path('calibration-summary.md')
+          out.write_text(
+              "## Weekly Text Calibration Summary\\n"
+              f"- sample_count: {report.get('sample_count')}\\n"
+              f"- recommended_threshold: {report.get('recommended_threshold')}\\n"
+              f"- recommended_uncertainty_margin: {report.get('recommended_uncertainty_margin')}\\n",
+              encoding='utf-8',
+          )
+          print(out.read_text(encoding='utf-8'))
+          PY
+
+      - name: Upload calibration report artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: weekly-text-calibration-report
+          path: |
+            backend/evidence/calibration/text/latest_text_calibration.json
+            calibration-summary.md
+          retention-days: 30
+
+      - name: Open calibration refresh PR (manual review required)
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/weekly-text-calibration
+          delete-branch: true
+          commit-message: "chore(text): weekly calibration refresh"
+          title: "chore(text): weekly calibration refresh (threshold/margin)"
+          body-path: calibration-summary.md

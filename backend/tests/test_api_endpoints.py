@@ -74,6 +74,8 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
     payload = response.json()
     assert payload["analysis_id"]
     assert "confidence" in payload
+    assert payload["decision_band"] in {"human", "uncertain", "ai"}
+    assert "distance_to_threshold" in payload
     assert "analysis" in payload
     assert "explanation" in payload
     assert "consensus" in payload
@@ -104,6 +106,7 @@ async def test_text_detection_stream_sse_returns_progress_and_result(client: Asy
             payload_by_event[current_event] = json.loads(line.replace("data: ", "", 1))
 
     assert payload_by_event["started"]["stage"] == "started"
+    assert payload_by_event["internal"]["decision_band"] in {"human", "uncertain", "ai"}
     assert payload_by_event["done"]["stage"] == "done"
     assert payload_by_event["result"]["analysis_id"]
 
@@ -357,6 +360,7 @@ async def test_batch_text_detection_success(client: AsyncClient):
     assert payload["failed"] == 0
     assert payload["items"][0]["status"] == "ok"
     assert payload["items"][0]["result"]["analysis_id"]
+    assert payload["items"][0]["result"]["decision_band"] in {"human", "uncertain", "ai"}
 
 
 @pytest.mark.asyncio
@@ -427,6 +431,7 @@ async def test_evaluation_endpoint_returns_registered_reports(client: AsyncClien
     assert data["total_reports"] == 1
     assert data["by_content_type"]["text"] == 1
     assert data["latest_by_content_type"]["text"]["precision"] == 0.8
+    assert "false_positive_rate" in data["latest_by_content_type"]["text"]
 
 
 @pytest.mark.asyncio

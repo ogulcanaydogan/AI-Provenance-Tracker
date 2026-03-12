@@ -35,6 +35,10 @@ class TextAnalysis(BaseModel):
       vocabulary_richness: float = Field(..., description="Unique word ratio")
       average_sentence_length: float = Field(..., description="Mean words per sentence")
       repetition_score: float = Field(..., description="Phrase repetition detection")
+      punctuation_diversity: float = Field(..., description="Diversity of punctuation marks")
+      stopword_ratio: float = Field(..., description="Stopword ratio over total words")
+      sentence_length_variance: float = Field(..., description="Variance of sentence lengths")
+      sentence_length_kurtosis: float = Field(..., description="Kurtosis of sentence lengths")
 
 
 class ImageAnalysis(BaseModel):
@@ -118,6 +122,20 @@ class TextDetectionResponse(BaseModel):
       analysis_id: Optional[str] = Field(None, description="Stored analysis identifier")
       is_ai_generated: bool = Field(..., description="Whether text appears AI-generated")
       confidence: float = Field(..., ge=0, le=1, description="Confidence score (0-1)")
+      decision_band: Literal["human", "uncertain", "ai"] = Field(
+          default="uncertain",
+          description="Three-state decision band around the confidence threshold",
+      )
+      distance_to_threshold: float = Field(
+          default=0.0,
+          ge=0,
+          le=1,
+          description="Absolute distance between score and decision threshold",
+      )
+      uncertainty_reason: Optional[str] = Field(
+          None,
+          description="Reason when decision_band is uncertain",
+      )
       model_prediction: Optional[AIModel] = Field(None, description="Predicted AI model if detected")
       analysis: TextAnalysis = Field(..., description="Detailed analysis metrics")
       explanation: str = Field(..., description="Human-readable explanation of the detection")

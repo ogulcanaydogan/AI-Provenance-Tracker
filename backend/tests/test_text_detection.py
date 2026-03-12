@@ -22,6 +22,8 @@ class TestTextDetector:
         assert result is not None
         assert isinstance(result.is_ai_generated, bool)
         assert 0 <= result.confidence <= 1
+        assert result.decision_band in {"human", "uncertain", "ai"}
+        assert result.distance_to_threshold >= 0
         assert result.explanation is not None
         assert result.processing_time_ms > 0
 
@@ -32,8 +34,8 @@ class TestTextDetector:
         result = await detector.detect(text)
 
         assert result is not None
-        # Short text should have lower confidence
-        assert result.confidence < 0.9
+        assert result.decision_band == "uncertain"
+        assert result.uncertainty_reason is not None
 
     @pytest.mark.asyncio
     async def test_detect_analysis_metrics(self, detector):
@@ -51,6 +53,9 @@ class TestTextDetector:
         assert 0 <= result.analysis.burstiness <= 1
         assert 0 <= result.analysis.vocabulary_richness <= 1
         assert result.analysis.average_sentence_length > 0
+        assert 0 <= result.analysis.punctuation_diversity <= 1
+        assert 0 <= result.analysis.stopword_ratio <= 1
+        assert result.analysis.sentence_length_variance >= 0
 
     @pytest.mark.asyncio
     async def test_typical_ai_text_patterns(self, detector):
@@ -104,3 +109,29 @@ class TestTextPreprocessing:
         text = "Hello World Test"
         words = detector._tokenize(text)
         assert words == ["hello", "world", "test"]
+
+    def test_apply_decision_band_threshold_regions(self):
+        detector = TextDetector()
+        band_ai, _, _ = detector.apply_decision_band(
+            confidence=0.9,
+            threshold=0.5,
+            word_count=120,
+            sentence_count=6,
+        )
+        band_human, _, _ = detector.apply_decision_band(
+            confidence=0.1,
+            threshold=0.5,
+            word_count=120,
+            sentence_count=6,
+        )
+        band_uncertain, _, reason = detector.apply_decision_band(
+            confidence=0.52,
+            threshold=0.5,
+            word_count=120,
+            sentence_count=6,
+        )
+
+        assert band_ai == "ai"
+        assert band_human == "human"
+        assert band_uncertain == "uncertain"
+        assert reason is not None
