@@ -90,12 +90,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile:
-          - v11_fp_sweep_lr2e5_pen17
-          - v11_fp_sweep_lr3e5_pen20
-          - v11_fp_sweep_lr15e5_pen15
-          - v11_fp_sweep_lr25e5_pen18
-          - v11_fp_sweep_lr1e5_pen22
+        profile: ${{ fromJson(github.event.inputs.v100_profile == 'all' && '["v11_fp_sweep_lr2e5_pen17","v11_fp_sweep_lr3e5_pen20","v11_fp_sweep_lr15e5_pen15","v11_fp_sweep_lr25e5_pen18","v11_fp_sweep_lr1e5_pen22"]' || format('["{0}"]', github.event.inputs.v100_profile)) }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -116,18 +111,15 @@ jobs:
           make build-hard-negatives INCLUDE_FALSE_NEGATIVES=1 || true
 
       - name: Run V100 sweep shard
-        if: ${{ github.event.inputs.v100_profile == 'all' || github.event.inputs.v100_profile == matrix.profile }}
         run: |
           make sweep-text-v100 EXECUTE=1 PROFILE="${{ matrix.profile }}"
 
       - name: Refresh calibration after training
-        if: ${{ github.event.inputs.v100_profile == 'all' || github.event.inputs.v100_profile == matrix.profile }}
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
 
       - name: Upload training artifacts
-        if: ${{ github.event.inputs.v100_profile == 'all' || github.event.inputs.v100_profile == matrix.profile }}
         uses: actions/upload-artifact@v7
         with:
           name: text-training-artifacts-${{ matrix.profile }}
