@@ -33,13 +33,11 @@ async def test_golden_pairs_show_separation() -> None:
 
         verdict_differs = human_result.decision_band != ai_result.decision_band
         confidence_gap = abs(human_result.confidence - ai_result.confidence)
-        distance_gap = abs(
-            human_result.distance_to_threshold - ai_result.distance_to_threshold
-        )
+        distance_gap = abs(human_result.distance_to_threshold - ai_result.distance_to_threshold)
         if verdict_differs or confidence_gap >= 0.08 or distance_gap >= 0.05:
             separated += 1
 
     ratio = separated / max(1, len(pairs))
-    assert (
-        ratio >= 0.6
-    ), f"Golden pair separation below threshold: {separated}/{len(pairs)} ({ratio:.2%})"
+    assert ratio >= 0.6, (
+        f"Golden pair separation below threshold: {separated}/{len(pairs)} ({ratio:.2%})"
+    )

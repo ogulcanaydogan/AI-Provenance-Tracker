@@ -18,7 +18,7 @@ describe("ConfidenceGauge", () => {
   it("displays score and verdict label", () => {
     render(<ConfidenceGauge score={87} verdict="ai_generated" />);
     expect(screen.getByText("87%")).toBeDefined();
-    expect(screen.getByText("AI Generated")).toBeDefined();
+    expect(screen.getByText("Likely AI")).toBeDefined();
   });
 
   it("shows AI Confidence subtitle", () => {

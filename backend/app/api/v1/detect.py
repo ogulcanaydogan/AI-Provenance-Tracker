@@ -96,7 +96,9 @@ async def _apply_consensus(
         sentence_count = None
         if text:
             words = re.findall(r"\b\w+\b", text.lower())
-            sentences = [segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()]
+            sentences = [
+                segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()
+            ]
             word_count = len(words)
             sentence_count = len(sentences)
         decision_band, distance, reason = text_detector.apply_decision_band(

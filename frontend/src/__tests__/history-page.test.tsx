@@ -85,7 +85,7 @@ describe("HistoryPage", () => {
     mockGetHistory.mockResolvedValue(mockHistoryResponse);
     render(<HistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText("AI Generated")).toBeDefined();
+      expect(screen.getByText("Likely AI")).toBeDefined();
     });
     expect(screen.getByText("Likely Human")).toBeDefined();
   });
@@ -170,7 +170,7 @@ describe("HistoryPage", () => {
     mockGetHistory.mockResolvedValue(mockHistoryResponse);
     render(<HistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText("AI Generated")).toBeDefined();
+      expect(screen.getByText("Likely AI")).toBeDefined();
     });
     const select = screen.getByLabelText("Filter by content type");
     fireEvent.change(select, { target: { value: "image" } });

@@ -137,7 +137,9 @@ def _resolve_text_sample(sample: dict[str, Any]) -> str:
 
 def _estimate_uncertainty_margin(scores: list[tuple[float, bool]], threshold: float) -> float:
     misclassified_distances = [
-        abs(score - threshold) for score, label_is_ai in scores if (score >= threshold) != label_is_ai
+        abs(score - threshold)
+        for score, label_is_ai in scores
+        if (score >= threshold) != label_is_ai
     ]
     if misclassified_distances:
         raw_margin = float(np.percentile(misclassified_distances, 75))
@@ -231,7 +233,11 @@ async def run() -> int:
     metrics = [_threshold_metrics(scores, threshold) for threshold in thresholds]
     best = max(
         metrics,
-        key=lambda item: (item["f1"] - (item["fp_rate"] * 0.35), item["accuracy"], -item["fp_rate"]),
+        key=lambda item: (
+            item["f1"] - (item["fp_rate"] * 0.35),
+            item["accuracy"],
+            -item["fp_rate"],
+        ),
     )
     uncertainty_margin = _estimate_uncertainty_margin(scores, best["threshold"])
 

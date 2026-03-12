@@ -79,7 +79,9 @@ async def batch_detect_text(request: BatchTextDetectionRequest) -> BatchTextDete
             )
             detection.confidence = detection.consensus.final_probability
             words = re.findall(r"\b\w+\b", text.lower())
-            sentences = [segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()]
+            sentences = [
+                segment.strip() for segment in re.split(r"[.!?]+", text) if segment.strip()
+            ]
             decision_band, distance, reason = text_detector.apply_decision_band(
                 confidence=detection.confidence,
                 threshold=detection.consensus.threshold,
