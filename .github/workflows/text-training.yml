@@ -74,7 +74,15 @@ jobs:
 
           latest_path = Path("backend/evidence/models/text/latest.json")
           payload = json.loads(latest_path.read_text(encoding="utf-8"))
-          print(payload.get("model_path", ""))
+          model_path = payload.get("model_path")
+          if model_path:
+              print(model_path)
+          else:
+              manifest = payload.get("manifest")
+              if manifest:
+                  print(str(Path(manifest).parent))
+              else:
+                  print("")
           PY
           )"
           if [ -z "$MODEL_PATH" ]; then
@@ -141,7 +149,15 @@ jobs:
 
           latest_path = Path("backend/evidence/models/text/latest.json")
           payload = json.loads(latest_path.read_text(encoding="utf-8"))
-          print(payload.get("model_path", ""))
+          model_path = payload.get("model_path")
+          if model_path:
+              print(model_path)
+          else:
+              manifest = payload.get("manifest")
+              if manifest:
+                  print(str(Path(manifest).parent))
+              else:
+                  print("")
           PY
           )"
           if [ -z "$MODEL_PATH" ]; then
