@@ -96,6 +96,7 @@ class TextDetector:
         self.tokenizer = None
         self.model_loaded = False
         self._loading = False
+        self._loaded_model_id = settings.text_detection_model
         self._calibration_profile = self._load_calibration_profile()
         if not lazy_load and ML_AVAILABLE:
             self._load_model()
@@ -110,7 +111,7 @@ class TextDetector:
 
         self._loading = True
         try:
-            model_name = "distilroberta-base"
+            model_name = self._resolve_model_id()
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
@@ -120,12 +121,25 @@ class TextDetector:
             self.model.to(self.device)
             self.model.eval()
             self.model_loaded = True
+            self._loaded_model_id = model_name
         except Exception:
             self.model_loaded = False
         finally:
             self._loading = False
 
-    async def detect(self, text: str) -> TextDetectionResponse:
+    def _resolve_model_id(self) -> str:
+        """Select fine-tuned local model path first, fallback to configured base model."""
+        model_path = settings.text_detection_model_path.strip()
+        if model_path:
+            candidate = Path(model_path)
+            if not candidate.is_absolute():
+                backend_root = Path(__file__).resolve().parents[3]
+                candidate = (backend_root / model_path).resolve()
+            if candidate.exists():
+                return str(candidate)
+        return settings.text_detection_model or "distilroberta-base"
+
+    async def detect(self, text: str, domain: Optional[str] = None) -> TextDetectionResponse:
         """
         Analyze text and determine if it's AI-generated.
 
@@ -141,6 +155,8 @@ class TextDetector:
         start_time = time.time()
 
         cleaned_text = self._preprocess_text(text)
+        inferred_domain = self._normalize_domain(domain) or self._infer_domain(cleaned_text)
+        calibration_profile, calibration_key = self._resolve_calibration_profile(inferred_domain)
         sentences = self._split_sentences(cleaned_text)
         words = self._tokenize(cleaned_text)
 
@@ -175,6 +191,7 @@ class TextDetector:
             word_count=len(words),
             sentence_count=len(sentences),
             ml_score=ml_score,
+            calibration_profile=calibration_profile,
         )
 
         explanation = self._generate_explanation(
@@ -185,6 +202,7 @@ class TextDetector:
             distance_to_threshold=distance_to_threshold,
             uncertainty_reason=uncertainty_reason,
             ml_score=ml_score,
+            calibration_domain=calibration_key,
         )
 
         processing_time = (time.time() - start_time) * 1000
@@ -209,6 +227,8 @@ class TextDetector:
             ),
             explanation=explanation,
             processing_time_ms=processing_time,
+            model_version=f"text-detector:{self._loaded_model_id}",
+            calibration_version=self._profile_version_label(calibration_profile, calibration_key),
         )
 
     def apply_decision_band(
@@ -218,16 +238,16 @@ class TextDetector:
         threshold: Optional[float] = None,
         word_count: Optional[int] = None,
         sentence_count: Optional[int] = None,
+        calibration_profile: Optional[dict[str, object]] = None,
     ) -> tuple[str, float, Optional[str]]:
         """Classify score into human/uncertain/ai using profile thresholds."""
+        profile = calibration_profile or self._calibration_profile
         effective_threshold = (
-            float(threshold)
-            if threshold is not None
-            else float(self._calibration_profile["decision_threshold"])
+            float(threshold) if threshold is not None else float(profile["decision_threshold"])
         )
-        margin = float(self._calibration_profile["uncertainty_margin"])
-        min_words = int(self._calibration_profile["short_text_min_words"])
-        min_sentences = int(self._calibration_profile["short_text_min_sentences"])
+        margin = float(profile["uncertainty_margin"])
+        min_words = int(profile["short_text_min_words"])
+        min_sentences = int(profile["short_text_min_sentences"])
         distance = round(abs(float(confidence) - effective_threshold), 3)
 
         if word_count is not None and sentence_count is not None:
@@ -408,10 +428,12 @@ class TextDetector:
         word_count: int,
         sentence_count: int,
         ml_score: Optional[float] = None,
+        calibration_profile: Optional[dict[str, object]] = None,
     ) -> tuple[bool, float, Optional[AIModel], str, float, Optional[str]]:
         """Combine signals using a calibrated profile from expanded labeled samples."""
-        ranges = self._calibration_profile["ranges"]
-        weights = self._calibration_profile["weights"]
+        profile = calibration_profile or self._calibration_profile
+        ranges = profile["ranges"]
+        weights = profile["weights"]
 
         perplexity_signal = self._normalize_inverse(
             perplexity,
@@ -472,18 +494,19 @@ class TextDetector:
         )
 
         if ml_score is not None:
-            ml_weight = float(self._calibration_profile["ml_weight"])
+            ml_weight = float(profile["ml_weight"])
             confidence = (ml_weight * float(ml_score)) + ((1.0 - ml_weight) * heuristic_score)
         else:
             confidence = heuristic_score
 
         confidence = float(np.clip(confidence, 0.02, 0.98))
-        threshold = float(self._calibration_profile["decision_threshold"])
+        threshold = float(profile["decision_threshold"])
         decision_band, distance_to_threshold, uncertainty_reason = self.apply_decision_band(
             confidence=confidence,
             threshold=threshold,
             word_count=word_count,
             sentence_count=sentence_count,
+            calibration_profile=profile,
         )
         is_ai = decision_band == "ai"
 
@@ -545,6 +568,14 @@ class TextDetector:
                 "sentence_kurtosis_low": -1.2,
                 "sentence_kurtosis_high": 4.0,
             },
+            "domain_profiles": {
+                "news": {"decision_threshold": 0.45, "uncertainty_margin": 0.05},
+                "social": {"decision_threshold": 0.47, "uncertainty_margin": 0.06},
+                "marketing": {"decision_threshold": 0.49, "uncertainty_margin": 0.06},
+                "academic": {"decision_threshold": 0.43, "uncertainty_margin": 0.05},
+                "code-doc": {"decision_threshold": 0.46, "uncertainty_margin": 0.05},
+                "general": {"decision_threshold": 0.45, "uncertainty_margin": 0.05},
+            },
         }
 
         configured_path = settings.text_calibration_profile_path.strip()
@@ -577,8 +608,123 @@ class TextDetector:
                 **default_profile["ranges"],  # type: ignore[index]
                 **(payload.get("ranges") if isinstance(payload.get("ranges"), dict) else {}),
             },
+            "domain_profiles": {
+                **(
+                    default_profile["domain_profiles"]  # type: ignore[index]
+                    if isinstance(default_profile.get("domain_profiles"), dict)
+                    else {}
+                ),
+                **(
+                    payload.get("domain_profiles")
+                    if isinstance(payload.get("domain_profiles"), dict)
+                    else {}
+                ),
+            },
         }
         return merged
+
+    def _normalize_domain(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        normalized = value.strip().lower().replace("_", "-")
+        aliases = {
+            "code": "code-doc",
+            "code-doc": "code-doc",
+            "codedoc": "code-doc",
+            "academic": "academic",
+            "education": "academic",
+            "science": "academic",
+            "legal": "academic",
+            "news": "news",
+            "social": "social",
+            "marketing": "marketing",
+            "general": "general",
+            "finance": "general",
+            "health": "general",
+        }
+        return aliases.get(normalized, "general")
+
+    def _infer_domain(self, text: str) -> str:
+        lowered = text.lower()
+
+        code_markers = (
+            "```",
+            "def ",
+            "class ",
+            "import ",
+            "const ",
+            "function ",
+            "api endpoint",
+        )
+        if any(marker in lowered for marker in code_markers):
+            return "code-doc"
+
+        social_markers = ("#", "@", "rt ", "dm ", "viral", "followers", "thread")
+        if any(marker in lowered for marker in social_markers):
+            return "social"
+
+        marketing_markers = (
+            "cta",
+            "conversion",
+            "campaign",
+            "brand",
+            "funnel",
+            "audience",
+            "roi",
+            "click-through",
+        )
+        if any(marker in lowered for marker in marketing_markers):
+            return "marketing"
+
+        academic_markers = ("hypothesis", "methodology", "citation", "peer-reviewed", "dataset")
+        if any(marker in lowered for marker in academic_markers):
+            return "academic"
+
+        news_markers = ("reported", "breaking", "according to", "official statement")
+        if any(marker in lowered for marker in news_markers):
+            return "news"
+
+        return "general"
+
+    def _resolve_calibration_profile(self, domain: Optional[str]) -> tuple[dict[str, object], str]:
+        normalized_domain = self._normalize_domain(domain) or "general"
+        base_profile = {
+            **self._calibration_profile,
+            "weights": dict(self._calibration_profile.get("weights", {})),  # type: ignore[arg-type]
+            "ranges": dict(self._calibration_profile.get("ranges", {})),  # type: ignore[arg-type]
+        }
+
+        raw_domain_profiles = self._calibration_profile.get("domain_profiles", {})
+        if isinstance(raw_domain_profiles, dict):
+            domain_override = raw_domain_profiles.get(normalized_domain)
+            if isinstance(domain_override, dict):
+                merged = {
+                    **base_profile,
+                    **domain_override,
+                    "weights": {
+                        **base_profile["weights"],  # type: ignore[index]
+                        **(
+                            domain_override.get("weights")
+                            if isinstance(domain_override.get("weights"), dict)
+                            else {}
+                        ),
+                    },
+                    "ranges": {
+                        **base_profile["ranges"],  # type: ignore[index]
+                        **(
+                            domain_override.get("ranges")
+                            if isinstance(domain_override.get("ranges"), dict)
+                            else {}
+                        ),
+                    },
+                }
+                return merged, normalized_domain
+
+        return base_profile, "general"
+
+    def _profile_version_label(self, profile: dict[str, object], domain: str) -> str:
+        base_version = str(profile.get("version", "default-v2-tristate"))
+        return f"{base_version}:{domain}"
 
     def _normalize_inverse(self, value: float, *, low: float, high: float) -> float:
         if high <= low:
@@ -602,6 +748,7 @@ class TextDetector:
         distance_to_threshold: float,
         uncertainty_reason: Optional[str],
         ml_score: Optional[float] = None,
+        calibration_domain: str = "general",
     ) -> str:
         """Generate human-readable explanation."""
         if decision_band == "ai":
@@ -635,6 +782,7 @@ class TextDetector:
         reason_text = ", ".join(reasons) if reasons else "mixed signals"
         return (
             f"Text appears {verdict} ({conf_level} confidence). "
+            f"Domain profile: {calibration_domain}. "
             f"Distance to threshold: {distance_to_threshold:.3f}. "
             f"Key indicators: {reason_text}."
         )

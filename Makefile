@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-public-smoke benchmark-public-full benchmark-public-nightly benchmark-health cost-governance package-policy slo-report runtime-observability build-text-dataset
+.PHONY: help install dev test lint format typecheck run docker-up docker-down clean intel-report intel-benchmark intel-evidence intel-pipeline intel-weekly-cycle smoke-prod benchmark-public benchmark-public-smoke benchmark-public-full benchmark-public-nightly benchmark-health cost-governance package-policy slo-report runtime-observability build-text-dataset build-hard-negatives calibrate-text text-quality-gate train-text-model train-text-a100 sweep-text-v100
 
 help:
 	@echo "AI Provenance Tracker - Development Commands"
@@ -32,7 +32,13 @@ help:
 	@echo "  make benchmark-public-smoke Explicit smoke profile benchmark run"
 	@echo "  make benchmark-public-full Full profile benchmark run"
 	@echo "  make benchmark-public-nightly Alias for full profile benchmark run"
-	@echo "  make benchmark-health Dataset size/coverage tracker toward 1k target"
+	@echo "  make benchmark-health Dataset size/coverage tracker for selected target profile"
+	@echo "  make calibrate-text Domain-aware text calibration refresh from benchmark dataset"
+	@echo "  make text-quality-gate Enforce FP/ECE calibration thresholds"
+	@echo "  make build-hard-negatives Extract hard FP/FN samples from scored benchmark outputs"
+	@echo "  make train-text-model Run targeted text fine-tuning"
+	@echo "  make train-text-a100 Recommended A100 profile for targeted fine-tuning"
+	@echo "  make sweep-text-v100 Print/execute V100 hyperparameter sweep commands"
 	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
 	@echo "  make package-policy Enforce dependency source allow/deny policy"
 	@echo "  make slo-report      Generate observability SLO report from workflow history"
@@ -119,3 +125,21 @@ runtime-observability:
 
 build-text-dataset:
 	python3 backend/scripts/build_text_training_dataset.py --datasets-dir "$${DATASETS_DIR:-benchmark/datasets}" --output "$${OUTPUT:-backend/evidence/samples/text_labeled_expanded.jsonl}" --min-chars "$${MIN_CHARS:-80}"
+
+build-hard-negatives:
+	python3 backend/scripts/build_text_hard_negative_dataset.py --scored-samples "$${SCORED_SAMPLES:-benchmark/results/latest/scored_samples.jsonl}" --output "$${OUTPUT:-backend/evidence/samples/text_hard_negatives.jsonl}" $${INCLUDE_FALSE_NEGATIVES:+--include-false-negatives} --max-per-domain "$${MAX_PER_DOMAIN:-120}" --min-score-gap "$${MIN_SCORE_GAP:-0.05}"
+
+calibrate-text:
+	cd backend && python3 scripts/evaluate_detection_calibration.py --input "$${INPUT:-../benchmark/datasets/detection_multidomain.jsonl}" --content-type text --output "$${OUTPUT:-evidence/calibration/text/latest_text_calibration.json}" --write-profile --profile-output "$${PROFILE_OUTPUT:-app/detection/text/calibration_profile.json}" --min-samples "$${MIN_SAMPLES:-120}" --include-domain-profiles --min-domain-samples "$${MIN_DOMAIN_SAMPLES:-40}" --register
+
+text-quality-gate:
+	python3 backend/scripts/check_text_quality_gate.py --report "$${REPORT:-backend/evidence/calibration/text/latest_text_calibration.json}" --max-fp-rate "$${MAX_FP_RATE:-0.08}" --max-ece "$${MAX_ECE:-0.08}" --min-sample-count "$${MIN_SAMPLE_COUNT:-100}" --max-uncertainty-margin "$${MAX_UNCERTAINTY_MARGIN:-0.18}" --output-json "$${OUTPUT_JSON:-backend/evidence/calibration/text/quality_gate.json}" --output-md "$${OUTPUT_MD:-backend/evidence/calibration/text/quality_gate.md}"
+
+train-text-model:
+	python3 backend/scripts/train_text_detector.py --dataset "$${DATASET:-backend/evidence/samples/text_labeled_expanded.jsonl}" --hard-negatives "$${HARD_NEGATIVES:-backend/evidence/samples/text_hard_negatives.jsonl}" --base-model "$${BASE_MODEL:-distilroberta-base}" --output-dir "$${OUTPUT_DIR:-backend/evidence/models/text}" --run-name "$${RUN_NAME:-v11_text_fp}" --epochs "$${EPOCHS:-2}" --learning-rate "$${LEARNING_RATE:-2e-5}" --train-batch-size "$${TRAIN_BATCH_SIZE:-16}" --eval-batch-size "$${EVAL_BATCH_SIZE:-32}" --fp-penalty "$${FP_PENALTY:-1.7}" --seed "$${SEED:-42}" --max-train-samples "$${MAX_TRAIN_SAMPLES:-0}"
+
+train-text-a100:
+	$(MAKE) train-text-model BASE_MODEL="$${BASE_MODEL:-distilroberta-base}" EPOCHS="$${EPOCHS:-3}" TRAIN_BATCH_SIZE="$${TRAIN_BATCH_SIZE:-32}" EVAL_BATCH_SIZE="$${EVAL_BATCH_SIZE:-64}" RUN_NAME="$${RUN_NAME:-v11_text_fp_a100}" FP_PENALTY="$${FP_PENALTY:-1.8}" LEARNING_RATE="$${LEARNING_RATE:-2e-5}"
+
+sweep-text-v100:
+	python3 backend/scripts/sweep_text_training.py --dataset "$${DATASET:-backend/evidence/samples/text_labeled_expanded.jsonl}" --hard-negatives "$${HARD_NEGATIVES:-backend/evidence/samples/text_hard_negatives.jsonl}" --output-dir "$${OUTPUT_DIR:-backend/evidence/models/text}" --base-model "$${BASE_MODEL:-distilroberta-base}" $${EXECUTE:+--execute}

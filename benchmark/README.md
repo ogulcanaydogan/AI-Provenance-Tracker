@@ -27,6 +27,7 @@ Optional fields:
 
 - `smoke` profile (PR-lite): fast regression gate, capped subset (~260 samples)
 - `full` profile (nightly): full quality run over 1500 samples
+- `full_v3` profile config is pre-defined for 3000-sample growth planning (kept opt-in until dataset expansion lands)
 - Audio/video metrics remain **experimental** in both profiles
 
 Config files:
@@ -101,3 +102,9 @@ Open `benchmark/leaderboard/index.html` to view leaderboard results.
   - tamper: 375
   - audio (experimental): 75
   - video (experimental): 75
+- Future growth target `full_v3` (configured, not default yet):
+  - detection: 1350
+  - attribution: 600
+  - tamper: 750
+  - audio (experimental): 150
+  - video (experimental): 150

@@ -21,6 +21,17 @@
         "audio_ai_vs_human_detection": 75,
         "video_ai_vs_human_detection": 75
       }
+    },
+    "full_v3": {
+      "target_total": 3000,
+      "warn_total": 2700,
+      "task_targets": {
+        "ai_vs_human_detection": 1350,
+        "source_attribution": 600,
+        "tamper_detection": 750,
+        "audio_ai_vs_human_detection": 150,
+        "video_ai_vs_human_detection": 150
+      }
     }
   }
 }

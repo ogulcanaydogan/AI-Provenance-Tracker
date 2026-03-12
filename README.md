@@ -306,6 +306,7 @@ Chrome and Firefox extensions (Manifest V3) analyse visible page text against th
 - Corpus builder: `backend/scripts/build_text_training_dataset.py`
 - Detector calibration profile: `backend/app/detection/text/calibration_profile.json`
 - Calibration evaluator: `backend/scripts/evaluate_detection_calibration.py`
+- Training runbook (A100 + V100): `docs/TRAINING.md`
 
 ### Enterprise Deployment
 
@@ -477,13 +478,19 @@ npm run dev
 ```bash
 curl -X POST "http://localhost:8000/api/v1/detect/text" \
   -H "Content-Type: application/json" \
-  -d '{"text": "Your text to analyse..."}'
+  -d '{"text": "Your text to analyse...", "domain": "news"}'
 ```
 
 ```json
 {
   "is_ai_generated": true,
   "confidence": 0.87,
+  "decision_band": "ai",
+  "distance_to_threshold": 0.14,
+  "uncertainty_reason": null,
+  "model_version": "text-detector:roberta-base",
+  "calibration_version": "calibrated-20260312:news",
+  "provider_evidence": [],
   "model_prediction": "gpt-4",
   "analysis": {
     "perplexity": 12.4,
@@ -493,6 +500,8 @@ curl -X POST "http://localhost:8000/api/v1/detect/text" \
   "explanation": "High confidence AI detection based on low perplexity and uniform sentence structure."
 }
 ```
+
+`domain` is optional. If omitted, backend performs automatic domain inference and applies domain-aware calibration fallback.
 
 ### Image Detection
 
@@ -562,6 +571,16 @@ curl "http://localhost:8000/api/v1/analyze/dashboard?days=30"
 ```
 
 Full interactive API documentation is available at `/docs` (Swagger UI) and `/redoc` (ReDoc) when the server is running.
+
+### Text Model Override (Fine-Tuned Weights)
+
+To run backend with a fine-tuned text model artifact:
+
+```bash
+export TEXT_DETECTION_MODEL_PATH=/absolute/path/to/backend/evidence/models/text/<run_id>/model
+```
+
+The API response includes `model_version` and `calibration_version` for traceability.
 
 ---
 

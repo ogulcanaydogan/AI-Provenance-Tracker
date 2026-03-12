@@ -21,6 +21,7 @@ from app.models.detection import (
     AIModel,
     AudioDetectionResponse,
     ImageDetectionResponse,
+    ProviderEvidence,
     TextDetectionRequest,
     TextDetectionResponse,
     VideoDetectionResponse,
@@ -69,6 +70,30 @@ def _format_sse(event: str, payload: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+def _provider_evidence_from_consensus(
+    consensus: (
+        TextDetectionResponse
+        | ImageDetectionResponse
+        | AudioDetectionResponse
+        | VideoDetectionResponse
+    ),
+) -> list[ProviderEvidence]:
+    if not consensus.consensus:
+        return []
+    return [
+        ProviderEvidence(
+            provider=vote.provider,
+            probability=vote.probability,
+            status=vote.status,
+            rationale=vote.rationale,
+            evidence_type=vote.evidence_type,
+            evidence_ref=vote.evidence_ref,
+            verification_status=vote.verification_status,
+        )
+        for vote in consensus.consensus.providers
+    ]
+
+
 async def _apply_consensus(
     *,
     content_type: str,
@@ -90,6 +115,7 @@ async def _apply_consensus(
         filename=filename,
     )
     result.consensus = consensus
+    result.provider_evidence = _provider_evidence_from_consensus(result)
     result.confidence = consensus.final_probability
     if isinstance(result, TextDetectionResponse):
         word_count = None
@@ -143,7 +169,7 @@ async def detect_text(request: TextDetectionRequest) -> TextDetectionResponse:
             detail=f"Text exceeds maximum length of {settings.max_text_length:,} characters",
         )
 
-    result = await text_detector.detect(request.text)
+    result = await text_detector.detect(request.text, domain=request.domain)
     result = await _apply_consensus(
         content_type="text",
         result=result,
@@ -178,6 +204,7 @@ async def detect_text_stream(request: TextDetectionRequest) -> StreamingResponse
 
     async def event_stream():
         text = request.text
+        domain = request.domain
         yield _format_sse(
             "started",
             {
@@ -187,7 +214,7 @@ async def detect_text_stream(request: TextDetectionRequest) -> StreamingResponse
         )
 
         try:
-            internal_result = await text_detector.detect(text)
+            internal_result = await text_detector.detect(text, domain=domain)
             yield _format_sse(
                 "internal",
                 {
@@ -298,6 +325,8 @@ async def detect_image(file: UploadFile = File(...)) -> ImageDetectionResponse:
 
     filename = file.filename or "unknown"
     result = await image_detector.detect(content, filename)
+    result.model_version = f"image-detector:{settings.image_detection_model}"
+    result.calibration_version = "image-heuristic-v1"
     result = await _apply_consensus(
         content_type="image",
         result=result,
@@ -362,6 +391,8 @@ async def detect_audio(file: UploadFile = File(...)) -> AudioDetectionResponse:
         result = await audio_detector.detect(content, filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result.model_version = "audio-detector:heuristic-v1"
+    result.calibration_version = "audio-heuristic-v1"
     result = await _apply_consensus(
         content_type="audio",
         result=result,
@@ -428,6 +459,8 @@ async def detect_video(file: UploadFile = File(...)) -> VideoDetectionResponse:
         result = await video_detector.detect(content, filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result.model_version = "video-detector:heuristic-v1"
+    result.calibration_version = "video-heuristic-v1"
     result = await _apply_consensus(
         content_type="video",
         result=result,
@@ -506,6 +539,8 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
 
         filename = _filename_from_url(resolved_url)
         image_result = await image_detector.detect(image_data, filename)
+        image_result.model_version = f"image-detector:{settings.image_detection_model}"
+        image_result.calibration_version = "image-heuristic-v1"
         image_result = await _apply_consensus(
             content_type="image",
             result=image_result,

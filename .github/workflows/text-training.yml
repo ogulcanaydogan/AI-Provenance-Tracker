@@ -1,0 +1,77 @@
+name: Text Training Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      training_mode:
+        description: "Training mode"
+        required: true
+        type: choice
+        options:
+          - a100_single
+          - v100_sweep
+        default: a100_single
+      max_train_samples:
+        description: "Optional sample cap (0 = full)"
+        required: true
+        default: "0"
+      fp_penalty:
+        description: "False-positive penalty weight for human class"
+        required: true
+        default: "1.7"
+
+permissions:
+  contents: read
+
+jobs:
+  train-text:
+    runs-on: [self-hosted, linux, x64, spark]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install backend ML dependencies
+        run: |
+          cd backend
+          pip install -e ".[dev,ml]"
+
+      - name: Build text dataset
+        run: |
+          make build-text-dataset
+
+      - name: Build hard negatives from latest benchmark
+        run: |
+          make build-hard-negatives INCLUDE_FALSE_NEGATIVES=1 || true
+
+      - name: Run A100 targeted fine-tune
+        if: ${{ github.event.inputs.training_mode == 'a100_single' }}
+        run: |
+          make train-text-a100 \
+            MAX_TRAIN_SAMPLES="${{ github.event.inputs.max_train_samples }}" \
+            FP_PENALTY="${{ github.event.inputs.fp_penalty }}" \
+            RUN_NAME="v11_text_fp_a100_${{ github.run_id }}"
+
+      - name: Run V100 sweep
+        if: ${{ github.event.inputs.training_mode == 'v100_sweep' }}
+        run: |
+          make sweep-text-v100 EXECUTE=1
+
+      - name: Refresh calibration after training
+        run: |
+          make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
+          make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
+
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: text-training-artifacts
+          path: |
+            backend/evidence/models/text/**/training_manifest.json
+            backend/evidence/models/text/latest.json
+            backend/evidence/calibration/text/latest_text_calibration.json
+            backend/evidence/calibration/text/quality_gate.json
+            backend/evidence/calibration/text/quality_gate.md
+          retention-days: 30

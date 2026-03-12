@@ -338,6 +338,22 @@ def _guess_content_type(input_ref: str, modality: str) -> str:
     return fallback.get(modality, "application/octet-stream")
 
 
+def _to_text_domain_hint(raw_domain: str) -> str:
+    value = (raw_domain or "").strip().lower().replace("_", "-")
+    mapping = {
+        "news": "news",
+        "social": "social",
+        "finance": "marketing",
+        "marketing": "marketing",
+        "education": "academic",
+        "science": "academic",
+        "legal": "academic",
+        "code": "code-doc",
+        "code-doc": "code-doc",
+    }
+    return mapping.get(value, "general")
+
+
 def _consensus_provider_statuses(payload: dict[str, Any] | None) -> dict[str, str]:
     if not isinstance(payload, dict):
         return {}
@@ -425,9 +441,10 @@ def _score_sample_live(
 
     if modality == "text":
         text_payload = _read_text_input(input_ref, repo_root)
+        domain_hint = _to_text_domain_hint(str(row.get("domain", "")))
         status_code, payload, error = _http_json_post(
             endpoint_root + "/text",
-            {"text": text_payload},
+            {"text": text_payload, "domain": domain_hint},
             api_key=api_key,
             api_key_header=api_key_header,
         )

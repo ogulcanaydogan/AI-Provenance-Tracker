@@ -75,6 +75,9 @@ export interface BackendConsensusVote {
   weight: number;
   status: "ok" | "unavailable" | "unsupported" | "error";
   rationale: string;
+  evidence_type?: "c2pa_manifest" | "external_api" | "heuristic" | null;
+  evidence_ref?: string | null;
+  verification_status?: "verified" | "unverified" | "unsupported" | "error" | null;
 }
 
 export interface BackendConsensusSummary {
@@ -96,6 +99,9 @@ export interface BackendTextDetectionResponse {
   analysis: TextDetectionAnalysis;
   explanation: string;
   processing_time_ms: number;
+  model_version?: string | null;
+  calibration_version?: string | null;
+  provider_evidence?: BackendConsensusVote[];
   consensus?: BackendConsensusSummary | null;
 }
 
@@ -109,6 +115,9 @@ export interface BackendImageDetectionResponse {
   filename: string;
   dimensions: [number, number];
   processing_time_ms: number;
+  model_version?: string | null;
+  calibration_version?: string | null;
+  provider_evidence?: BackendConsensusVote[];
   consensus?: BackendConsensusSummary | null;
 }
 
@@ -121,6 +130,9 @@ export interface BackendAudioDetectionResponse {
   explanation: string;
   filename: string;
   processing_time_ms: number;
+  model_version?: string | null;
+  calibration_version?: string | null;
+  provider_evidence?: BackendConsensusVote[];
   consensus?: BackendConsensusSummary | null;
 }
 
@@ -133,6 +145,9 @@ export interface BackendVideoDetectionResponse {
   explanation: string;
   filename: string;
   processing_time_ms: number;
+  model_version?: string | null;
+  calibration_version?: string | null;
+  provider_evidence?: BackendConsensusVote[];
   consensus?: BackendConsensusSummary | null;
 }
 
