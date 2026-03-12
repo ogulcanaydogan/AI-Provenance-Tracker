@@ -23,13 +23,21 @@ describe("detectText", () => {
         analysis_id: "abc-123",
         confidence: 0.87,
         is_ai_generated: true,
+        decision_band: "ai",
+        distance_to_threshold: 0.37,
+        uncertainty_reason: null,
         explanation: "High confidence AI text",
         model_prediction: "gpt-4",
         analysis: {
           perplexity: 10.5,
           burstiness: 0.3,
           vocabulary_richness: 0.42,
+          average_sentence_length: 12.2,
           repetition_score: 0.65,
+          punctuation_diversity: 0.25,
+          stopword_ratio: 0.36,
+          sentence_length_variance: 22.5,
+          sentence_length_kurtosis: 0.41,
         },
         consensus: { providers: [{ provider: "internal" }] },
       }),
@@ -46,7 +54,7 @@ describe("detectText", () => {
     expect(result.content_type).toBe("text");
     expect(result.verdict).toBe("ai_generated");
     expect(result.confidence_score).toBeGreaterThan(0);
-    expect(result.signals).toHaveLength(4);
+    expect(result.signals).toHaveLength(7);
     expect(result.summary).toBe("High confidence AI text");
   });
 

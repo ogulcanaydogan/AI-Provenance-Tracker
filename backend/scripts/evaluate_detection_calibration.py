@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
@@ -30,6 +32,22 @@ def parse_args() -> argparse.Namespace:
         help="Detector modality to evaluate",
     )
     parser.add_argument("--output", default="calibration_report.json")
+    parser.add_argument(
+        "--profile-output",
+        default="app/detection/text/calibration_profile.json",
+        help="Text detector calibration profile output path (used with --write-profile).",
+    )
+    parser.add_argument(
+        "--write-profile",
+        action="store_true",
+        help="Write recommended threshold/margin back to calibration profile for text modality.",
+    )
+    parser.add_argument(
+        "--min-samples",
+        type=int,
+        default=100,
+        help="Minimum scored samples required to accept calibration output.",
+    )
     parser.add_argument(
         "--register",
         action="store_true",
@@ -66,12 +84,16 @@ def _threshold_metrics(scores: list[tuple[float, bool]], threshold: float) -> di
     recall = _safe_div(tp, tp + fn)
     f1 = _safe_div(2 * precision * recall, precision + recall)
     accuracy = _safe_div(tp + tn, tp + tn + fp + fn)
+    fp_rate = _safe_div(fp, fp + tn)
+    fn_rate = _safe_div(fn, fn + tp)
     return {
         "threshold": round(threshold, 2),
         "precision": round(precision, 4),
         "recall": round(recall, 4),
         "f1": round(f1, 4),
         "accuracy": round(accuracy, 4),
+        "fp_rate": round(fp_rate, 4),
+        "fn_rate": round(fn_rate, 4),
         "tp": tp,
         "fp": fp,
         "tn": tn,
@@ -92,6 +114,45 @@ def _resolve_sample_path(sample: dict[str, Any], content_type: str) -> Path | No
     return None
 
 
+def _resolve_text_sample(sample: dict[str, Any]) -> str:
+    direct_text = str(sample.get("text", "")).strip()
+    if direct_text:
+        return direct_text
+
+    input_ref = str(sample.get("input_ref", "")).strip()
+    if not input_ref:
+        return ""
+
+    input_path = Path(input_ref).expanduser()
+    if not input_path.is_absolute():
+        repo_root = BACKEND_ROOT.parent
+        input_path = (repo_root / input_ref).resolve()
+    if not input_path.exists():
+        return ""
+    try:
+        return input_path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _estimate_uncertainty_margin(scores: list[tuple[float, bool]], threshold: float) -> float:
+    misclassified_distances = [
+        abs(score - threshold)
+        for score, label_is_ai in scores
+        if (score >= threshold) != label_is_ai
+    ]
+    if misclassified_distances:
+        raw_margin = float(np.percentile(misclassified_distances, 75))
+    else:
+        all_distances = sorted(abs(score - threshold) for score, _ in scores)
+        if not all_distances:
+            return 0.08
+        pivot = max(3, len(all_distances) // 10)
+        raw_margin = float(np.mean(all_distances[:pivot]))
+
+    return round(float(np.clip(raw_margin, 0.04, 0.18)), 3)
+
+
 async def _score_samples(
     samples: list[dict[str, Any]], content_type: str
 ) -> tuple[list[tuple[float, bool]], int]:
@@ -99,7 +160,10 @@ async def _score_samples(
     if content_type == "text":
         detector = TextDetector()
         for sample in samples:
-            text = str(sample.get("text", "")).strip()
+            modality = str(sample.get("modality", "text")).strip().lower()
+            if modality and modality != "text":
+                continue
+            text = _resolve_text_sample(sample)
             if not text:
                 continue
             result = await detector.detect(text)
@@ -158,10 +222,24 @@ async def run() -> int:
     if not scores:
         print("No valid samples were scored.")
         return 1
+    if len(scores) < args.min_samples:
+        print(
+            f"Insufficient scored samples: {len(scores)} < required minimum {args.min_samples}. "
+            "Calibration aborted."
+        )
+        return 1
 
     thresholds = [i / 20 for i in range(4, 19)]  # 0.20 .. 0.90
     metrics = [_threshold_metrics(scores, threshold) for threshold in thresholds]
-    best = max(metrics, key=lambda item: (item["f1"], item["accuracy"]))
+    best = max(
+        metrics,
+        key=lambda item: (
+            item["f1"] - (item["fp_rate"] * 0.35),
+            item["accuracy"],
+            -item["fp_rate"],
+        ),
+    )
+    uncertainty_margin = _estimate_uncertainty_margin(scores, best["threshold"])
 
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
@@ -170,6 +248,7 @@ async def run() -> int:
         "sample_count": len(scores),
         "skipped_samples": skipped_samples,
         "recommended_threshold": best["threshold"],
+        "recommended_uncertainty_margin": uncertainty_margin,
         "best_metrics": best,
         "all_thresholds": metrics,
     }
@@ -178,6 +257,27 @@ async def run() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote calibration report to {output_path}")
+
+    if args.write_profile and args.content_type == "text":
+        detector = TextDetector()
+        profile_payload = {
+            **detector._calibration_profile,  # noqa: SLF001 - internal profile baseline
+            "version": f"calibrated-{datetime.now(UTC).strftime('%Y%m%d')}",
+            "source": str(input_path),
+            "sample_count": len(scores),
+            "decision_threshold": best["threshold"],
+            "uncertainty_margin": uncertainty_margin,
+            "calibrated_at": datetime.now(UTC).isoformat(),
+        }
+        profile_path = Path(args.profile_output).expanduser()
+        if not profile_path.is_absolute():
+            profile_path = (BACKEND_ROOT / profile_path).resolve()
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        profile_path.write_text(
+            json.dumps(profile_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Wrote calibration profile to {profile_path}")
 
     if args.register:
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")

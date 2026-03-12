@@ -427,7 +427,8 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-gray-400">
                       P {formatPct(metrics.precision)} | R {formatPct(metrics.recall)} | F1{" "}
-                      {formatPct(metrics.f1)} | Th {metrics.recommended_threshold.toFixed(2)}
+                      {formatPct(metrics.f1)} | FP {formatPct(metrics.false_positive_rate)} | Th{" "}
+                      {metrics.recommended_threshold.toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -447,7 +448,8 @@ export default function DashboardPage() {
                       {row.date} {row.content_type}
                     </span>
                     <span className="text-gray-300">
-                      F1 {formatPct(row.f1)} | P {formatPct(row.precision)} | R {formatPct(row.recall)}
+                      F1 {formatPct(row.f1)} | P {formatPct(row.precision)} | R{" "}
+                      {formatPct(row.recall)} | FP {formatPct(row.false_positive_rate)}
                     </span>
                   </div>
                 ))}

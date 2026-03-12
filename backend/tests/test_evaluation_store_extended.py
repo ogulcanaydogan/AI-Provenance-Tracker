@@ -64,6 +64,7 @@ class TestEvaluationStoreSummary:
         assert result["total_reports"] == 1
         assert result["by_content_type"]["text"] == 1
         assert result["latest_by_content_type"]["text"]["f1"] == 0.87
+        assert result["latest_by_content_type"]["text"]["false_positive_rate"] == 0.0
 
     def test_invalid_json_is_skipped(self, store: EvaluationStore, tmp_path: Path) -> None:
         (tmp_path / "broken.json").write_text("not json!", encoding="utf-8")
@@ -133,6 +134,7 @@ class TestEvaluationStoreSummary:
         assert result["total_reports"] == 2
         assert len(result["alerts"]) == 1
         assert result["alerts"][0]["code"] == "f1_regression"
+        assert "false_positive_rate" in result["trend"][-1]
 
     def test_no_regression_alert_when_f1_stable(
         self, store: EvaluationStore, tmp_path: Path

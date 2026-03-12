@@ -1,11 +1,11 @@
 export const SAMPLE_AI_TEXT = `The integration of artificial intelligence into modern healthcare systems represents a paradigm shift in how medical professionals approach patient care and diagnosis. Machine learning algorithms have demonstrated remarkable accuracy in analyzing medical imaging, often matching or exceeding the performance of experienced radiologists. These systems process vast datasets of patient information to identify patterns that might escape human observation, enabling earlier detection of conditions ranging from cancer to cardiovascular disease. Furthermore, AI-powered predictive models are transforming preventive medicine by assessing individual risk factors and recommending personalized intervention strategies. The continuous improvement of these technologies, coupled with increasing computational capabilities, suggests that AI will play an increasingly central role in shaping the future of healthcare delivery worldwide.`;
 
 export const VERDICT_LABELS: Record<string, string> = {
-  human: "Human Written",
+  human: "Likely Human",
   likely_human: "Likely Human",
-  uncertain: "Uncertain",
+  uncertain: "Uncertain — more text needed",
   likely_ai: "Likely AI",
-  ai_generated: "AI Generated",
+  ai_generated: "Likely AI",
 };
 
 export const VERDICT_COLORS: Record<string, string> = {

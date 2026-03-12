@@ -42,7 +42,7 @@ function toPercent(value: number): number {
   return Number((clamp(value, 0, 1) * 100).toFixed(1));
 }
 
-function toVerdict(isAi: boolean, confidence: number): Verdict {
+function toVerdictFromRaw(isAi: boolean, confidence: number): Verdict {
   const normalized = clamp(confidence, 0, 1);
 
   if (isAi) {
@@ -56,12 +56,29 @@ function toVerdict(isAi: boolean, confidence: number): Verdict {
   return "uncertain";
 }
 
+function toVerdict(result: BackendDetectionResponse): Verdict {
+  const confidence = clamp(result.confidence, 0, 1);
+  if ("decision_band" in result) {
+    if (result.decision_band === "ai") {
+      return confidence >= 0.85 ? "ai_generated" : "likely_ai";
+    }
+    if (result.decision_band === "human") {
+      return confidence <= 0.15 ? "human" : "likely_human";
+    }
+    return "uncertain";
+  }
+  return toVerdictFromRaw(result.is_ai_generated, confidence);
+}
+
 function buildTextSignals(result: BackendDetectionResponse): DetectionSignal[] {
   if (!("perplexity" in result.analysis)) {
     return [];
   }
 
   const analysis = result.analysis;
+  const punctuationDiversity = analysis.punctuation_diversity ?? 0;
+  const stopwordRatio = analysis.stopword_ratio ?? 0;
+  const sentenceLengthVariance = analysis.sentence_length_variance ?? 0;
 
   const perplexityScore = clamp((30 - analysis.perplexity) / 30, 0, 1);
   const burstinessScore = clamp(1 - analysis.burstiness, 0, 1);
@@ -72,6 +89,14 @@ function buildTextSignals(result: BackendDetectionResponse): DetectionSignal[] {
     1
   );
   const repetitionScore = clamp(analysis.repetition_score, 0, 1);
+  const punctuationScore = clamp(1 - punctuationDiversity, 0, 1);
+  const stopwordCenter = 0.42;
+  const stopwordScore = clamp(
+    1 - Math.abs(stopwordRatio - stopwordCenter) / stopwordCenter,
+    0,
+    1
+  );
+  const sentenceVarianceScore = clamp(1 - Math.min(sentenceLengthVariance / 60, 1), 0, 1);
 
   return [
     {
@@ -95,8 +120,26 @@ function buildTextSignals(result: BackendDetectionResponse): DetectionSignal[] {
     {
       name: "ml_classifier",
       score: repetitionScore,
-      weight: 0.25,
+      weight: 0.18,
       description: `Repetition score: ${(analysis.repetition_score * 100).toFixed(0)}%.`,
+    },
+    {
+      name: "punctuation_diversity",
+      score: punctuationScore,
+      weight: 0.12,
+      description: `Punctuation diversity: ${(punctuationDiversity * 100).toFixed(0)}%.`,
+    },
+    {
+      name: "stopword_ratio",
+      score: stopwordScore,
+      weight: 0.1,
+      description: `Stopword ratio: ${(stopwordRatio * 100).toFixed(0)}%.`,
+    },
+    {
+      name: "sentence_variance",
+      score: sentenceVarianceScore,
+      weight: 0.1,
+      description: `Sentence length variance: ${sentenceLengthVariance.toFixed(2)}.`,
     },
   ];
 }
@@ -227,7 +270,7 @@ function mapDetection(
     id: payload.analysis_id || `${contentType}-${Date.now()}`,
     content_type: contentType,
     confidence_score: toPercent(confidence),
-    verdict: toVerdict(payload.is_ai_generated, confidence),
+    verdict: toVerdict(payload),
     signals:
       contentType === "text"
         ? buildTextSignals(payload)
@@ -247,7 +290,7 @@ function mapHistoryItem(item: BackendHistoryItem): DetectionResult {
     id: item.analysis_id,
     content_type: item.content_type,
     confidence_score: toPercent(item.confidence),
-    verdict: toVerdict(item.is_ai_generated, item.confidence),
+    verdict: toVerdictFromRaw(item.is_ai_generated, item.confidence),
     signals: [],
     summary: item.explanation || "No explanation available.",
     analyzed_at: item.created_at,

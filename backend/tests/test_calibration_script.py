@@ -23,6 +23,11 @@ class _DummyMediaDetector:
         return types.SimpleNamespace(confidence=0.81)
 
 
+class _DummyTextDetector:
+    async def detect(self, _text: str):  # noqa: ANN001
+        return types.SimpleNamespace(confidence=0.22)
+
+
 @pytest.mark.asyncio
 async def test_score_samples_audio_supported(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -73,3 +78,21 @@ async def test_score_samples_counts_missing_media_as_skipped(
 
     assert scores == []
     assert skipped == 1
+
+
+@pytest.mark.asyncio
+async def test_score_samples_text_from_input_ref(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script_module()
+    sample_path = tmp_path / "sample.txt"
+    sample_path.write_text("This text fixture is used for calibration scoring.", encoding="utf-8")
+
+    monkeypatch.setattr(module, "TextDetector", _DummyTextDetector)
+    scores, skipped = await module._score_samples(
+        [{"input_ref": str(sample_path), "label_is_ai": False}],
+        "text",
+    )
+
+    assert scores == [(0.22, False)]
+    assert skipped == 0
