@@ -13,6 +13,13 @@ This runbook covers targeted text detector fine-tuning for v1.1 false-positive s
 - **A100 (single run):** primary fine-tune candidate.
 - **V100 pool (x5):** hyperparameter sweep and robustness sweeps.
 
+## Runner Labels (GitHub Actions)
+
+Configure self-hosted GPU runners with explicit labels so the workflow routes correctly:
+
+- A100 host: `self-hosted,linux,x64,spark,a100`
+- Each V100 host: `self-hosted,linux,x64,spark,v100`
+
 ## Data Preparation
 
 ```bash
@@ -47,6 +54,18 @@ Execute sweep:
 
 ```bash
 make sweep-text-v100 EXECUTE=1
+```
+
+Execute one specific V100 profile:
+
+```bash
+make sweep-text-v100 EXECUTE=1 PROFILE=v11_fp_sweep_lr25e5_pen18
+```
+
+List available sweep profiles:
+
+```bash
+python3 backend/scripts/sweep_text_training.py --list-profiles
 ```
 
 ## Post-Training Calibration and Gate
