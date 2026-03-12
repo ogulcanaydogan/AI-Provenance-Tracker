@@ -38,7 +38,7 @@ help:
 	@echo "  make build-hard-negatives Extract hard FP/FN samples from scored benchmark outputs"
 	@echo "  make train-text-model Run targeted text fine-tuning"
 	@echo "  make train-text-a100 Recommended A100 profile for targeted fine-tuning"
-	@echo "  make sweep-text-v100 Print/execute V100 hyperparameter sweep commands"
+	@echo "  make sweep-text-v100 Print/execute V100 hyperparameter sweep commands (PROFILE=<name>|all)"
 	@echo "  make cost-governance Generate CI/CD spend governance snapshot"
 	@echo "  make package-policy Enforce dependency source allow/deny policy"
 	@echo "  make slo-report      Generate observability SLO report from workflow history"
@@ -142,4 +142,4 @@ train-text-a100:
 	$(MAKE) train-text-model BASE_MODEL="$${BASE_MODEL:-distilroberta-base}" EPOCHS="$${EPOCHS:-3}" TRAIN_BATCH_SIZE="$${TRAIN_BATCH_SIZE:-32}" EVAL_BATCH_SIZE="$${EVAL_BATCH_SIZE:-64}" RUN_NAME="$${RUN_NAME:-v11_text_fp_a100}" FP_PENALTY="$${FP_PENALTY:-1.8}" LEARNING_RATE="$${LEARNING_RATE:-2e-5}"
 
 sweep-text-v100:
-	python3 backend/scripts/sweep_text_training.py --dataset "$${DATASET:-backend/evidence/samples/text_labeled_expanded.jsonl}" --hard-negatives "$${HARD_NEGATIVES:-backend/evidence/samples/text_hard_negatives.jsonl}" --output-dir "$${OUTPUT_DIR:-backend/evidence/models/text}" --base-model "$${BASE_MODEL:-distilroberta-base}" $${EXECUTE:+--execute}
+	python3 backend/scripts/sweep_text_training.py --dataset "$${DATASET:-backend/evidence/samples/text_labeled_expanded.jsonl}" --hard-negatives "$${HARD_NEGATIVES:-backend/evidence/samples/text_hard_negatives.jsonl}" --output-dir "$${OUTPUT_DIR:-backend/evidence/models/text}" --base-model "$${BASE_MODEL:-distilroberta-base}" --profile "$${PROFILE:-all}" $${EXECUTE:+--execute}
