@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-13 (v1.6.3 Helm deploy acceptance PASSED)
+Last updated: 2026-03-13 (v1.6.4 smoke-route remediation merged; acceptance rerun blocked by runner DNS)
 
 ## Overall
 
@@ -125,6 +125,33 @@ Last updated: 2026-03-13 (v1.6.3 Helm deploy acceptance PASSED)
   - [23058010170](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23058010170) — hostname resolve failure
   - [23066381257](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23066381257) — deploy timeout (API_KEYS parse error)
 - Policy state: **v1.6.3 acceptance CLOSED — Helm pipeline proven end-to-end**.
+
+## v1.6.4 Deploy Runtime Smoke Route Remediation (Runtime-aware Split) — IMPLEMENTED
+
+- Implementation commit on `main`: `d46068c`
+  - `Deploy Runtime (Pinned SHA, Legacy)` now uses split smoke jobs:
+    - `Post-Deploy Smoke Gate (Helm)` on self-hosted Spark runner
+    - `Post-Deploy Smoke Gate (Railway)` on GitHub-hosted runner
+  - Runtime-aware URL resolution:
+    - Helm: `workflow_dispatch.smoke_base_url_helm` -> `vars.SPARK_PUBLIC_API_URL` -> hard-fail
+    - Railway: `workflow_dispatch.smoke_base_url_railway` -> `secrets.PRODUCTION_API_URL` -> hard-fail
+  - Target-specific rollback wiring:
+    - `rollback_helm` depends on `smoke_gate_helm=failure`
+    - `rollback_railway` depends on `smoke_gate_railway=failure`
+  - Deployment summary now emits `smoke_gate_helm` and `smoke_gate_railway` separately.
+- CI validation on commit `d46068c`:
+  - CI success: [23070047274](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23070047274)
+  - CodeQL success: [23070047238](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23070047238)
+- Acceptance rerun attempt:
+  - Triggered run: [23070049926](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23070049926)
+  - Result: `cancelled` (runner-side infra blocker before `Deploy Helm Runtime` started)
+  - Root cause on `spark-self-hosted`:
+    - runner seen as `offline` by GitHub
+    - runner diagnostics show DNS resolution failures to GitHub Actions endpoint (`Socket Error: TryAgain`)
+    - direct probe from runner failed to resolve `broker.actions.githubusercontent.com`
+- Operational note:
+  - Smoke-route mismatch follow-up is code-complete in v1.6.4.
+  - Remaining blocker is external infra (runner DNS/network), not workflow logic.
 
 ## Baseline Lock
 
