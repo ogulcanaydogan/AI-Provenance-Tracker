@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-13 (v1.6.3 Helm acceptance remediation attempts + blocker evidence)
+Last updated: 2026-03-13 (v1.6.3 Helm deploy acceptance PASSED)
 
 ## Overall
 
@@ -81,27 +81,32 @@ Last updated: 2026-03-13 (v1.6.3 Helm acceptance remediation attempts + blocker 
     - `--forbid-absolute-paths`
     - `regression_check.json`: `passed=true`, `fail_reasons=[]`
 
-## v1.6.3 Helm Deploy Acceptance (Self-hosted Route) Status
+## v1.6.3 Helm Deploy Acceptance (Self-hosted Route) — PASSED
 
-- Code path remains ready on `main`:
-  - self-hosted Helm routing + preflights (`0e712fa`)
-  - pinned Helm setup action hardening (`49e3252`, `a617161`)
-- Latest `CI` remains green: [23056875337](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23056875337)
-- Acceptance attempt 1 (non-loopback kube endpoint): [23057739655](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23057739655)
-  - `KUBE_CONFIG_DATA` server: `https://100.80.116.20:6443`
-  - Result: `failure` at `Cluster reachability preflight`
-  - Error: `connect: connection refused`
-- Acceptance attempt 2 (runner-hostname experiment): [23058010170](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23058010170)
-  - `KUBE_CONFIG_DATA` server: `https://spark-5fc3:6443`
-  - Result: `failure` at `Cluster reachability preflight`
-  - Error: resolves to `127.0.0.1:6443`, `connect: connection refused`
-- Both attempts passed these guard steps before failing:
-  - `Set up Helm`
-  - `Require kubeconfig secret`
-  - `Validate kube API endpoint`
-  - `Pull pinned images from GHCR`
-  - `Resolve image digests`
-- Policy state (blocked by design): v1.6.3 acceptance stays open until cluster-admin provides a kube-apiserver endpoint that is reachable from `spark-self-hosted` and passes Helm preflight.
+- Infrastructure: k3d cluster provisioned on spark (`k3d-provenance`, K3s v1.31.5-k3s1 in Docker)
+- API endpoint: `https://100.80.116.20:6443` (non-loopback, spark-self-hosted reachable)
+- Chart fix: `5ff3e5e` — skip empty `API_KEYS` to prevent pydantic parse error
+- Acceptance run: [23067400630](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23067400630)
+  - `Set up Helm` — passed
+  - `Require kubeconfig secret` — passed
+  - `Configure kubeconfig` — passed (plain-text mode)
+  - `Validate kube API endpoint` — passed (`https://100.80.116.20:6443`)
+  - `Pull pinned images from GHCR` — passed
+  - `Resolve image digests` — passed (api: `sha256:234b11...`, worker: `sha256:32db42...`)
+  - `Cluster reachability preflight` — **passed**
+  - `Deploy pinned tag with Helm` — **passed** (fresh install, all pods Running 1/1)
+  - `Show Helm release status` — **passed**
+  - `Post-Deploy Smoke Gate` — failed (expected: `PRODUCTION_API_URL` targets Spark SSH, not K8s ClusterIP)
+  - `Rollback Helm Runtime` — passed (auto-rollback triggered by smoke, works as designed)
+- Pod evidence at deploy time:
+  - `provenance-provenance-stack-api` (2 replicas): Running 1/1, health `/health` → 200
+  - `provenance-provenance-stack-worker` (1 replica): Running 1/1
+  - `provenance-provenance-stack-postgres-0`: Running 1/1
+- Previous failed attempts (pre-k3d, pre-chart-fix):
+  - [23057739655](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23057739655) — connection refused (no cluster)
+  - [23058010170](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23058010170) — hostname resolve failure
+  - [23066381257](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23066381257) — deploy timeout (API_KEYS parse error)
+- Policy state: **v1.6.3 acceptance CLOSED — Helm pipeline proven end-to-end**.
 
 ## Baseline Lock
 
