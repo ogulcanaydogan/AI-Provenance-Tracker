@@ -98,6 +98,15 @@ def _check_required(payload: dict[str, Any] | None, required_keys: tuple[str, ..
     return [f"missing:{item}" for item in missing]
 
 
+def _infer_root_cause_hint(health_probe: dict[str, Any], checks: list[dict[str, Any]]) -> str | None:
+    detect_statuses = [int(item.get("status_code", 0) or 0) for item in checks]
+    if len(checks) == 4 and all(status == 404 for status in detect_statuses):
+        return "base_url_route_mismatch"
+    if not bool(health_probe.get("ok")) and int(health_probe.get("status_code", 0) or 0) == 0:
+        return "service_unreachable"
+    return None
+
+
 def run() -> int:
     args = parse_args()
     base_url = args.base_url.strip().rstrip("/")
@@ -113,6 +122,22 @@ def run() -> int:
     with httpx.Client(
         base_url=base_url, timeout=httpx.Timeout(args.timeout), headers=headers
     ) as client:
+        health_status, health_json, health_parse_error, health_latency = _request_json(
+            client, "GET", "/health"
+        )
+        health_errors = []
+        if health_status != 200:
+            health_errors.append(f"http_status:{health_status}")
+        health_errors.extend(_check_required(health_json, ("status",)))
+        health_probe = {
+            "endpoint": "/health",
+            "ok": len(health_errors) == 0,
+            "status_code": health_status,
+            "latency_ms": health_latency,
+            "errors": health_errors,
+            "parse_error": health_parse_error,
+        }
+
         text_status, text_json, text_parse_error, text_latency = _request_json(
             client,
             "POST",
@@ -210,9 +235,14 @@ def run() -> int:
         )
 
     successful = sum(1 for item in checks if item["ok"])
+    root_cause_hint = _infer_root_cause_hint(health_probe, checks)
+    all_checks_ok = bool(health_probe["ok"]) and successful == len(checks)
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "base_url": base_url,
+        "health_probe": health_probe,
+        "root_cause_hint": root_cause_hint,
+        "overall_ok": all_checks_ok,
         "checks_total": len(checks),
         "checks_passed": successful,
         "checks_failed": len(checks) - successful,
@@ -226,7 +256,7 @@ def run() -> int:
         print(f"Wrote smoke report to {output_path}")
 
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if successful == len(checks) else 1
+    return 0 if all_checks_ok else 1
 
 
 if __name__ == "__main__":

@@ -2,6 +2,11 @@ name: Production Smoke Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Optional smoke target URL override"
+        required: false
+        default: ""
   schedule:
     - cron: "0 */6 * * *"
 
@@ -11,10 +16,11 @@ permissions:
 
 jobs:
   detect-smoke:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, spark]
     timeout-minutes: 15
     env:
-      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+      SPARK_PUBLIC_API_URL: ${{ vars.SPARK_PUBLIC_API_URL }}
+      LEGACY_PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
@@ -27,36 +33,79 @@ jobs:
         run: |
           cd backend
           pip install -e .
-      - name: Require URL for manual run
-        if: ${{ github.event_name == 'workflow_dispatch' && env.PRODUCTION_API_URL == '' }}
+      - name: Resolve smoke target URL
+        id: resolve_url
         run: |
-          echo "PRODUCTION_API_URL secret is not set. Configure repository secret before manual runs."
-          exit 1
+          set -euo pipefail
+          manual_url="$(python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          event_name = os.getenv("GITHUB_EVENT_NAME", "")
+          if event_name != "workflow_dispatch":
+              print("")
+          else:
+              payload = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+              value = payload.get("inputs", {}).get("base_url", "")
+              print(str(value).strip())
+          PY
+          )"
+
+          source="workflow_dispatch_input"
+          base_url="${manual_url}"
+          if [ -z "${base_url}" ]; then
+            base_url="$(printf '%s' "${SPARK_PUBLIC_API_URL:-}" | xargs)"
+            source="vars.SPARK_PUBLIC_API_URL"
+          fi
+          if [ -z "${base_url}" ]; then
+            base_url="$(printf '%s' "${LEGACY_PRODUCTION_API_URL:-}" | xargs)"
+            source="secrets.PRODUCTION_API_URL"
+          fi
+          if [ -z "${base_url}" ]; then
+            echo "::error::No smoke base URL configured. Set workflow_dispatch input base_url, vars.SPARK_PUBLIC_API_URL, or secrets.PRODUCTION_API_URL."
+            exit 1
+          fi
+
+          {
+            echo "base_url=${base_url}"
+            echo "base_url_source=${source}"
+          } >> "$GITHUB_OUTPUT"
+          echo "SMOKE_BASE_URL=${base_url}" >> "$GITHUB_ENV"
+          echo "Resolved smoke target URL from ${source}"
       - name: Run smoke suite
         id: smoke
-        if: ${{ env.PRODUCTION_API_URL != '' }}
         continue-on-error: true
         run: |
           cd backend
           python scripts/smoke_detect_prod.py \
-            --base-url "${PRODUCTION_API_URL}" \
+            --base-url "${SMOKE_BASE_URL}" \
             --api-key "${PRODUCTION_API_KEY}" \
             --api-key-header "${PRODUCTION_API_KEY_HEADER}" \
             --output ./evidence/smoke/prod_detect_smoke.json
-      - name: Skip when URL is not configured
-        if: ${{ env.PRODUCTION_API_URL == '' }}
-        run: echo "PRODUCTION_API_URL secret is not set; skipping smoke tests."
       - name: Upload smoke artifact
-        if: ${{ always() && env.PRODUCTION_API_URL != '' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: prod-detect-smoke
           path: backend/evidence/smoke/prod_detect_smoke.json
           retention-days: 14
       - name: Send smoke failure alert webhook
-        if: ${{ always() && env.PRODUCTION_API_URL != '' && steps.smoke.outcome == 'failure' && env.OPS_ALERT_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.smoke.outcome == 'failure' && env.OPS_ALERT_WEBHOOK_URL != '' }}
         run: |
           set -euo pipefail
+          root_cause_hint="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("backend/evidence/smoke/prod_detect_smoke.json")
+          if not path.exists():
+              print("unknown")
+          else:
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              print(payload.get("root_cause_hint") or "unknown")
+          PY
+          )"
           payload="$(cat <<JSON
           {
             "event": "production_smoke_failed",
@@ -64,36 +113,156 @@ jobs:
             "workflow": "${{ github.workflow }}",
             "run_id": "${{ github.run_id }}",
             "run_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "base_url": "${PRODUCTION_API_URL}"
+            "base_url": "${SMOKE_BASE_URL}",
+            "root_cause_hint": "${root_cause_hint}"
           }
           JSON
           )"
           curl -fsS -X POST "${OPS_ALERT_WEBHOOK_URL}" \
             -H "Content-Type: application/json" \
             --data "${payload}"
-      - name: Open tracking issue on smoke failure
-        if: ${{ always() && env.PRODUCTION_API_URL != '' && steps.smoke.outcome == 'failure' }}
+      - name: Upsert tracking issue on smoke failure
+        if: ${{ always() && steps.smoke.outcome == 'failure' }}
         uses: actions/github-script@v8
         with:
           script: |
+            const fs = require("fs");
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labelName = "ops-smoke";
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const title = `[ops] Production smoke failed (${new Date().toISOString().slice(0, 10)})`;
-            const body = [
-              "Production smoke checks failed.",
+
+            let report = {};
+            const reportPath = "backend/evidence/smoke/prod_detect_smoke.json";
+            if (fs.existsSync(reportPath)) {
+              try {
+                report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+              } catch (err) {
+                core.warning(`Could not parse smoke report: ${err}`);
+              }
+            }
+
+            const baseUrl = process.env.SMOKE_BASE_URL || report.base_url || "n/a";
+            const rootCauseHint = report.root_cause_hint || "unknown";
+            const failedChecks = Array.isArray(report.checks)
+              ? report.checks.filter((item) => item && item.ok === false)
+              : [];
+            const failedSummary = failedChecks.length
+              ? failedChecks.slice(0, 5).map((item) => {
+                  const endpoint = item.endpoint || "unknown-endpoint";
+                  const status = item.status_code ?? "n/a";
+                  const errors = Array.isArray(item.errors) && item.errors.length > 0 ? item.errors.join(", ") : "-";
+                  return `- \`${endpoint}\`: status=${status}, errors=${errors}`;
+                }).join("\n")
+              : "- (no failed endpoint details)";
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: labelName });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: labelName,
+                  color: "d93f0b",
+                  description: "Production smoke tracking issue",
+                });
+              } else {
+                throw error;
+              }
+            }
+
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open label:${labelName}`,
+              per_page: 10,
+            });
+            const openIssues = (searchResult.data.items || []).filter((item) => !item.pull_request);
+            const commentBody = [
+              "Smoke failure detected.",
               "",
               `- Workflow run: ${runUrl}`,
-              `- API URL: ${process.env.PRODUCTION_API_URL}`,
+              `- API URL: ${baseUrl}`,
+              `- Root cause hint: ${rootCauseHint}`,
               "",
-              "Please investigate backend health and detection endpoints.",
+              "Failed checks:",
+              failedSummary,
             ].join("\n");
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title,
-              body
+
+            if (openIssues.length > 0) {
+              const issue = openIssues[0];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: commentBody,
+              });
+              core.info(`Updated tracking issue #${issue.number}`);
+              return;
+            }
+
+            const created = await github.rest.issues.create({
+              owner,
+              repo,
+              title: "[ops] Production smoke failing",
+              labels: [labelName],
+              body: [
+                "Production smoke checks are failing.",
+                "",
+                `- First failure run: ${runUrl}`,
+                `- API URL: ${baseUrl}`,
+                "",
+                "This issue is managed by workflow automation and will be updated until recovery.",
+              ].join("\n"),
             });
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: created.data.number,
+              body: commentBody,
+            });
+            core.info(`Created tracking issue #${created.data.number}`);
+      - name: Close tracking issue on smoke recovery
+        if: ${{ always() && steps.smoke.outcome == 'success' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labelName = "ops-smoke";
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open label:${labelName}`,
+              per_page: 20,
+            });
+            const openIssues = (searchResult.data.items || []).filter((item) => !item.pull_request);
+            if (openIssues.length === 0) {
+              core.info("No open ops-smoke issues to close.");
+              return;
+            }
+
+            for (const issue of openIssues) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: [
+                  "Smoke recovered.",
+                  "",
+                  `- Recovery run: ${runUrl}`,
+                  `- API URL: ${process.env.SMOKE_BASE_URL || "n/a"}`,
+                ].join("\n"),
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issue.number,
+                state: "closed",
+              });
+              core.info(`Closed tracking issue #${issue.number}`);
+            }
       - name: Enforce smoke gate
-        if: ${{ env.PRODUCTION_API_URL != '' }}
         run: |
           if [ "${{ steps.smoke.outcome }}" != "success" ]; then
             echo "Production smoke failed."
