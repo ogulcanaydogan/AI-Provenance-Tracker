@@ -321,7 +321,7 @@ async def _score_samples_with_metadata(
         "scored_domains": [],
     }
     if content_type == "text":
-        detector = TextDetector()
+        detector = TextDetector(apply_runtime_calibration=False)
         for sample in samples:
             modality = str(sample.get("modality", "text")).strip().lower()
             if modality and modality != "text":

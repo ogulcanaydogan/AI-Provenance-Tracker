@@ -30,6 +30,9 @@ class _DummyMediaDetector:
 
 
 class _DummyTextDetector:
+    def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003, D107
+        _ = args, kwargs
+
     async def detect(self, _text: str, domain: str | None = None):  # noqa: ANN001
         _ = domain
         return types.SimpleNamespace(

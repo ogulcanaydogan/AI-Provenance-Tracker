@@ -87,7 +87,7 @@ class TextDetector:
     5. Stylometry analysis - punctuation/stopwords/sentence moments
     """
 
-    def __init__(self, lazy_load: bool = True) -> None:
+    def __init__(self, lazy_load: bool = True, apply_runtime_calibration: bool = True) -> None:
         """Initialize the text detector with ML models."""
         self.device = "cpu"
         if ML_AVAILABLE and torch is not None:
@@ -96,6 +96,7 @@ class TextDetector:
         self.tokenizer = None
         self.model_loaded = False
         self._loading = False
+        self._apply_runtime_calibration = bool(apply_runtime_calibration)
         self._loaded_model_id = settings.text_detection_model
         self._calibration_profile = self._load_calibration_profile()
         if not lazy_load and ML_AVAILABLE:
@@ -500,7 +501,11 @@ class TextDetector:
             raw_confidence = heuristic_score
 
         raw_confidence = float(np.clip(raw_confidence, 0.02, 0.98))
-        confidence = self._apply_calibration_map(raw_confidence, profile)
+        confidence = (
+            self._apply_calibration_map(raw_confidence, profile)
+            if self._apply_runtime_calibration
+            else raw_confidence
+        )
         threshold = float(profile["decision_threshold"])
         decision_band, distance_to_threshold, uncertainty_reason = self.apply_decision_band(
             confidence=confidence,
