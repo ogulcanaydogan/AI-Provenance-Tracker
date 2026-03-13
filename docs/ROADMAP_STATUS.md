@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-12 (Platform T&S best-in-class kickoff)
+Last updated: 2026-03-13 (v1.4.1 failure-path drill evidence lock)
 
 ## Overall
 
@@ -29,6 +29,26 @@ Last updated: 2026-03-12 (Platform T&S best-in-class kickoff)
   - training scripts for targeted fine-tuning + V100 sweeps
   - weekly calibration now enforces FP/ECE quality gate
   - manual self-hosted workflow for text training (`.github/workflows/text-training.yml`)
+
+## v1.4.1 Failure-Path Drill Evidence (Text Quality Drift Watch)
+
+- Implementation commits on `main`:
+  - `5f51dfa` (`drift_mode=normal|drill_fail` input + drill-path wiring)
+  - `8971af3` (deterministic drill previous-baseline fix)
+- Acceptance run 1 (drill fail): [23043874599](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23043874599)
+  - Inputs: `benchmark_profile=smoke`, `drift_mode=drill_fail`
+  - Result: `failure` (expected), summary contains `drill_mode: true`
+  - Regression output: `fail_reasons=["drift_spike"]`, `drift_failed_checks=5`
+- Acceptance run 2 (drill fail dedup): [23043998126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23043998126)
+  - Inputs: `benchmark_profile=smoke`, `drift_mode=drill_fail`
+  - Result: `failure` (expected), same open issue updated (no duplicate issue)
+- Acceptance run 3 (recovery): [23044119478](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23044119478)
+  - Inputs: `benchmark_profile=smoke`, `drift_mode=normal`
+  - Result: `success` (expected), open drift issue auto-closed
+- Ops thread evidence:
+  - Issue thread: [#45](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/45)
+  - Two failure comments include `drill_mode: true`
+  - Recovery comment includes `Text quality drift recovered (drill recovered).`
 
 ## Baseline Lock
 
