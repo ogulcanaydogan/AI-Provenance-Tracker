@@ -212,6 +212,7 @@ jobs:
             kill "$(cat benchmark/results/ci/backend.pid)" || true
           fi
       - name: Upload benchmark artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: public-benchmark-artifacts
