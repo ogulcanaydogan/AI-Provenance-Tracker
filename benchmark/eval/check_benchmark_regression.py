@@ -234,6 +234,22 @@ def run() -> int:
     print(f"Wrote regression JSON report: {report_json_path}")
     print(f"Wrote regression Markdown report: {report_md_path}")
     if failures:
+        for item in checks:
+            if item.get("passed", False):
+                continue
+            constraint = "<=" if item.get("constraint") == "max" else ">="
+            current_value = item.get("current")
+            limit_value = item.get("limit")
+            current_text = "n/a" if current_value is None else f"{float(current_value):.4f}"
+            limit_text = "n/a" if limit_value is None else f"{float(limit_value):.4f}"
+            print(
+                "FAILED_METRIC "
+                f"path={item.get('path')} "
+                f"constraint={constraint} "
+                f"current={current_text} "
+                f"limit={limit_text} "
+                f"source={item.get('source', 'unknown')}"
+            )
         print(f"Regression check failed: {failures} metric(s) below allowed threshold.")
         return 1
     print("Regression check passed.")
