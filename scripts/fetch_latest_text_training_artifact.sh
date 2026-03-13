@@ -2,12 +2,23 @@
 
 set -euo pipefail
 
-DEST_DIR="${1:-benchmark/results/ci/training_bundle}"
+DEST_DIR_INPUT="${1:-benchmark/results/ci/training_bundle}"
 WORKFLOW_NAME="${WORKFLOW_NAME:-Text Training Pipeline}"
 ARTIFACT_NAME="${ARTIFACT_NAME:-text-training-artifacts-a100}"
 ARTIFACT_BRANCH="${ARTIFACT_BRANCH:-main}"
 ARTIFACT_SEARCH_LIMIT="${ARTIFACT_SEARCH_LIMIT:-20}"
 REQUIRE_TRAINING_ARTIFACT="${REQUIRE_TRAINING_ARTIFACT:-false}"
+
+abspath() {
+  python3 - <<'PY' "$1"
+import os
+import sys
+
+print(os.path.abspath(os.path.expanduser(sys.argv[1])))
+PY
+}
+
+DEST_DIR="$(abspath "$DEST_DIR_INPUT")"
 
 is_true() {
   case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
@@ -143,6 +154,11 @@ if [ -z "$calibration_profile" ] || [ ! -f "$calibration_profile" ]; then
   if [ "$require_fail" = "true" ]; then
     exit 1
   fi
+fi
+
+model_dir="$(abspath "$model_dir")"
+if [ -n "$calibration_profile" ] && [ -f "$calibration_profile" ]; then
+  calibration_profile="$(abspath "$calibration_profile")"
 fi
 
 if [ -n "${GITHUB_ENV:-}" ]; then
