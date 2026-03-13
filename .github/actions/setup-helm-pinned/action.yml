@@ -1,5 +1,5 @@
 name: Setup Helm (Pinned + Checksum)
-description: Install a pinned Helm v3 binary with SHA256 verification on Linux amd64 runners.
+description: Install a pinned Helm v3 binary with SHA256 verification on Linux runners.
 
 inputs:
   version:
@@ -27,18 +27,35 @@ runs:
           exit 1
         fi
 
-        case "$version" in
-          v3.20.1)
-            expected_sha256="0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3"
+        runner_arch="$(uname -m)"
+        case "$runner_arch" in
+          x86_64|amd64)
+            helm_arch="amd64"
+            ;;
+          aarch64|arm64)
+            helm_arch="arm64"
             ;;
           *)
-            echo "No pinned checksum is configured for Helm version: $version"
+            echo "Unsupported runner architecture for Helm setup: ${runner_arch}"
+            exit 1
+            ;;
+        esac
+
+        case "${version}:${helm_arch}" in
+          v3.20.1:amd64)
+            expected_sha256="0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3"
+            ;;
+          v3.20.1:arm64)
+            expected_sha256="56b9d1b0e0efbb739be6e68a37860ace8ec9c7d3e6424e3b55d4c459bc3a0401"
+            ;;
+          *)
+            echo "No pinned checksum is configured for Helm version/arch: ${version}:${helm_arch}"
             echo "Add the version + checksum mapping in .github/actions/setup-helm-pinned/action.yml."
             exit 1
             ;;
         esac
 
-        archive="helm-${version}-linux-amd64.tar.gz"
+        archive="helm-${version}-linux-${helm_arch}.tar.gz"
         download_url="https://get.helm.sh/${archive}"
 
         tmp_dir="${RUNNER_TEMP}/setup-helm-pinned-${version}"
@@ -59,7 +76,7 @@ runs:
 
         tar -xzf "$archive_path" -C "$extract_dir"
 
-        helm_path="${extract_dir}/linux-amd64/helm"
+        helm_path="${extract_dir}/linux-${helm_arch}/helm"
         if [ ! -f "$helm_path" ]; then
           echo "Helm binary not found after extraction: $helm_path"
           exit 1
