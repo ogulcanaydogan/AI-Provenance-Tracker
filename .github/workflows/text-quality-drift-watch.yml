@@ -184,28 +184,7 @@ jobs:
             fi
 
             drill_previous="benchmark/results/drift/previous/drill_previous_benchmark.json"
-            python - <<'PY' "$source_benchmark" "$drill_previous"
-            import json
-            import sys
-            from pathlib import Path
-
-            source = Path(sys.argv[1])
-            target = Path(sys.argv[2])
-            payload = json.loads(source.read_text(encoding="utf-8"))
-
-            task = payload.setdefault("tasks", {}).setdefault("ai_vs_human_detection", {})
-            epsilon = 1e-6
-            calibration_ece = float(task.get("calibration_ece", 0.0))
-            task["calibration_ece"] = calibration_ece - epsilon
-
-            domain_node = task.setdefault("false_positive_rate_by_domain", {})
-            for domain in ("code", "finance", "legal", "science"):
-                current_value = float(domain_node.get(domain, 0.0))
-                domain_node[domain] = current_value - epsilon
-
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-            PY
+            python -c 'import json, sys; from pathlib import Path; source=Path(sys.argv[1]); target=Path(sys.argv[2]); payload=json.loads(source.read_text(encoding="utf-8")); task=payload.setdefault("tasks", {}).setdefault("ai_vs_human_detection", {}); epsilon=1e-6; task["calibration_ece"]=float(task.get("calibration_ece", 0.0)) - epsilon; domain_node=task.setdefault("false_positive_rate_by_domain", {}); [domain_node.__setitem__(domain, float(domain_node.get(domain, 0.0)) - epsilon) for domain in ("code", "finance", "legal", "science")]; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")' "$source_benchmark" "$drill_previous"
             previous_benchmark="$drill_previous"
             if [ -z "$selected_run_id" ]; then
               selected_run_id="synthetic_drill_previous"
