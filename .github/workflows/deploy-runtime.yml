@@ -16,6 +16,14 @@ on:
         description: "Optional image tag override (defaults to triggering commit SHA)"
         required: false
         type: string
+      smoke_base_url_helm:
+        description: "Optional smoke URL override for Helm deploy path"
+        required: false
+        type: string
+      smoke_base_url_railway:
+        description: "Optional smoke URL override for Railway deploy path"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -426,15 +434,15 @@ jobs:
             --json
           railway redeploy --service "${RAILWAY_WORKER_SERVICE}" --yes --json
 
-  smoke_gate:
-    name: Post-Deploy Smoke Gate
-    needs: [prepare, deploy_helm, deploy_railway]
-    if: ${{ always() && (needs['deploy_helm'].result == 'success' || needs['deploy_railway'].result == 'success') }}
-    runs-on: ubuntu-latest
+  smoke_gate_helm:
+    name: Post-Deploy Smoke Gate (Helm)
+    needs: [prepare, deploy_helm]
+    if: ${{ always() && vars.ENABLE_DEPLOY_SMOKE_GATE == 'true' && needs['deploy_helm'].result == 'success' }}
+    runs-on: [self-hosted, linux, x64, spark]
     timeout-minutes: 15
     env:
-      ENABLE_DEPLOY_SMOKE_GATE: ${{ vars.ENABLE_DEPLOY_SMOKE_GATE || 'false' }}
-      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+      SPARK_PUBLIC_API_URL: ${{ vars.SPARK_PUBLIC_API_URL }}
+      INPUT_SMOKE_BASE_URL_HELM: ${{ inputs.smoke_base_url_helm || '' }}
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
@@ -443,44 +451,103 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Skip smoke gate when disabled
-        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE != 'true' }}
-        run: echo "ENABLE_DEPLOY_SMOKE_GATE is not true; skipping smoke gate."
-
-      - name: Require URL when smoke gate enabled
-        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL == '' }}
+      - name: Resolve Helm smoke URL
         run: |
-          echo "PRODUCTION_API_URL secret is required when ENABLE_DEPLOY_SMOKE_GATE=true."
-          exit 1
+          set -euo pipefail
+          smoke_url="$(printf '%s' "${INPUT_SMOKE_BASE_URL_HELM:-}" | xargs)"
+          source="workflow_dispatch_input.smoke_base_url_helm"
+          if [ -z "${smoke_url}" ]; then
+            smoke_url="$(printf '%s' "${SPARK_PUBLIC_API_URL:-}" | xargs)"
+            source="vars.SPARK_PUBLIC_API_URL"
+          fi
+          if [ -z "${smoke_url}" ]; then
+            echo "SPARK_PUBLIC_API_URL or workflow_dispatch smoke_base_url_helm is required for Helm smoke gate."
+            exit 1
+          fi
+          echo "SMOKE_BASE_URL=${smoke_url}" >> "$GITHUB_ENV"
+          echo "Resolved Helm smoke URL from ${source}"
 
       - name: Install backend dependencies
-        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
         run: |
           cd backend
           pip install -e .
 
-      - name: Run smoke suite
-        if: ${{ env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
+      - name: Run smoke suite (Helm)
         run: |
           cd backend
           python scripts/smoke_detect_prod.py \
-            --base-url "${PRODUCTION_API_URL}" \
+            --base-url "${SMOKE_BASE_URL}" \
             --api-key "${PRODUCTION_API_KEY}" \
             --api-key-header "${PRODUCTION_API_KEY_HEADER}" \
-            --output ./evidence/smoke/prod_detect_smoke.json
+            --output ./evidence/smoke/prod_detect_smoke_helm.json
 
-      - name: Upload smoke artifact
-        if: ${{ always() && env.ENABLE_DEPLOY_SMOKE_GATE == 'true' && env.PRODUCTION_API_URL != '' }}
+      - name: Upload smoke artifact (Helm)
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: deploy-smoke-artifact
-          path: backend/evidence/smoke/prod_detect_smoke.json
+          name: deploy-smoke-artifact-helm
+          path: backend/evidence/smoke/prod_detect_smoke_helm.json
+          retention-days: 14
+
+  smoke_gate_railway:
+    name: Post-Deploy Smoke Gate (Railway)
+    needs: [prepare, deploy_railway]
+    if: ${{ always() && vars.ENABLE_DEPLOY_SMOKE_GATE == 'true' && needs['deploy_railway'].result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+      INPUT_SMOKE_BASE_URL_RAILWAY: ${{ inputs.smoke_base_url_railway || '' }}
+      PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+      PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Resolve Railway smoke URL
+        run: |
+          set -euo pipefail
+          smoke_url="$(printf '%s' "${INPUT_SMOKE_BASE_URL_RAILWAY:-}" | xargs)"
+          source="workflow_dispatch_input.smoke_base_url_railway"
+          if [ -z "${smoke_url}" ]; then
+            smoke_url="$(printf '%s' "${PRODUCTION_API_URL:-}" | xargs)"
+            source="secrets.PRODUCTION_API_URL"
+          fi
+          if [ -z "${smoke_url}" ]; then
+            echo "PRODUCTION_API_URL or workflow_dispatch smoke_base_url_railway is required for Railway smoke gate."
+            exit 1
+          fi
+          echo "SMOKE_BASE_URL=${smoke_url}" >> "$GITHUB_ENV"
+          echo "Resolved Railway smoke URL from ${source}"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e .
+
+      - name: Run smoke suite (Railway)
+        run: |
+          cd backend
+          python scripts/smoke_detect_prod.py \
+            --base-url "${SMOKE_BASE_URL}" \
+            --api-key "${PRODUCTION_API_KEY}" \
+            --api-key-header "${PRODUCTION_API_KEY_HEADER}" \
+            --output ./evidence/smoke/prod_detect_smoke_railway.json
+
+      - name: Upload smoke artifact (Railway)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: deploy-smoke-artifact-railway
+          path: backend/evidence/smoke/prod_detect_smoke_railway.json
           retention-days: 14
 
   rollback_helm:
     name: Rollback Helm Runtime
-    needs: [prepare, deploy_helm, smoke_gate]
-    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_helm'].result == 'success' && needs['smoke_gate'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
+    needs: [prepare, deploy_helm, smoke_gate_helm]
+    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_helm'].result == 'success' && needs['smoke_gate_helm'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
     runs-on: [self-hosted, linux, x64, spark]
     timeout-minutes: 20
     environment:
@@ -593,8 +660,8 @@ jobs:
 
   rollback_railway:
     name: Rollback Railway Runtime
-    needs: [prepare, deploy_railway, smoke_gate]
-    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_railway'].result == 'success' && needs['smoke_gate'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
+    needs: [prepare, deploy_railway, smoke_gate_railway]
+    if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_railway'].result == 'success' && needs['smoke_gate_railway'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -736,7 +803,7 @@ jobs:
 
   deployment-summary:
     name: Deployment Summary
-    needs: [prepare, deploy_helm, deploy_railway, smoke_gate, rollback_helm, rollback_railway]
+    needs: [prepare, deploy_helm, deploy_railway, smoke_gate_helm, smoke_gate_railway, rollback_helm, rollback_railway]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -753,7 +820,8 @@ jobs:
           DEPLOY_HELM_WORKER_REF: ${{ needs.deploy_helm.outputs.worker_ref }}
           DEPLOY_RAILWAY_API_REF: ${{ needs.deploy_railway.outputs.api_ref }}
           DEPLOY_RAILWAY_WORKER_REF: ${{ needs.deploy_railway.outputs.worker_ref }}
-          SMOKE_RESULT: ${{ needs['smoke_gate'].result }}
+          SMOKE_HELM_RESULT: ${{ needs['smoke_gate_helm'].result }}
+          SMOKE_RAILWAY_RESULT: ${{ needs['smoke_gate_railway'].result }}
           ROLLBACK_HELM_RESULT: ${{ needs['rollback_helm'].result }}
           ROLLBACK_RAILWAY_RESULT: ${{ needs['rollback_railway'].result }}
           ENABLE_SMOKE_GATE: ${{ vars.ENABLE_DEPLOY_SMOKE_GATE || 'false' }}
@@ -786,7 +854,8 @@ jobs:
             "job_results": {
               "deploy_helm": "${DEPLOY_HELM_RESULT:-skipped}",
               "deploy_railway": "${DEPLOY_RAILWAY_RESULT:-skipped}",
-              "smoke_gate": "${SMOKE_RESULT:-skipped}",
+              "smoke_gate_helm": "${SMOKE_HELM_RESULT:-skipped}",
+              "smoke_gate_railway": "${SMOKE_RAILWAY_RESULT:-skipped}",
               "rollback_helm": "${ROLLBACK_HELM_RESULT:-skipped}",
               "rollback_railway": "${ROLLBACK_RAILWAY_RESULT:-skipped}"
             },
@@ -807,7 +876,8 @@ jobs:
             echo "- Deploy Railway: ${DEPLOY_RAILWAY_RESULT:-skipped}"
             echo "- Helm API ref: ${DEPLOY_HELM_API_REF:-n/a}"
             echo "- Railway API ref: ${DEPLOY_RAILWAY_API_REF:-n/a}"
-            echo "- Smoke gate: ${SMOKE_RESULT:-skipped}"
+            echo "- Smoke gate (Helm): ${SMOKE_HELM_RESULT:-skipped}"
+            echo "- Smoke gate (Railway): ${SMOKE_RAILWAY_RESULT:-skipped}"
             echo "- Rollback tag candidate: ${ROLLBACK_TAG:-none}"
             echo "- Rollback Helm: ${ROLLBACK_HELM_RESULT:-skipped}"
             echo "- Rollback Railway: ${ROLLBACK_RAILWAY_RESULT:-skipped}"

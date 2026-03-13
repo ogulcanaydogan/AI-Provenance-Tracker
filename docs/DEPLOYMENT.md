@@ -108,6 +108,18 @@ Latest validated production-style run:
 - Run: [Deploy Spark Runtime #22615452126](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/22615452126)
 - Result: `Deploy to Spark` executed (non-skipped) and smoke test passed.
 
+Deploy Runtime (Pinned SHA, Legacy) smoke routing is runtime-aware:
+
+- Helm path smoke URL priority:
+  - `workflow_dispatch` input `smoke_base_url_helm`
+  - `vars.SPARK_PUBLIC_API_URL`
+  - hard-fail if both are empty
+- Railway path smoke URL priority:
+  - `workflow_dispatch` input `smoke_base_url_railway`
+  - `secrets.PRODUCTION_API_URL`
+  - hard-fail if both are empty
+- Smoke and rollback decisions are target-specific (`smoke_gate_helm` / `smoke_gate_railway`).
+
 Cost gate note:
 
 - `Deploy Spark Runtime` is subject to cost-policy block mode.
