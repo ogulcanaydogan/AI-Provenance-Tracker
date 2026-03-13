@@ -69,4 +69,4 @@ runs:
         echo "$(dirname "$helm_path")" >> "$GITHUB_PATH"
         echo "helm-path=$helm_path" >> "$GITHUB_OUTPUT"
 
-        helm version --short
+        "$helm_path" version --short
