@@ -3,7 +3,7 @@
 > **Programme:** NGI Zero Core / NGI Zero Commons
 > **Funder:** NLnet Foundation (funded by the European Commission via Next Generation Internet)
 > **URL:** <https://nlnet.nl/propose/>
-> **Funding Range:** EUR 5,000 -- 50,000
+> **Funding Range:** EUR 5,000 to 50,000
 > **Deadline:** 1 April 2026
 > **Applicant:** Ogulcan Aydogan
 > **Repository:** <https://github.com/ogulcanaydogan/AI-Provenance-Tracker>
@@ -19,7 +19,7 @@ AI Provenance Tracker
 
 ## 2. Abstract (200 words)
 
-AI Provenance Tracker is an open-source platform for detecting AI-generated content and verifying digital provenance across text, images, audio, and video. As generative AI produces content indistinguishable from human-created media, the internet faces a structural trust crisis. Existing detection tools are proprietary, single-modality, and cannot be independently audited.
+AI Provenance Tracker is an open-source platform for detecting AI-generated content and verifying digital provenance across text, images, audio, and video. As generative AI produces content indistinguishable from human-created media, the internet faces a structural trust crisis. Existing detection tools are proprietary, single-modality, and can't be independently audited.
 
 This project provides open infrastructure that anyone can deploy, inspect, and extend. The detection engine combines internal statistical and machine learning classifiers with a multi-provider consensus layer (Copyleaks, Reality Defender, Hive). Every result includes an explainable confidence score with a signal-by-signal breakdown, replacing opaque black-box verdicts with transparent reasoning.
 
@@ -51,13 +51,13 @@ The project is publicly available at <https://github.com/ogulcanaydogan/AI-Prove
 
 Generative AI has reached the point where AI-produced text, images, audio, and video are frequently indistinguishable from human-created content. This undermines trust in digital media and creates vectors for misinformation, deepfakes, academic fraud, and evidence tampering.
 
-The detection landscape is fragmented and closed:
+The detection space is fragmented and closed:
 
 - Most tools detect only one modality (typically text).
 - Commercial services operate as black boxes with no transparency into detection methodology.
 - No open-source platform provides multi-modal detection with explainable scoring.
 - C2PA, the emerging global standard for content provenance, has limited open-source implementation coverage.
-- There is no public, reproducible benchmark for comparing detection methods across modalities.
+- There's no public, reproducible benchmark for comparing detection methods across modalities.
 
 ### 5.2 Solution
 
@@ -65,7 +65,7 @@ AI Provenance Tracker addresses these gaps through five pillars:
 
 **Multi-Modal Detection.** A single platform detects AI-generated content across text (production), image (production), audio (experimental), and video (experimental). Text detection uses statistical NLP signals (perplexity, burstiness, vocabulary distribution, structural uniformity) combined with a fine-tuned DistilRoBERTa classifier. Image detection uses FFT frequency analysis, artifact recognition, EXIF forensics, and a CNN classifier.
 
-**Explainable Confidence Scoring.** Every detection returns a 0--100% confidence score with a weighted signal breakdown. Users see exactly which signals contributed to the result and by how much. This is essential for trust, accountability, and appropriate downstream use.
+**Explainable Confidence Scoring.** Every detection returns a 0-to-100% confidence score with a weighted signal breakdown. Users see exactly which signals contributed to the result and by how much. That's key for trust, accountability, and appropriate downstream use.
 
 **Multi-Provider Consensus.** A provider adapter layer aggregates results from internal detectors and optional external services (Copyleaks, Reality Defender, Hive) with configurable weighting. Multi-source agreement reduces false positive rates and allows independent validation.
 
@@ -99,7 +99,7 @@ The C2PA standard is the most promising approach to content provenance at intern
 
 ### 6.3 Privacy and Sovereignty
 
-The platform can be fully self-hosted with no external API dependencies. Internal detectors operate without sending content to third parties. This is essential for organisations handling sensitive content (journalism, legal, government) that cannot use cloud-based detection services.
+The platform can be fully self-hosted with no external API dependencies. Internal detectors operate without sending content to third parties. That's essential for organisations handling sensitive content (journalism, legal, government) that can't use cloud-based detection services.
 
 ### 6.4 Transparency and Accountability
 
@@ -132,7 +132,7 @@ AI Provenance Tracker is unique in combining multi-modal detection, explainable 
 
 | Milestone | Amount (EUR) | Description |
 |-----------|-------------|-------------|
-| M1: C2PA hardening | 12,000 | Harden cryptographic verification against manifest tampering, certificate chain edge cases, and partial-signature scenarios. Produce comprehensive test suite and compliance documentation. |
+| M1: C2PA hardening | 12,000 | Harden cryptographic verification against manifest tampering, certificate chain edge cases, and partial-signature scenarios. Produce a 200+ case test suite and compliance documentation. |
 | M2: Multi-modal detection improvements | 10,000 | Improve audio and video detection pipelines from experimental to beta quality. Add new detection signals based on current research. Expand model family coverage for text and image. |
 | M3: Public benchmark expansion | 8,000 | Add benchmark datasets for additional languages, content domains, and model families. Implement cross-lingual detection evaluation. Publish methodology documentation. |
 | M4: Documentation and community adoption | 5,000 | Create integration tutorials, contributor onboarding guides, and API documentation. Prepare materials for community workshops and conference presentations. |
@@ -145,7 +145,7 @@ AI Provenance Tracker is unique in combining multi-modal detection, explainable 
 
 | Milestone | Duration | Start | End | Deliverables |
 |-----------|----------|-------|-----|-------------|
-| M1: C2PA hardening | 6 weeks | Week 1 | Week 6 | Hardened C2PA verification module. Comprehensive test suite covering manifest tampering, certificate chain validation, partial signatures, and expired certificates. Compliance documentation mapping implementation to ISO/IEC 62008 requirements. |
+| M1: C2PA hardening | 6 weeks | Week 1 | Week 6 | Hardened C2PA verification module. 200+ case test suite covering manifest tampering, certificate chain validation, partial signatures, and expired certificates. Compliance documentation mapping implementation to ISO/IEC 62008 requirements. |
 | M2: Detection improvements | 8 weeks | Week 3 | Week 10 | Improved audio and video detection pipelines with documented accuracy metrics. At least two new detection signals per modality. Updated benchmark results showing accuracy improvements. |
 | M3: Benchmark expansion | 6 weeks | Week 7 | Week 12 | Benchmark datasets for at least three additional languages. Cross-lingual evaluation results. Updated public leaderboard. Methodology documentation published. |
 | M4: Documentation and community | 4 weeks | Week 11 | Week 14 | Integration tutorial (API usage). Contributor guide with architecture walkthrough. Updated API documentation. At least one conference submission or community workshop. |
@@ -195,7 +195,7 @@ Deployment options:
 
 - The project is MIT-licensed.
 - All code, documentation, benchmark datasets, and evaluation results produced under this grant will be published under the MIT license on GitHub.
-- There are no proprietary dependencies required for core functionality. External provider integrations (Copyleaks, Reality Defender, Hive) are optional adapters; the platform operates fully with internal detectors alone.
+- There aren't any proprietary dependencies required for core functionality. External provider integrations (Copyleaks, Reality Defender, Hive) are optional adapters; the platform operates fully with internal detectors alone.
 
 ---
 
@@ -226,12 +226,12 @@ After grant completion:
 
 Before submitting at <https://nlnet.nl/propose/>:
 
-- [ ] Abstract (200 words maximum) -- Section 2 of this document
-- [ ] Project description -- Section 5
-- [ ] Relevance to NGI -- Section 6
-- [ ] Budget and milestones -- Sections 8 and 9
-- [ ] Comparison with existing solutions -- Section 7
-- [ ] License confirmation (MIT) -- Section 11
+- [ ] Abstract (200 words maximum): Section 2 of this document
+- [ ] Project description: Section 5
+- [ ] Relevance to NGI: Section 6
+- [ ] Budget and milestones: Sections 8 and 9
+- [ ] Comparison with existing solutions: Section 7
+- [ ] License confirmation (MIT): Section 11
 - [ ] Repository link: <https://github.com/ogulcanaydogan/AI-Provenance-Tracker>
 - [ ] Review NLnet submission guidelines at <https://nlnet.nl/propose/>
 - [ ] Submit before **1 April 2026**

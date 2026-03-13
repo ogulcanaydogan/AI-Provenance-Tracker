@@ -14,12 +14,12 @@ This guide maps AI Provenance Tracker's current capabilities to the OpenSSF Best
 
 The OpenSSF Best Practices Badge programme identifies open-source projects that follow security and quality best practices. Achieving the badge demonstrates to users, contributors, and funders that the project meets a recognised standard of engineering maturity.
 
-There are three levels:
+There are three levels, and here's where the project stands on each:
 
 | Level | Requirements | Status |
 |-------|-------------|--------|
 | Passing | Core best practices (basics, change control, reporting, quality, security, analysis) | Ready for submission |
-| Silver | Passing + enhanced practices (governance, documentation, build reproducibility) | Partial -- see Section 9 |
+| Silver | Passing + enhanced practices (governance, documentation, build reproducibility) | Partial, see Section 9 |
 | Gold | Silver + advanced practices (formal governance, signed releases, reproducible builds) | Future goal |
 
 ---

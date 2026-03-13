@@ -3,7 +3,7 @@
 > **Programme:** AISI Challenge Fund
 > **Funder:** UK AI Safety Institute (Department for Science, Innovation and Technology)
 > **URL:** <https://find-government-grants.service.gov.uk/grants/aisi-challenge-fund-1>
-> **Funding Range:** GBP 50,000 -- 200,000
+> **Funding Range:** GBP 50,000 to 200,000
 > **Deadline:** 31 March 2026
 > **Applicant:** Ogulcan Aydogan
 > **Repository:** <https://github.com/ogulcanaydogan/AI-Provenance-Tracker>
@@ -19,16 +19,16 @@
 
 ## 2. Problem Statement
 
-The rapid advancement of generative AI has created a systemic trust crisis in digital content. Large language models (GPT-4, Claude, Llama, Gemini) generate text that is statistically indistinguishable from human writing. Image diffusion models (DALL-E, Midjourney, Stable Diffusion) produce photorealistic imagery at scale. Audio synthesis and video deepfake models are maturing rapidly.
+The rapid advancement of generative AI has created a systemic trust crisis in digital content. Large language models (GPT-4, Claude, Llama, Gemini) generate text that's statistically indistinguishable from human writing. Image diffusion models (DALL-E, Midjourney, Stable Diffusion) produce photorealistic imagery at scale. Audio synthesis and video deepfake models are maturing rapidly.
 
 The consequences are immediate and severe:
 
 - **Misinformation at scale.** AI-generated articles, social media posts, and images can be mass-produced with no attribution, eroding public trust in journalism, democratic institutions, and verified information.
 - **Deepfake exploitation.** Synthetic audio and video enable identity fraud, non-consensual intimate imagery, and political manipulation. The UK Online Safety Act identifies deepfakes as a category of priority illegal content.
 - **Academic and legal integrity.** AI-generated submissions undermine the credibility of educational institutions. Courts and regulators increasingly need to establish whether digital evidence is genuine.
-- **No standardised detection infrastructure.** Existing detection tools are fragmented: most handle a single modality, operate as closed-source black boxes, and cannot be self-hosted, audited, or independently validated. There is no open, multi-modal detection platform with reproducible benchmarks.
+- **No standardised detection infrastructure.** Existing detection tools are fragmented: most handle a single modality, operate as closed-source black boxes, and can't be self-hosted, audited, or independently validated. There's no open, multi-modal detection platform with reproducible benchmarks.
 
-The UK AI Safety Institute has identified frontier AI risks as a core concern. AI-generated content that is designed to deceive -- or that is indistinguishable from authentic content without detection tooling -- represents a direct safety threat. Without open, transparent, and rigorously tested detection infrastructure, neither governments nor civil society can effectively respond.
+The UK AI Safety Institute has identified frontier AI risks as a core concern. AI-generated content designed to deceive, or indistinguishable from authentic content without detection tooling, represents a direct safety threat. Without open, transparent, and rigorously tested detection infrastructure, neither governments nor civil society can effectively respond.
 
 ---
 
@@ -45,7 +45,7 @@ AI Provenance Tracker is an open-source platform that provides unified AI-genera
 | Audio | Experimental | Spectral flatness analysis, dynamic range profiling, clipping detection, zero-crossing anomaly checks | AI-synthesised speech and audio |
 | Video | Experimental | Container signature analysis, byte-pattern detection, frame-level anomaly scoring | Deepfake and AI-generated video |
 
-Every detection returns a confidence score (0--100%) with a signal-by-signal breakdown. Results are transparent and auditable, not black-box verdicts.
+Every detection returns a confidence score (0 to 100%) with a signal-by-signal breakdown. Results are transparent and auditable, not black-box verdicts.
 
 ### 3.2 Ensemble Scoring and Explainability
 
@@ -59,7 +59,7 @@ Each modality employs a weighted ensemble of detection signals. For text detecti
 | Structure | Paragraph and sentence uniformity | 15% |
 | ML Classifier | Fine-tuned RoBERTa model prediction | 10% |
 
-This design ensures that every score is accompanied by a human-readable explanation of which signals contributed to the result and by how much. This is critical for trust, accountability, and downstream decision-making.
+This design ensures that every score is accompanied by a human-readable explanation of which signals contributed to the result and by how much. This is essential for trust, accountability, and downstream decision-making.
 
 ### 3.3 Multi-Provider Consensus
 
@@ -81,9 +81,9 @@ When a C2PA-signed manifest is present, the platform performs cryptographic prov
 
 The project includes a reproducible benchmark framework with three evaluation tasks:
 
-1. **Binary detection** -- AI-vs-human classification across multiple content domains
-2. **Source attribution** -- identifying which model family generated the content
-3. **Tamper robustness** -- testing detection resilience against paraphrasing, translation, and human editing
+1. **Binary detection:** AI-vs-human classification across multiple content domains
+2. **Source attribution:** identifying which model family generated the content
+3. **Tamper robustness:** testing detection resilience against paraphrasing, translation, and human editing
 
 Benchmark results are published via a nightly CI workflow and rendered as a public leaderboard, enabling the research community to independently validate detection accuracy.
 
@@ -93,7 +93,7 @@ Benchmark results are published via a nightly CI workflow and rendered as a publ
 
 ### 4.1 Direct Alignment with AISI Mission
 
-The UK AI Safety Institute's mandate includes evaluating and mitigating risks from frontier AI systems. AI-generated content that is designed to deceive -- or that cannot be distinguished from authentic content -- is a first-order safety concern.
+The UK AI Safety Institute's mandate includes evaluating and mitigating risks from frontier AI systems. AI-generated content designed to deceive, or that can't be distinguished from authentic content, is a first-order safety concern.
 
 This project directly addresses the following AISI priority areas:
 
@@ -166,8 +166,8 @@ AI Provenance Tracker is a mature, actively maintained project with production-g
 
 ### 6.1 Budget Justification
 
-- **Security audit (GBP 35,000):** Open-source detection infrastructure that governments and civil society rely on must be independently audited. This is the single largest line item because a compromised detection platform could produce false assurances, which is worse than no detection at all. The budget covers a reputable UK-based security consultancy (e.g., NCC Group, Pentest Partners, or equivalent) for a scoped engagement.
-- **Adversarial robustness (GBP 18,000):** Detection systems are only as useful as their resilience to evasion. This budget covers researcher time to design and execute adversarial test suites, computational resources for large-scale evaluation, and publication of results.
+- **Security audit (GBP 35,000):** Open-source detection infrastructure that governments and civil society rely on must be independently audited. This is the single largest line item because a compromised detection platform could produce false assurances, which is worse than having no detection at all. The budget covers a reputable UK-based security consultancy (e.g., NCC Group, Pentest Partners, or equivalent) for a scoped engagement.
+- **Adversarial robustness (GBP 18,000):** Detection systems aren't useful if they can't withstand evasion attempts. This budget covers researcher time to design and execute adversarial test suites, computational resources for large-scale evaluation, and publication of results.
 - **C2PA hardening (GBP 12,000):** C2PA is the emerging global standard for content provenance. Hardening the integration to production-grade reliability requires cryptographic expertise and thorough test coverage against edge cases.
 - **Documentation and benchmarks (GBP 10,000):** Open infrastructure requires clear documentation and reproducible evaluation. This covers technical writing, benchmark dataset curation, and community engagement.
 
@@ -179,14 +179,14 @@ AI Provenance Tracker is a mature, actively maintained project with production-g
 
 | Week | Phase | Deliverables |
 |------|-------|-------------|
-| 1--2 | Kick-off and scoping | Finalise audit scope with security consultancy. Define adversarial test plan. Establish milestone tracking. |
-| 3--6 | Security audit | External penetration test and code audit. Receive preliminary findings. Begin remediation of critical and high-severity issues. |
-| 5--10 | Adversarial robustness testing | Design and execute adversarial test suites for all four modalities. Document accuracy degradation under evasion. Implement mitigations for identified weaknesses. |
-| 7--12 | C2PA integration hardening | Harden manifest verification against tampering and edge cases. Expand test coverage. Produce compliance documentation. |
-| 8--14 | Documentation and benchmarks | Expand benchmark coverage. Publish methodology papers. Write contributor and integration guides. |
-| 13--16 | Remediation, final audit, and publication | Complete remediation of all audit findings. Final verification pass. Publish security audit report (redacting sensitive details per responsible disclosure). Publish adversarial robustness report. Tag release. |
+| 1-2 | Kick-off and scoping | Finalise audit scope with security consultancy. Define adversarial test plan. Establish milestone tracking. |
+| 3-6 | Security audit | External penetration test and code audit. Receive preliminary findings. Begin remediation of critical and high-severity issues. |
+| 5-10 | Adversarial robustness testing | Design and execute adversarial test suites for all four modalities. Document accuracy degradation under evasion. Implement mitigations for identified weaknesses. |
+| 7-12 | C2PA integration hardening | Harden manifest verification against tampering and edge cases. Expand test coverage. Produce compliance documentation. |
+| 8-14 | Documentation and benchmarks | Expand benchmark coverage. Publish methodology papers. Write contributor and integration guides. |
+| 13-16 | Remediation, final audit, and publication | Complete remediation of all audit findings. Final verification pass. Publish security audit report (redacting sensitive details per responsible disclosure). Publish adversarial robustness report. Tag release. |
 
-Note: Phases overlap intentionally to maintain momentum. Weeks 5--6 and 7--8 involve parallel workstreams.
+Note: Phases overlap intentionally to maintain momentum. Weeks 5-6 and 7-8 involve parallel workstreams.
 
 ---
 
@@ -204,7 +204,7 @@ Additional specialist contractors will be engaged for the security audit (extern
 
 - The project is and will remain **MIT-licensed**.
 - All code, documentation, benchmark datasets, audit reports (with responsible redactions), and robustness testing results funded by this grant will be published openly on GitHub.
-- There are no proprietary dependencies. External provider integrations (Copyleaks, Reality Defender, Hive) are optional adapters; the platform functions fully with internal detectors alone.
+- There aren't any proprietary dependencies. External provider integrations (Copyleaks, Reality Defender, Hive) are optional adapters; the platform functions fully with internal detectors alone.
 
 ---
 
@@ -223,23 +223,23 @@ Additional specialist contractors will be engaged for the security audit (extern
 
 Before submission, confirm the following materials are prepared:
 
-- [ ] **GitHub repository** -- public, MIT-licensed, with full commit history: <https://github.com/ogulcanaydogan/AI-Provenance-Tracker>
-- [ ] **README** -- project overview, capabilities, architecture diagrams, deployment instructions
-- [ ] **SECURITY.md** -- vulnerability reporting process, response timelines, scope
-- [ ] **CONTRIBUTING.md** -- contributor guidelines
-- [ ] **docs/ARCHITECTURE.md** -- system design, technology stack, request pipeline, detection pipeline
-- [ ] **docs/METHODOLOGY_LIMITATIONS.md** -- detection methodology, known limitations, safe-use guidance
-- [ ] **docs/SUPPLY_CHAIN_SECURITY.md** -- cosign signatures, SBOM attestation, Trivy scanning, CVE policy
-- [ ] **docs/SLO_OBSERVABILITY.md** -- service-level objectives, monitoring, alerting
-- [ ] **docs/COST_GOVERNANCE.md** -- cost controls and budget guardrails
-- [ ] **CI evidence** -- 21 GitHub Actions workflows visible in repository Actions tab
-- [ ] **Release** -- v1.0.0 tagged release with changelog
-- [ ] **CodeQL** -- security analysis integrated into CI (visible in repository Security tab)
-- [ ] **Benchmark** -- public benchmark and leaderboard (nightly CI-driven)
-- [ ] **Browser extensions** -- Chrome and Firefox extensions in repository
-- [ ] **Deployment configs** -- Docker Compose, Kubernetes Helm charts, Terraform AWS IaC in `deploy/` directory
-- [ ] **Budget breakdown** -- this document, Section 6
-- [ ] **Timeline** -- this document, Section 7
+- [ ] **GitHub repository:** public, MIT-licensed, with full commit history: <https://github.com/ogulcanaydogan/AI-Provenance-Tracker>
+- [ ] **README:** project overview, capabilities, architecture diagrams, deployment instructions
+- [ ] **SECURITY.md:** vulnerability reporting process, response timelines, scope
+- [ ] **CONTRIBUTING.md:** contributor guidelines
+- [ ] **docs/ARCHITECTURE.md:** system design, technology stack, request pipeline, detection pipeline
+- [ ] **docs/METHODOLOGY_LIMITATIONS.md:** detection methodology, known limitations, safe-use guidance
+- [ ] **docs/SUPPLY_CHAIN_SECURITY.md:** cosign signatures, SBOM attestation, Trivy scanning, CVE policy
+- [ ] **docs/SLO_OBSERVABILITY.md:** service-level objectives, monitoring, alerting
+- [ ] **docs/COST_GOVERNANCE.md:** cost controls and budget guardrails
+- [ ] **CI evidence:** 21 GitHub Actions workflows visible in repository Actions tab
+- [ ] **Release:** v1.0.0 tagged release with changelog
+- [ ] **CodeQL:** security analysis integrated into CI (visible in repository Security tab)
+- [ ] **Benchmark:** public benchmark and leaderboard (nightly CI-driven)
+- [ ] **Browser extensions:** Chrome and Firefox extensions in repository
+- [ ] **Deployment configs:** Docker Compose, Kubernetes Helm charts, Terraform AWS IaC in `deploy/` directory
+- [ ] **Budget breakdown:** this document, Section 6
+- [ ] **Timeline:** this document, Section 7
 
 ---
 
@@ -248,7 +248,7 @@ Before submission, confirm the following materials are prepared:
 1. Navigate to <https://find-government-grants.service.gov.uk/grants/aisi-challenge-fund-1>.
 2. Create an account or sign in to the Government Grants portal.
 3. Complete the application form, using the content from this document for each section.
-4. Upload supporting materials (or provide GitHub links where upload is not required).
+4. Upload supporting materials (or provide GitHub links where upload isn't required).
 5. Review all sections for accuracy and completeness.
 6. Submit before **31 March 2026**.
 7. Retain the confirmation email and application reference number.
