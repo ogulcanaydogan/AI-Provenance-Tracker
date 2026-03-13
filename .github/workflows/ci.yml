@@ -203,6 +203,8 @@ jobs:
           python benchmark/eval/check_benchmark_regression.py \
             --current benchmark/results/ci/benchmark_results.json \
             --baseline benchmark/baselines/public_benchmark_snapshot_smoke.json \
+            --targets-config benchmark/config/benchmark_targets.yaml \
+            --target-profile smoke_v2 \
             --report-json benchmark/results/ci/regression_check.json \
             --report-md benchmark/results/ci/regression_check.md
       - name: Generate dataset health report

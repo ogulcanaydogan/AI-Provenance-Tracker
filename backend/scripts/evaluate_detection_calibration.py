@@ -197,6 +197,39 @@ def _apply_calibration_to_scores(
     return [(_apply_calibration_map(score, calibration_map), label_is_ai) for score, label_is_ai in scores]
 
 
+def _normalize_raw_domain(value: Any) -> str:
+    if not isinstance(value, str):
+        return "general"
+    cleaned = value.strip().lower().replace("_", "-")
+    return cleaned or "general"
+
+
+def _domain_fp_stats(
+    scores: list[tuple[float, bool]],
+    domains: list[str],
+    *,
+    threshold: float,
+) -> tuple[dict[str, float], dict[str, int], dict[str, int]]:
+    domain_total: dict[str, int] = {}
+    domain_human_total: dict[str, int] = {}
+    domain_fp_total: dict[str, int] = {}
+
+    for (score, label_is_ai), raw_domain in zip(scores, domains):
+        domain = _normalize_raw_domain(raw_domain)
+        domain_total[domain] = domain_total.get(domain, 0) + 1
+        if label_is_ai:
+            continue
+        domain_human_total[domain] = domain_human_total.get(domain, 0) + 1
+        if score >= threshold:
+            domain_fp_total[domain] = domain_fp_total.get(domain, 0) + 1
+
+    fp_rates: dict[str, float] = {}
+    for domain, human_total in domain_human_total.items():
+        fp_rates[domain] = round(_safe_div(domain_fp_total.get(domain, 0), human_total), 4)
+
+    return fp_rates, domain_total, domain_human_total
+
+
 def _resolve_sample_path(sample: dict[str, Any], content_type: str) -> Path | None:
     key_candidates = {
         "image": ("image_path", "path", "file_path"),
@@ -280,9 +313,13 @@ async def _score_samples(
 
 async def _score_samples_with_metadata(
     samples: list[dict[str, Any]], content_type: str
-) -> tuple[list[tuple[float, bool]], int, dict[str, str | None]]:
+) -> tuple[list[tuple[float, bool]], int, dict[str, Any]]:
     scores: list[tuple[float, bool]] = []
-    metadata: dict[str, str | None] = {"model_version": None, "calibration_version": None}
+    metadata: dict[str, Any] = {
+        "model_version": None,
+        "calibration_version": None,
+        "scored_domains": [],
+    }
     if content_type == "text":
         detector = TextDetector()
         for sample in samples:
@@ -295,6 +332,7 @@ async def _score_samples_with_metadata(
             domain_hint = _normalize_domain(sample.get("domain"))
             result = await detector.detect(text, domain=domain_hint)
             scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
+            metadata["scored_domains"].append(_normalize_raw_domain(sample.get("domain")))
             metadata["model_version"] = metadata["model_version"] or result.model_version
             metadata["calibration_version"] = (
                 metadata["calibration_version"] or result.calibration_version
@@ -421,6 +459,17 @@ async def run() -> int:
     }
     if calibration_map:
         report["calibration_map"] = calibration_map
+    if args.content_type == "text":
+        scored_domains = version_meta.get("scored_domains", [])
+        if isinstance(scored_domains, list) and len(scored_domains) == len(evaluated_scores):
+            domain_fp_rates, domain_sample_counts, domain_human_counts = _domain_fp_stats(
+                evaluated_scores,
+                [str(item) for item in scored_domains],
+                threshold=float(best["threshold"]),
+            )
+            report["false_positive_rate_by_domain"] = domain_fp_rates
+            report["domain_sample_count_by_domain"] = domain_sample_counts
+            report["domain_human_sample_count_by_domain"] = domain_human_counts
 
     if args.content_type == "text" and args.include_domain_profiles:
         domain_scores, _domain_skipped = await _score_text_samples_by_domain(samples)

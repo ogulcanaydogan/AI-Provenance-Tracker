@@ -40,6 +40,17 @@ def parse_args() -> argparse.Namespace:
         default=0.05,
         help="Minimum absolute gap from 0.5 score to count as a hard case.",
     )
+    parser.add_argument(
+        "--priority-domains",
+        default="code,finance,legal,science",
+        help="Comma-separated domains allowed to exceed --max-per-domain via --priority-max-per-domain.",
+    )
+    parser.add_argument(
+        "--priority-max-per-domain",
+        type=int,
+        default=220,
+        help="Per-domain cap for priority domains.",
+    )
     return parser.parse_args()
 
 
@@ -80,6 +91,15 @@ def _is_hard_false_negative(row: dict[str, Any], min_gap: float) -> bool:
     return label_is_ai == 1 and prediction == 0 and abs(score - 0.5) >= min_gap
 
 
+def _parse_priority_domains(raw: str) -> set[str]:
+    domains: set[str] = set()
+    for item in (raw or "").split(","):
+        normalized = item.strip().lower().replace("_", "-")
+        if normalized:
+            domains.add(normalized)
+    return domains
+
+
 def run() -> int:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[2]
@@ -92,6 +112,9 @@ def run() -> int:
     rows = _load_jsonl(scored_path)
     by_domain_counts: dict[str, int] = {}
     output_rows: list[dict[str, Any]] = []
+    priority_domains = _parse_priority_domains(str(args.priority_domains))
+    max_per_domain = int(args.max_per_domain)
+    priority_max_per_domain = int(args.priority_max_per_domain)
 
     for row in rows:
         is_fp = _is_hard_false_positive(row, float(args.min_score_gap))
@@ -101,9 +124,13 @@ def run() -> int:
         if not is_fp and not is_fn:
             continue
 
-        domain = str(row.get("domain", "general") or "general")
+        domain = str(row.get("domain", "general") or "general").strip().lower().replace("_", "-")
+        if not domain:
+            domain = "general"
+        is_priority_domain = domain in priority_domains
+        domain_cap = priority_max_per_domain if is_priority_domain else max_per_domain
         domain_count = by_domain_counts.get(domain, 0)
-        if domain_count >= int(args.max_per_domain):
+        if domain_count >= domain_cap:
             continue
 
         input_ref = str(row.get("input_ref", ""))
@@ -119,6 +146,7 @@ def run() -> int:
                 "text": text,
                 "label_is_ai": int(row.get("label_is_ai", 0)),
                 "domain": domain,
+                "priority_domain": is_priority_domain,
                 "hard_case_type": "false_positive" if is_fp else "false_negative",
                 "score": float(row.get("score", 0.0) or 0.0),
                 "prediction": int(row.get("prediction", 0)),
@@ -140,6 +168,7 @@ def run() -> int:
 
     print(f"Wrote hard negatives: {output_path}")
     print(f"Rows: {len(output_rows)}")
+    print(f"Priority domains: {', '.join(sorted(priority_domains)) if priority_domains else 'none'}")
     return 0
 
 

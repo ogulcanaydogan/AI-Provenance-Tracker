@@ -101,7 +101,38 @@ jobs:
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
-          make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
+          make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08 MAX_DOMAIN_FP_RATE=0.30 MIN_DOMAIN_SAMPLE_COUNT=30
+
+      - name: Build quality summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("backend/evidence/calibration/text/latest_text_calibration.json").read_text(encoding="utf-8"))
+          gate = json.loads(Path("backend/evidence/calibration/text/quality_gate.json").read_text(encoding="utf-8"))
+          lines = [
+              "## Text Training Quality Summary",
+              f"- quality_gate: `{gate.get('status', 'n/a')}`",
+              f"- fp_rate: `{gate.get('fp_rate', 'n/a')}`",
+              f"- ece: `{gate.get('ece', 'n/a')}`",
+              f"- uncertainty_margin: `{gate.get('uncertainty_margin', 'n/a')}`",
+              f"- recommended_threshold: `{report.get('recommended_threshold', 'n/a')}`",
+              f"- recommended_uncertainty_margin: `{report.get('recommended_uncertainty_margin', 'n/a')}`",
+              "",
+              "### Domain Gate",
+          ]
+          for item in gate.get("domain_checks", []):
+              lines.append(
+                  f"- {item.get('domain')}: status={item.get('status')} fp_rate={item.get('fp_rate')} "
+                  f"samples={item.get('sample_count')} reason={item.get('reason') or '-'}"
+              )
+          if gate.get("failures"):
+              lines.extend(["", "### Failures"])
+              lines.extend([f"- {failure}" for failure in gate["failures"]])
+          summary = "\n".join(lines) + "\n"
+          Path("training-quality-summary.md").write_text(summary, encoding="utf-8")
+          print(summary)
+          PY
 
       - name: Enforce golden-pair regression gate
         run: |
@@ -119,6 +150,7 @@ jobs:
             backend/evidence/calibration/text/latest_text_calibration.json
             backend/evidence/calibration/text/quality_gate.json
             backend/evidence/calibration/text/quality_gate.md
+            training-quality-summary.md
           retention-days: 30
 
   train-v100-sweep:
@@ -183,7 +215,38 @@ jobs:
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
-          make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
+          make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08 MAX_DOMAIN_FP_RATE=0.30 MIN_DOMAIN_SAMPLE_COUNT=30
+
+      - name: Build quality summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("backend/evidence/calibration/text/latest_text_calibration.json").read_text(encoding="utf-8"))
+          gate = json.loads(Path("backend/evidence/calibration/text/quality_gate.json").read_text(encoding="utf-8"))
+          lines = [
+              "## Text Training Quality Summary",
+              f"- quality_gate: `{gate.get('status', 'n/a')}`",
+              f"- fp_rate: `{gate.get('fp_rate', 'n/a')}`",
+              f"- ece: `{gate.get('ece', 'n/a')}`",
+              f"- uncertainty_margin: `{gate.get('uncertainty_margin', 'n/a')}`",
+              f"- recommended_threshold: `{report.get('recommended_threshold', 'n/a')}`",
+              f"- recommended_uncertainty_margin: `{report.get('recommended_uncertainty_margin', 'n/a')}`",
+              "",
+              "### Domain Gate",
+          ]
+          for item in gate.get("domain_checks", []):
+              lines.append(
+                  f"- {item.get('domain')}: status={item.get('status')} fp_rate={item.get('fp_rate')} "
+                  f"samples={item.get('sample_count')} reason={item.get('reason') or '-'}"
+              )
+          if gate.get("failures"):
+              lines.extend(["", "### Failures"])
+              lines.extend([f"- {failure}" for failure in gate["failures"]])
+          summary = "\n".join(lines) + "\n"
+          Path("training-quality-summary.md").write_text(summary, encoding="utf-8")
+          print(summary)
+          PY
 
       - name: Enforce golden-pair regression gate
         run: |
@@ -201,4 +264,5 @@ jobs:
             backend/evidence/calibration/text/latest_text_calibration.json
             backend/evidence/calibration/text/quality_gate.json
             backend/evidence/calibration/text/quality_gate.md
+            training-quality-summary.md
           retention-days: 30

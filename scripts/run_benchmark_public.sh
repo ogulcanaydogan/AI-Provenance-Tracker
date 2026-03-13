@@ -154,6 +154,8 @@ else
   "$BENCHMARK_PYTHON" benchmark/eval/check_benchmark_regression.py \
     --current "$OUTPUT_DIR/benchmark_results.json" \
     --baseline "$BASELINE_SNAPSHOT" \
+    --targets-config "$TARGETS_CONFIG" \
+    --target-profile "$TARGET_PROFILE" \
     --report-json "$OUTPUT_DIR/regression_check.json" \
     --report-md "$OUTPUT_DIR/regression_check.md"
 fi

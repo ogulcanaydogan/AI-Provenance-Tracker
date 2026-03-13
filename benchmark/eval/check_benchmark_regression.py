@@ -32,6 +32,16 @@ def parse_args() -> argparse.Namespace:
         default="benchmark/results/ci/regression_check.md",
         help="Output Markdown report path.",
     )
+    parser.add_argument(
+        "--targets-config",
+        default="",
+        help="Optional benchmark targets config path to load absolute quality limits.",
+    )
+    parser.add_argument(
+        "--target-profile",
+        default="",
+        help="Optional target profile key (for example full_v3) used with --targets-config.",
+    )
     return parser.parse_args()
 
 
@@ -44,6 +54,63 @@ def _value_at_path(payload: dict[str, Any], path: str) -> float:
     return float(node)
 
 
+def _load_quality_limits(targets_config_path: Path, target_profile: str) -> list[dict[str, Any]]:
+    if not target_profile or not targets_config_path.exists():
+        return []
+    try:
+        payload = json.loads(targets_config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(payload, dict):
+        return []
+
+    targets_node = payload.get("targets", payload)
+    if not isinstance(targets_node, dict):
+        return []
+    profile_payload = targets_node.get(target_profile, {})
+    if not isinstance(profile_payload, dict):
+        return []
+    quality_targets = profile_payload.get("quality_targets", {})
+    if not isinstance(quality_targets, dict):
+        return []
+
+    limits: list[dict[str, Any]] = []
+    for task_name, task_payload in quality_targets.items():
+        if not isinstance(task_name, str) or not isinstance(task_payload, dict):
+            continue
+        calibration_ece_max = task_payload.get("calibration_ece_max")
+        if calibration_ece_max is not None:
+            try:
+                limits.append(
+                    {
+                        "path": f"tasks.{task_name}.calibration_ece",
+                        "limit": float(calibration_ece_max),
+                        "constraint": "max",
+                        "source": f"targets:{target_profile}",
+                    }
+                )
+            except (TypeError, ValueError):
+                pass
+
+        domain_max = task_payload.get("false_positive_rate_by_domain_max", {})
+        if isinstance(domain_max, dict):
+            for domain, raw_limit in domain_max.items():
+                if not isinstance(domain, str):
+                    continue
+                try:
+                    limits.append(
+                        {
+                            "path": f"tasks.{task_name}.false_positive_rate_by_domain.{domain}",
+                            "limit": float(raw_limit),
+                            "constraint": "max",
+                            "source": f"targets:{target_profile}",
+                        }
+                    )
+                except (TypeError, ValueError):
+                    continue
+    return limits
+
+
 def _build_markdown(report: dict[str, Any]) -> str:
     rows = report["checks"]
     lines = [
@@ -52,19 +119,30 @@ def _build_markdown(report: dict[str, Any]) -> str:
         f"- Generated: `{report['generated_at']}`",
         f"- Baseline snapshot: `{report['baseline_snapshot']}`",
         f"- Current benchmark: `{report['current_benchmark']}`",
+        f"- Targets config: `{report.get('targets_config') or 'n/a'}`",
+        f"- Target profile: `{report.get('target_profile') or 'n/a'}`",
         f"- Status: `{'pass' if report['passed'] else 'fail'}`",
         "",
-        "| Metric | Baseline | Current | Min Allowed | Delta | Result |",
-        "| --- | ---: | ---: | ---: | ---: | --- |",
+        "| Metric | Constraint | Current | Limit | Delta | Source | Result |",
+        "| --- | --- | ---: | ---: | ---: | --- | --- |",
     ]
     for item in rows:
+        constraint = ">=" if item["constraint"] == "min" else "<="
+        delta = (
+            item["current"] - item["limit"]
+            if item["current"] is not None and item["limit"] is not None
+            else 0.0
+        )
+        current_text = f"{item['current']:.4f}" if item["current"] is not None else "n/a"
+        limit_text = f"{item['limit']:.4f}" if item["limit"] is not None else "n/a"
         lines.append(
-            "| {metric} | {baseline:.4f} | {current:.4f} | {min_allowed:.4f} | {delta:+.4f} | {result} |".format(
+            "| {metric} | {constraint} | {current} | {limit} | {delta:+.4f} | {source} | {result} |".format(
                 metric=item["path"],
-                baseline=item["baseline"],
-                current=item["current"],
-                min_allowed=item["min_allowed"],
-                delta=item["delta"],
+                constraint=constraint,
+                current=current_text,
+                limit=limit_text,
+                delta=delta,
+                source=item.get("source", "baseline"),
                 result="PASS" if item["passed"] else "FAIL",
             )
         )
@@ -78,6 +156,7 @@ def run() -> int:
     baseline_path = Path(args.baseline).expanduser().resolve()
     report_json_path = Path(args.report_json).expanduser().resolve()
     report_md_path = Path(args.report_md).expanduser().resolve()
+    targets_config_path = Path(args.targets_config).expanduser().resolve() if args.targets_config else None
 
     current_payload = json.loads(current_path.read_text(encoding="utf-8"))
     baseline_payload = json.loads(baseline_path.read_text(encoding="utf-8"))
@@ -96,6 +175,9 @@ def run() -> int:
         checks.append(
             {
                 "path": path,
+                "constraint": "min",
+                "limit": min_allowed,
+                "source": "baseline_snapshot",
                 "baseline": baseline_value,
                 "current": current_value,
                 "max_drop": max_drop,
@@ -105,10 +187,39 @@ def run() -> int:
             }
         )
 
+    if targets_config_path is not None and args.target_profile:
+        quality_limits = _load_quality_limits(targets_config_path, str(args.target_profile))
+        for item in quality_limits:
+            path = str(item["path"])
+            limit = float(item["limit"])
+            try:
+                current_value = _value_at_path(current_payload, path)
+            except KeyError:
+                current_value = None
+            passed = current_value is not None and current_value <= limit
+            if not passed:
+                failures += 1
+            checks.append(
+                {
+                    "path": path,
+                    "constraint": "max",
+                    "limit": limit,
+                    "source": str(item.get("source", "targets")),
+                    "baseline": None,
+                    "current": current_value,
+                    "max_drop": None,
+                    "min_allowed": None,
+                    "delta": (current_value - limit) if current_value is not None else None,
+                    "passed": passed,
+                }
+            )
+
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "baseline_snapshot": str(baseline_path),
         "current_benchmark": str(current_path),
+        "targets_config": str(targets_config_path) if targets_config_path is not None else "",
+        "target_profile": str(args.target_profile or ""),
         "total_checks": len(checks),
         "failed_checks": failures,
         "passed": failures == 0,
