@@ -1,4 +1,4 @@
-# Public Benchmark Data Statement (v2.0)
+# Public Benchmark Data Statement (v3.0)
 
 ## Purpose
 This benchmark provides a reproducible, detector-backed baseline for:
@@ -9,13 +9,13 @@ This benchmark provides a reproducible, detector-backed baseline for:
 5. Video AI-vs-human detection (**experimental**)
 
 ## Included files
-- `detection_multidomain.jsonl` (675)
-- `source_attribution.jsonl` (300)
-- `tamper_robustness.jsonl` (375)
-- `audio_detection.jsonl` (75, experimental)
-- `video_detection.jsonl` (75, experimental)
+- `detection_multidomain.jsonl` (1350)
+- `source_attribution.jsonl` (600)
+- `tamper_robustness.jsonl` (750)
+- `audio_detection.jsonl` (150, experimental)
+- `video_detection.jsonl` (150, experimental)
 
-Total rows: **1500**
+Total rows: **3000**
 
 ## Schema
 ### Shared fields (live benchmark input)
@@ -30,13 +30,18 @@ Total rows: **1500**
 - `transform` (`clean|paraphrase|translate|human_edit`) for tamper robustness
 - `source_model_family` for source attribution ground truth
 - `predicted_model_family_baseline` for heuristic attribution baseline output
-- `data_origin` (`synthetic|public_human|transformed`)
+- `data_origin` (`synthetic|public_human|transformed|v1_2_full_v3_expansion`)
 - `generator_id` (synthetic lineage hint)
 - `license_ref` (public content license reference)
 
+## Internal benchmark license (v1)
+- Expansion rows use: `license_ref=benchmark/data_statement.md#internal-benchmark-license-v1`
+- Allowed use: benchmarking, model calibration, CI regression checks.
+- Restricted use: redistribution of third-party source text/media outside this repository context.
+
 ## Sampling notes
 - This is a public seed corpus for transparent CI/evaluation plumbing, not a population-representative internet sample.
-- Dataset growth from 500 -> 1000 -> 1500 uses controlled augmentation metadata (`transform`) plus provenance metadata (`data_origin`, `generator_id`, `license_ref`) to increase coverage while preserving reproducible references.
+- Dataset growth from 500 -> 1000 -> 1500 -> 3000 uses controlled augmentation metadata (`transform`) plus provenance metadata (`data_origin`, `generator_id`, `license_ref`) to increase coverage while preserving reproducible references.
 - Audio/video coverage remains intentionally small and marked experimental.
 - Attribution is currently heuristic and should be interpreted as a baseline, not forensic proof.
 

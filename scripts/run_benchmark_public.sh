@@ -72,13 +72,15 @@ BACKEND_PYTHON="$(resolve_python "${BACKEND_PYTHON:-}")"
 if [ -z "$TARGET_PROFILE" ]; then
   case "$BENCHMARK_PROFILE" in
     smoke) TARGET_PROFILE="smoke_v2" ;;
-    *) TARGET_PROFILE="full_v2" ;;
+    full|full_v3) TARGET_PROFILE="full_v3" ;;
+    *) TARGET_PROFILE="full_v3" ;;
   esac
 fi
 
 if [ -z "$BASELINE_SNAPSHOT" ]; then
   case "$BENCHMARK_PROFILE" in
     smoke) BASELINE_SNAPSHOT="benchmark/baselines/public_benchmark_snapshot_smoke.json" ;;
+    full|full_v3) BASELINE_SNAPSHOT="benchmark/baselines/public_benchmark_snapshot_full.json" ;;
     *) BASELINE_SNAPSHOT="benchmark/baselines/public_benchmark_snapshot_full.json" ;;
   esac
 fi

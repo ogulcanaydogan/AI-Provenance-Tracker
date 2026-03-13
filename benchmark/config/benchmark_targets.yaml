@@ -9,6 +9,17 @@
         "tamper_detection": 60,
         "audio_ai_vs_human_detection": 15,
         "video_ai_vs_human_detection": 15
+      },
+      "quality_targets": {
+        "ai_vs_human_detection": {
+          "calibration_ece_max": 0.08,
+          "false_positive_rate_by_domain_max": {
+            "code": 0.30,
+            "finance": 0.30,
+            "legal": 0.30,
+            "science": 0.30
+          }
+        }
       }
     },
     "full_v2": {
@@ -20,6 +31,17 @@
         "tamper_detection": 375,
         "audio_ai_vs_human_detection": 75,
         "video_ai_vs_human_detection": 75
+      },
+      "quality_targets": {
+        "ai_vs_human_detection": {
+          "calibration_ece_max": 0.08,
+          "false_positive_rate_by_domain_max": {
+            "code": 0.30,
+            "finance": 0.30,
+            "legal": 0.30,
+            "science": 0.30
+          }
+        }
       }
     },
     "full_v3": {

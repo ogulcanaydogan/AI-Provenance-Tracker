@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -26,6 +27,12 @@ jobs:
         run: |
           cd backend
           pip install -e ".[dev]"
+      - name: Download latest text training bundle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRE_TRAINING_ARTIFACT: "true"
+        run: |
+          bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/latest/training_bundle
       - name: Start backend for live benchmark
         env:
           RUN_SCHEDULER_IN_API: "false"
@@ -34,6 +41,8 @@ jobs:
           RATE_LIMIT_REQUESTS: "10000"
           RATE_LIMIT_MEDIA_REQUESTS: "10000"
           RATE_LIMIT_BATCH_REQUESTS: "10000"
+          TEXT_DETECTION_MODEL_PATH: ${{ env.TEXT_DETECTION_MODEL_PATH }}
+          TEXT_CALIBRATION_PROFILE_PATH: ${{ env.TEXT_CALIBRATION_PROFILE_PATH }}
         run: |
           mkdir -p benchmark/results/latest
           cd backend
@@ -60,7 +69,7 @@ jobs:
             --decision-threshold 0.45 \
             --backend-url http://127.0.0.1:8000 \
             --live-mode true \
-            --profile full \
+            --profile full_v3 \
             --profiles-config benchmark/config/benchmark_profiles.yaml
       - name: Check benchmark regressions
         run: |
@@ -68,7 +77,7 @@ jobs:
             --current benchmark/results/latest/benchmark_results.json \
             --baseline benchmark/baselines/public_benchmark_snapshot_full.json \
             --targets-config benchmark/config/benchmark_targets.yaml \
-            --target-profile full_v2 \
+            --target-profile full_v3 \
             --report-json benchmark/results/latest/regression_check.json \
             --report-md benchmark/results/latest/regression_check.md
       - name: Generate dataset health report
@@ -78,7 +87,8 @@ jobs:
             --output-json benchmark/results/latest/dataset_health.json \
             --output-md benchmark/results/latest/dataset_health.md \
             --targets-config benchmark/config/benchmark_targets.yaml \
-            --target-profile full_v2 \
+            --target-profile full_v3 \
+            --min-metadata-rows 1500 \
             --enforce
       - name: Stop backend
         if: always()

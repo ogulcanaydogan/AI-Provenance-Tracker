@@ -318,6 +318,8 @@ def run() -> int:
             if isinstance(value, (int, float))
         },
         "device": "cuda" if torch.cuda.is_available() else "cpu",
+        "model_path": str(final_model_dir),
+        "model_path_repo_relative": str(final_model_dir.relative_to(repo_root)),
     }
 
     manifest_path = run_dir / "training_manifest.json"
@@ -326,7 +328,14 @@ def run() -> int:
     latest_pointer = output_root / "latest.json"
     latest_pointer.write_text(
         json.dumps(
-            {"run_id": run_id, "manifest": str(manifest_path)}, ensure_ascii=False, indent=2
+            {
+                "run_id": run_id,
+                "manifest": str(manifest_path),
+                "model_path": str(final_model_dir),
+                "model_path_repo_relative": str(final_model_dir.relative_to(repo_root)),
+            },
+            ensure_ascii=False,
+            indent=2,
         ),
         encoding="utf-8",
     )

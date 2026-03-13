@@ -86,7 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--profile",
         default="full",
-        help="Benchmark profile selector (smoke|full).",
+        help="Benchmark profile selector (smoke|full|full_v3).",
     )
     parser.add_argument(
         "--profiles-config",

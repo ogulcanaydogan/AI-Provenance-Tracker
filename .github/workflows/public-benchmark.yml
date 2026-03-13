@@ -31,6 +31,10 @@ on:
   schedule:
     - cron: "0 2 * * *"
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   cost-precheck:
     runs-on: ubuntu-latest
@@ -99,7 +103,7 @@ jobs:
     needs: cost-precheck
     if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - name: Resolve benchmark profile
@@ -108,19 +112,23 @@ jobs:
           set -euo pipefail
           profile="smoke"
           target_profile="smoke_v2"
+          require_training_artifact="false"
           baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            profile="full"
-            target_profile="full_v2"
+            profile="full_v3"
+            target_profile="full_v3"
+            require_training_artifact="true"
             baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.benchmark_profile || 'smoke' }}" = "full" ]; then
-            profile="full"
-            target_profile="full_v2"
+            profile="full_v3"
+            target_profile="full_v3"
+            require_training_artifact="true"
             baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
           fi
           {
             echo "profile=${profile}"
             echo "target_profile=${target_profile}"
+            echo "require_training_artifact=${require_training_artifact}"
             echo "baseline_snapshot=${baseline_snapshot}"
           } >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v6
@@ -130,6 +138,12 @@ jobs:
         run: |
           cd backend
           pip install -e ".[dev]"
+      - name: Download latest text training bundle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRE_TRAINING_ARTIFACT: ${{ steps.profile.outputs.require_training_artifact }}
+        run: |
+          bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/ci/training_bundle
       - name: Start backend for live benchmark
         env:
           RUN_SCHEDULER_IN_API: "false"
@@ -138,6 +152,8 @@ jobs:
           RATE_LIMIT_REQUESTS: "10000"
           RATE_LIMIT_MEDIA_REQUESTS: "10000"
           RATE_LIMIT_BATCH_REQUESTS: "10000"
+          TEXT_DETECTION_MODEL_PATH: ${{ env.TEXT_DETECTION_MODEL_PATH }}
+          TEXT_CALIBRATION_PROFILE_PATH: ${{ env.TEXT_CALIBRATION_PROFILE_PATH }}
         run: |
           mkdir -p benchmark/results/ci
           cd backend
@@ -177,12 +193,17 @@ jobs:
             --report-md benchmark/results/ci/regression_check.md
       - name: Generate dataset health report
         run: |
+          metadata_arg=""
+          if [ "${{ steps.profile.outputs.target_profile }}" = "full_v3" ]; then
+            metadata_arg="--min-metadata-rows 1500"
+          fi
           python benchmark/eval/dataset_health.py \
             --datasets-dir benchmark/datasets \
             --output-json benchmark/results/ci/dataset_health.json \
             --output-md benchmark/results/ci/dataset_health.md \
             --targets-config benchmark/config/benchmark_targets.yaml \
             --target-profile "${{ steps.profile.outputs.target_profile }}" \
+            $metadata_arg \
             --enforce
       - name: Stop backend
         if: always()

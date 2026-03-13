@@ -74,34 +74,59 @@ jobs:
 
       - name: Resolve trained model path
         run: |
-          MODEL_PATH="$(python3 - <<'PY'
+          RESOLVED="$(python3 - <<'PY'
           import json
           from pathlib import Path
 
           latest_path = Path("backend/evidence/models/text/latest.json")
           payload = json.loads(latest_path.read_text(encoding="utf-8"))
+          run_id = payload.get("run_id", "")
           model_path = payload.get("model_path")
           if model_path:
-              print(model_path)
+              print(f"{run_id}\n{model_path}")
           else:
               manifest = payload.get("manifest")
               if manifest:
-                  print(str(Path(manifest).parent))
+                  print(f"{run_id}\n{str(Path(manifest).parent)}")
               else:
                   print("")
           PY
           )"
+          TEXT_MODEL_RUN_ID="$(printf '%s\n' "$RESOLVED" | sed -n '1p')"
+          MODEL_PATH="$(printf '%s\n' "$RESOLVED" | sed -n '2p')"
           if [ -z "$MODEL_PATH" ]; then
             echo "Could not resolve model path from backend/evidence/models/text/latest.json" >&2
             exit 1
           fi
           echo "TEXT_DETECTION_MODEL_PATH=$MODEL_PATH" >> "$GITHUB_ENV"
+          if [ -n "$TEXT_MODEL_RUN_ID" ]; then
+            echo "TEXT_MODEL_RUN_ID=$TEXT_MODEL_RUN_ID" >> "$GITHUB_ENV"
+          fi
           echo "Resolved model path: $MODEL_PATH"
 
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08 MAX_DOMAIN_FP_RATE=0.30 MIN_DOMAIN_SAMPLE_COUNT=30
+
+      - name: Write training bundle manifest
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          payload = {
+              "generated_at": datetime.now(UTC).isoformat(),
+              "run_id": os.getenv("TEXT_MODEL_RUN_ID", ""),
+              "model_path": os.getenv("TEXT_DETECTION_MODEL_PATH", ""),
+              "calibration_profile_path": "backend/app/detection/text/calibration_profile.json",
+          }
+          output = Path("backend/evidence/models/text/training_bundle_manifest.json")
+          output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(f"Wrote {output}")
+          PY
 
       - name: Build quality summary
         run: |
@@ -145,11 +170,14 @@ jobs:
         with:
           name: text-training-artifacts-a100
           path: |
+            ${{ env.TEXT_DETECTION_MODEL_PATH }}/**
             backend/evidence/models/text/**/training_manifest.json
             backend/evidence/models/text/latest.json
+            backend/evidence/models/text/training_bundle_manifest.json
             backend/evidence/calibration/text/latest_text_calibration.json
             backend/evidence/calibration/text/quality_gate.json
             backend/evidence/calibration/text/quality_gate.md
+            backend/app/detection/text/calibration_profile.json
             training-quality-summary.md
           retention-days: 30
 
@@ -188,34 +216,59 @@ jobs:
 
       - name: Resolve trained model path
         run: |
-          MODEL_PATH="$(python3 - <<'PY'
+          RESOLVED="$(python3 - <<'PY'
           import json
           from pathlib import Path
 
           latest_path = Path("backend/evidence/models/text/latest.json")
           payload = json.loads(latest_path.read_text(encoding="utf-8"))
+          run_id = payload.get("run_id", "")
           model_path = payload.get("model_path")
           if model_path:
-              print(model_path)
+              print(f"{run_id}\n{model_path}")
           else:
               manifest = payload.get("manifest")
               if manifest:
-                  print(str(Path(manifest).parent))
+                  print(f"{run_id}\n{str(Path(manifest).parent)}")
               else:
                   print("")
           PY
           )"
+          TEXT_MODEL_RUN_ID="$(printf '%s\n' "$RESOLVED" | sed -n '1p')"
+          MODEL_PATH="$(printf '%s\n' "$RESOLVED" | sed -n '2p')"
           if [ -z "$MODEL_PATH" ]; then
             echo "Could not resolve model path from backend/evidence/models/text/latest.json" >&2
             exit 1
           fi
           echo "TEXT_DETECTION_MODEL_PATH=$MODEL_PATH" >> "$GITHUB_ENV"
+          if [ -n "$TEXT_MODEL_RUN_ID" ]; then
+            echo "TEXT_MODEL_RUN_ID=$TEXT_MODEL_RUN_ID" >> "$GITHUB_ENV"
+          fi
           echo "Resolved model path: $MODEL_PATH"
 
       - name: Refresh calibration after training
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08 MAX_DOMAIN_FP_RATE=0.30 MIN_DOMAIN_SAMPLE_COUNT=30
+
+      - name: Write training bundle manifest
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import UTC, datetime
+          from pathlib import Path
+
+          payload = {
+              "generated_at": datetime.now(UTC).isoformat(),
+              "run_id": os.getenv("TEXT_MODEL_RUN_ID", ""),
+              "model_path": os.getenv("TEXT_DETECTION_MODEL_PATH", ""),
+              "calibration_profile_path": "backend/app/detection/text/calibration_profile.json",
+          }
+          output = Path("backend/evidence/models/text/training_bundle_manifest.json")
+          output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(f"Wrote {output}")
+          PY
 
       - name: Build quality summary
         run: |
@@ -259,10 +312,13 @@ jobs:
         with:
           name: text-training-artifacts-${{ matrix.profile }}
           path: |
+            ${{ env.TEXT_DETECTION_MODEL_PATH }}/**
             backend/evidence/models/text/**/training_manifest.json
             backend/evidence/models/text/latest.json
+            backend/evidence/models/text/training_bundle_manifest.json
             backend/evidence/calibration/text/latest_text_calibration.json
             backend/evidence/calibration/text/quality_gate.json
             backend/evidence/calibration/text/quality_gate.md
+            backend/app/detection/text/calibration_profile.json
             training-quality-summary.md
           retention-days: 30

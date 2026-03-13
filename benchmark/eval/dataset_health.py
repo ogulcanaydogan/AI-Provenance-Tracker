@@ -12,6 +12,8 @@ from typing import Any
 
 
 REQUIRED_FIELDS = ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref")
+EXPANSION_METADATA_FIELDS = ("data_origin", "generator_id", "license_ref")
+REQUIRED_METADATA_ORIGIN = "v1_2_full_v3_expansion"
 DEFAULT_TARGET_PROFILES: dict[str, dict[str, Any]] = {
     "smoke_v2": {
         "target_total": 260,
@@ -35,6 +37,17 @@ DEFAULT_TARGET_PROFILES: dict[str, dict[str, Any]] = {
             "video_ai_vs_human_detection": 75,
         },
     },
+    "full_v3": {
+        "target_total": 3000,
+        "warn_total": 2700,
+        "task_targets": {
+            "ai_vs_human_detection": 1350,
+            "source_attribution": 600,
+            "tamper_detection": 750,
+            "audio_ai_vs_human_detection": 150,
+            "video_ai_vs_human_detection": 150,
+        },
+    },
 }
 
 
@@ -50,8 +63,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--target-profile",
-        default="full_v2",
-        help="Target profile name from targets config (for example full_v2, smoke_v2).",
+        default="full_v3",
+        help="Target profile name from targets config (for example full_v3, full_v2, smoke_v2).",
     )
     parser.add_argument("--target-total", type=int, default=None)
     parser.add_argument("--warn-total", type=int, default=None)
@@ -65,6 +78,15 @@ def parse_args() -> argparse.Namespace:
         "--enforce",
         action="store_true",
         help="Fail when target thresholds are not met.",
+    )
+    parser.add_argument(
+        "--min-metadata-rows",
+        type=int,
+        default=0,
+        help=(
+            "Minimum row count that must include expansion metadata "
+            "(data_origin=v1_2_full_v3_expansion, generator_id, license_ref)."
+        ),
     )
     return parser.parse_args()
 
@@ -237,6 +259,33 @@ def _validate_rows(rows: list[dict[str, Any]], dataset_name: str) -> list[str]:
     return issues
 
 
+def _is_full_v3_expansion_row(row: dict[str, Any]) -> bool:
+    return str(row.get("data_origin", "")).strip() == REQUIRED_METADATA_ORIGIN
+
+
+def _validate_metadata_fields(rows: list[dict[str, Any]], dataset_name: str) -> tuple[int, list[str]]:
+    issues: list[str] = []
+    metadata_rows = 0
+    for index, row in enumerate(rows, start=1):
+        if not _is_full_v3_expansion_row(row):
+            continue
+        metadata_rows += 1
+        missing_metadata: list[str] = []
+        for field in EXPANSION_METADATA_FIELDS:
+            value = row.get(field)
+            if value is None:
+                missing_metadata.append(field)
+                continue
+            if isinstance(value, str) and not value.strip():
+                missing_metadata.append(field)
+        if missing_metadata:
+            sample_id = row.get("sample_id", f"{dataset_name}#{index}")
+            issues.append(
+                f"{dataset_name}:{sample_id} missing metadata fields: {', '.join(missing_metadata)}"
+            )
+    return metadata_rows, issues
+
+
 def _build_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Dataset Health",
@@ -247,6 +296,8 @@ def _build_markdown(report: dict[str, Any]) -> str:
         f"- Target total: `{report['targets']['target_total']}`",
         f"- Current total: `{report['summary']['total_samples']}`",
         f"- Progress: `{report['summary']['target_progress_pct']:.2f}%`",
+        f"- Metadata rows: `{report['summary']['metadata_rows']}`",
+        f"- Min metadata rows: `{report['targets']['min_metadata_rows']}`",
         "",
         "## Samples by Task",
         "",
@@ -310,12 +361,16 @@ def run() -> int:
     by_modality: Counter[str] = Counter()
     by_domain: Counter[str] = Counter()
     validation_issues: list[str] = []
+    metadata_rows = 0
 
     total_samples = 0
     for dataset_file in dataset_files:
         rows = _load_jsonl(dataset_file)
         total_samples += len(rows)
         validation_issues.extend(_validate_rows(rows, dataset_file.name))
+        metadata_count, metadata_issues = _validate_metadata_fields(rows, dataset_file.name)
+        metadata_rows += metadata_count
+        validation_issues.extend(metadata_issues)
         for row in rows:
             by_task[str(row.get("task", "unknown"))] += 1
             by_modality[str(row.get("modality", "unknown"))] += 1
@@ -339,6 +394,16 @@ def run() -> int:
                 "message": (
                     f"Dataset total {total_samples} is below target {target_total}. "
                     "Current benchmark is still below next-scale objective."
+                ),
+            }
+        )
+    if int(args.min_metadata_rows) > 0 and metadata_rows < int(args.min_metadata_rows):
+        alerts.append(
+            {
+                "level": "warn",
+                "message": (
+                    f"Metadata rows {metadata_rows} are below required minimum "
+                    f"{int(args.min_metadata_rows)}."
                 ),
             }
         )
@@ -372,6 +437,7 @@ def run() -> int:
             "targets_config_path": str(targets_config_path),
             "target_total": target_total,
             "warn_total": warn_total,
+            "min_metadata_rows": int(args.min_metadata_rows),
             "task_targets": task_targets,
         },
         "summary": {
@@ -379,6 +445,7 @@ def run() -> int:
             "target_progress_pct": round((total_samples / target_total) * 100.0, 2)
             if target_total
             else 0.0,
+            "metadata_rows": metadata_rows,
             "by_task": dict(sorted(by_task.items())),
             "task_rows": task_rows,
             "by_modality": dict(sorted(by_modality.items())),

@@ -26,8 +26,8 @@ Optional fields:
 ## Profiles (Benchmark 2.0)
 
 - `smoke` profile (PR-lite): fast regression gate, capped subset (~260 samples)
-- `full` profile (nightly): full quality run over 1500 samples
-- `full_v3` profile config is pre-defined for 3000-sample growth planning (kept opt-in until dataset expansion lands)
+- `full_v3` profile (nightly): full quality run over 3000 samples
+- `full` remains backward-compatible and maps to `full_v3` targets in automation
 - Audio/video metrics remain **experimental** in both profiles
 
 Config files:
@@ -96,13 +96,7 @@ Open `benchmark/leaderboard/index.html` to view leaderboard results.
   - tamper: 60
   - audio (experimental): 15
   - video (experimental): 15
-- Nightly full gate enforces `full_v2` targets:
-  - detection: 675
-  - attribution: 300
-  - tamper: 375
-  - audio (experimental): 75
-  - video (experimental): 75
-- Future growth target `full_v3` (configured, not default yet):
+- Nightly full gate enforces `full_v3` targets:
   - detection: 1350
   - attribution: 600
   - tamper: 750
