@@ -566,3 +566,195 @@ def test_regression_quality_limits_fail_and_pass(tmp_path: Path) -> None:
         text=True,
     )
     assert pass_result.returncode == 0
+
+
+def test_regression_drift_summary_without_previous_is_no_baseline(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {
+                        "path": "tasks.ai_vs_human_detection.f1",
+                        "baseline": 0.7,
+                        "max_drop": 0.3,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    targets_path = tmp_path / "targets.json"
+    targets_path.write_text(
+        json.dumps(
+            {
+                "targets": {
+                    "smoke_v2": {
+                        "target_total": 1,
+                        "warn_total": 1,
+                        "task_targets": {"ai_vs_human_detection": 1},
+                        "quality_targets": {
+                            "ai_vs_human_detection": {
+                                "calibration_ece_max": 0.08,
+                                "false_positive_rate_by_domain_max": {"code": 0.30},
+                            }
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.03,
+                        "false_positive_rate_by_domain": {"code": 0.2},
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--baseline",
+            str(baseline_path),
+            "--targets-config",
+            str(targets_path),
+            "--target-profile",
+            "smoke_v2",
+            "--report-json",
+            str(tmp_path / "report.json"),
+            "--report-md",
+            str(tmp_path / "report.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert payload["drift_total_checks"] == 2
+    assert payload["drift_failed_checks"] == 0
+    assert {item["status"] for item in payload["drift_summary"]} == {"no_baseline"}
+    assert payload["fail_reasons"] == []
+
+
+def test_regression_drift_spike_fails(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {
+                        "path": "tasks.ai_vs_human_detection.f1",
+                        "baseline": 0.7,
+                        "max_drop": 0.3,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    targets_path = tmp_path / "targets.json"
+    targets_path.write_text(
+        json.dumps(
+            {
+                "targets": {
+                    "smoke_v2": {
+                        "target_total": 1,
+                        "warn_total": 1,
+                        "task_targets": {"ai_vs_human_detection": 1},
+                        "quality_targets": {
+                            "ai_vs_human_detection": {
+                                "calibration_ece_max": 0.08,
+                                "false_positive_rate_by_domain_max": {"code": 0.30},
+                            }
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    previous_path = tmp_path / "previous.json"
+    previous_path.write_text(
+        json.dumps(
+            {
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.02,
+                        "false_positive_rate_by_domain": {"code": 0.1},
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.03,
+                        "false_positive_rate_by_domain": {"code": 0.22},
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--previous",
+            str(previous_path),
+            "--baseline",
+            str(baseline_path),
+            "--targets-config",
+            str(targets_path),
+            "--target-profile",
+            "smoke_v2",
+            "--max-ece-drift",
+            "0.02",
+            "--max-domain-fp-drift",
+            "0.05",
+            "--report-json",
+            str(tmp_path / "report.json"),
+            "--report-md",
+            str(tmp_path / "report.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert payload["drift_total_checks"] == 2
+    assert payload["drift_failed_checks"] == 1
+    assert any(item["status"] == "fail" for item in payload["drift_summary"])
+    assert "drift_spike" in payload["fail_reasons"]

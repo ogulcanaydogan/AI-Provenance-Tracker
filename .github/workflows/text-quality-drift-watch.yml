@@ -1,0 +1,390 @@
+name: Text Quality Drift Watch
+
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark_profile:
+        description: "Benchmark profile to run for drift watch"
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
+        default: full
+  schedule:
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  drift-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      DRIFT_MAX_ECE: "0.02"
+      DRIFT_MAX_DOMAIN_FP: "0.05"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve benchmark profile
+        id: profile
+        run: |
+          set -euo pipefail
+          profile="full_v3"
+          target_profile="full_v3"
+          baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.benchmark_profile || 'full' }}" = "smoke" ]; then
+            profile="smoke"
+            target_profile="smoke_v2"
+            baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
+          fi
+          {
+            echo "profile=${profile}"
+            echo "target_profile=${target_profile}"
+            echo "baseline_snapshot=${baseline_snapshot}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -e ".[dev,ml]"
+
+      - name: Download latest text training bundle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRE_TRAINING_ARTIFACT: "true"
+        run: |
+          bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/drift/training_bundle
+
+      - name: Start backend for drift benchmark
+        env:
+          RUN_SCHEDULER_IN_API: "false"
+          CONSENSUS_ENABLED: "false"
+          C2PA_ENABLED: "false"
+          RATE_LIMIT_REQUESTS: "10000"
+          RATE_LIMIT_MEDIA_REQUESTS: "10000"
+          RATE_LIMIT_BATCH_REQUESTS: "10000"
+          TEXT_DETECTION_MODEL_PATH: ${{ env.TEXT_DETECTION_MODEL_PATH }}
+          TEXT_CALIBRATION_PROFILE_PATH: ${{ env.TEXT_CALIBRATION_PROFILE_PATH }}
+        run: |
+          mkdir -p benchmark/results/drift/current
+          cd backend
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../benchmark/results/drift/current/backend.log 2>&1 &
+          echo $! > ../benchmark/results/drift/current/backend.pid
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:8000/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/health > /dev/null || {
+            echo "Backend failed to start"
+            cat ../benchmark/results/drift/current/backend.log
+            exit 1
+          }
+
+      - name: Run drift benchmark
+        run: |
+          python benchmark/eval/run_public_benchmark.py \
+            --datasets-dir benchmark/datasets \
+            --output-dir benchmark/results/drift/current \
+            --leaderboard-output benchmark/results/drift/current/leaderboard.json \
+            --model-id baseline-heuristic-drift-watch \
+            --decision-threshold 0.45 \
+            --backend-url http://127.0.0.1:8000 \
+            --live-mode true \
+            --profile "${{ steps.profile.outputs.profile }}" \
+            --profiles-config benchmark/config/benchmark_profiles.yaml
+
+      - name: Download previous successful drift artifacts
+        id: previous
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark/results/drift/previous
+          mapfile -t run_ids < <(
+            gh run list \
+              --workflow "Text Quality Drift Watch" \
+              --branch main \
+              --status success \
+              --limit 25 \
+              --json databaseId \
+              --jq '.[].databaseId'
+          )
+
+          selected_run_id=""
+          current_run_id="${{ github.run_id }}"
+          for run_id in "${run_ids[@]}"; do
+            if [ "$run_id" = "$current_run_id" ]; then
+              continue
+            fi
+            attempt_dir="$(mktemp -d)"
+            if gh run download "$run_id" -n text-quality-drift-artifacts -D "$attempt_dir" >/dev/null 2>&1; then
+              cp -R "$attempt_dir"/. benchmark/results/drift/previous/
+              selected_run_id="$run_id"
+              rm -rf "$attempt_dir"
+              break
+            fi
+            rm -rf "$attempt_dir"
+          done
+
+          previous_benchmark="$(find benchmark/results/drift/previous -type f -name benchmark_results.json | head -n 1 || true)"
+          if [ -n "$selected_run_id" ] && [ -n "$previous_benchmark" ] && [ -f "$previous_benchmark" ]; then
+            {
+              echo "has_previous=true"
+              echo "run_id=$selected_run_id"
+              echo "benchmark_path=$previous_benchmark"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "has_previous=false"
+              echo "run_id="
+              echo "benchmark_path="
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check benchmark regressions + drift
+        id: regression
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmd=(
+            python benchmark/eval/check_benchmark_regression.py
+            --current benchmark/results/drift/current/benchmark_results.json
+            --baseline "${{ steps.profile.outputs.baseline_snapshot }}"
+            --targets-config benchmark/config/benchmark_targets.yaml
+            --target-profile "${{ steps.profile.outputs.target_profile }}"
+            --max-ece-drift "${DRIFT_MAX_ECE}"
+            --max-domain-fp-drift "${DRIFT_MAX_DOMAIN_FP}"
+            --report-json benchmark/results/drift/current/regression_check.json
+            --report-md benchmark/results/drift/current/regression_check.md
+          )
+
+          if [ "${{ steps.previous.outputs.has_previous }}" = "true" ]; then
+            cmd+=(--previous "${{ steps.previous.outputs.benchmark_path }}")
+          fi
+          "${cmd[@]}"
+
+      - name: Build drift summary
+        if: ${{ always() }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("benchmark/results/drift/current/regression_check.json")
+          summary_path = Path("benchmark/results/drift/current/drift_watch_summary.md")
+          if not report_path.exists():
+            summary_path.write_text("No regression report found.\n", encoding="utf-8")
+            print(summary_path.read_text(encoding="utf-8"))
+            raise SystemExit(0)
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          failed_checks = [item for item in report.get("checks", []) if not item.get("passed", False)]
+          drift_failures = [item for item in report.get("drift_summary", []) if item.get("status") == "fail"]
+          fail_reasons = report.get("fail_reasons", [])
+
+          lines = [
+              "## Text Quality Drift Watch",
+              f"- status: {'pass' if report.get('passed') else 'fail'}",
+              f"- fail_reasons: {', '.join(fail_reasons) if fail_reasons else 'none'}",
+              f"- target_profile: {report.get('target_profile') or 'n/a'}",
+              f"- previous_benchmark: {report.get('previous_benchmark') or 'n/a'}",
+              f"- drift_failed_checks: {report.get('drift_failed_checks', 0)} / {report.get('drift_total_checks', 0)}",
+              "",
+          ]
+
+          if failed_checks:
+              lines.append("### Limit Breaches")
+              for item in failed_checks[:8]:
+                  lines.append(
+                      f"- `{item.get('path')}` current={item.get('current')} "
+                      f"limit={item.get('limit')} source={item.get('source')}"
+                  )
+              lines.append("")
+
+          if drift_failures:
+              lines.append("### Drift Spikes")
+              for item in drift_failures[:8]:
+                  lines.append(
+                      f"- `{item.get('path')}` current={item.get('current')} "
+                      f"previous={item.get('previous')} delta={item.get('delta')} limit={item.get('limit')}"
+                  )
+              lines.append("")
+
+          summary = "\n".join(lines) + "\n"
+          summary_path.write_text(summary, encoding="utf-8")
+          print(summary)
+          github_summary_path = os.getenv("GITHUB_STEP_SUMMARY", "")
+          if github_summary_path:
+              with Path(github_summary_path).open("a", encoding="utf-8") as fh:
+                  fh.write(summary)
+          PY
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -f benchmark/results/drift/current/backend.pid ]; then
+            kill "$(cat benchmark/results/drift/current/backend.pid)" || true
+          fi
+
+      - name: Upload drift watch artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: text-quality-drift-artifacts
+          path: benchmark/results/drift/current
+          retention-days: 14
+
+      - name: Upsert tracking issue on drift failure
+        if: ${{ always() && steps.regression.outcome == 'failure' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labelName = "ops-quality-drift";
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const reportPath = "benchmark/results/drift/current/regression_check.json";
+            const report = fs.existsSync(reportPath) ? JSON.parse(fs.readFileSync(reportPath, "utf8")) : {};
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: labelName });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: labelName,
+                  color: "d93f0b",
+                  description: "Text quality drift tracking issue",
+                });
+              } else {
+                throw error;
+              }
+            }
+
+            const failReasons = Array.isArray(report.fail_reasons) && report.fail_reasons.length
+              ? report.fail_reasons.join(", ")
+              : "unknown";
+            const failedChecks = Array.isArray(report.checks)
+              ? report.checks.filter((item) => item && item.passed === false)
+              : [];
+            const failedDrift = Array.isArray(report.drift_summary)
+              ? report.drift_summary.filter((item) => item && item.status === "fail")
+              : [];
+            const failedSummary = failedChecks.length
+              ? failedChecks.slice(0, 6).map((item) => `- \`${item.path}\`: current=${item.current}, limit=${item.limit}, source=${item.source}`).join("\n")
+              : "- (no limit-breach details)";
+            const failedDriftSummary = failedDrift.length
+              ? failedDrift.slice(0, 6).map((item) => `- \`${item.path}\`: current=${item.current}, previous=${item.previous}, delta=${item.delta}, limit=${item.limit}`).join("\n")
+              : "- (no drift-spike details)";
+
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open label:${labelName}`,
+              per_page: 10,
+            });
+            const openIssues = (searchResult.data.items || []).filter((item) => !item.pull_request);
+            const commentBody = [
+              "Text quality drift failure detected.",
+              "",
+              `- Workflow run: ${runUrl}`,
+              `- Target profile: ${report.target_profile || "n/a"}`,
+              `- Fail reasons: ${failReasons}`,
+              "",
+              "Failed limit checks:",
+              failedSummary,
+              "",
+              "Failed drift checks:",
+              failedDriftSummary,
+            ].join("\n");
+
+            if (openIssues.length > 0) {
+              const issue = openIssues[0];
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: commentBody,
+              });
+              core.info(`Updated drift tracking issue #${issue.number}`);
+              return;
+            }
+
+            const created = await github.rest.issues.create({
+              owner,
+              repo,
+              title: "[ops] Text quality drift failing",
+              labels: [labelName],
+              body: [
+                "Text quality drift watch is failing.",
+                "",
+                `- First failure run: ${runUrl}`,
+                "",
+                "This issue is managed by workflow automation and will be updated until recovery.",
+              ].join("\n"),
+            });
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: created.data.number,
+              body: commentBody,
+            });
+            core.info(`Created drift tracking issue #${created.data.number}`);
+
+      - name: Close tracking issue on drift recovery
+        if: ${{ always() && steps.regression.outcome == 'success' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labelName = "ops-quality-drift";
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open label:${labelName}`,
+              per_page: 20,
+            });
+            const openIssues = (searchResult.data.items || []).filter((item) => !item.pull_request);
+            if (openIssues.length === 0) {
+              core.info("No open ops-quality-drift issues to close.");
+              return;
+            }
+
+            for (const issue of openIssues) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: [
+                  "Text quality drift recovered.",
+                  "",
+                  `- Recovery run: ${runUrl}`,
+                ].join("\n"),
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issue.number,
+                state: "closed",
+              });
+              core.info(`Closed drift tracking issue #${issue.number}`);
+            }
+
+      - name: Enforce drift gate
+        run: |
+          if [ "${{ steps.regression.outcome }}" != "success" ]; then
+            echo "Text quality drift watch failed."
+            exit 1
+          fi

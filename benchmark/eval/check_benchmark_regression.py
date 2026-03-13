@@ -42,6 +42,23 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Optional target profile key (for example full_v3) used with --targets-config.",
     )
+    parser.add_argument(
+        "--previous",
+        default="",
+        help="Optional previous benchmark results JSON used for drift comparison.",
+    )
+    parser.add_argument(
+        "--max-ece-drift",
+        type=float,
+        default=0.02,
+        help="Maximum allowed positive drift delta for calibration_ece metrics.",
+    )
+    parser.add_argument(
+        "--max-domain-fp-drift",
+        type=float,
+        default=0.05,
+        help="Maximum allowed positive drift delta for false_positive_rate_by_domain metrics.",
+    )
     return parser.parse_args()
 
 
@@ -111,16 +128,104 @@ def _load_quality_limits(targets_config_path: Path, target_profile: str) -> list
     return limits
 
 
+def _drift_limit_for_path(path: str, *, max_ece_drift: float, max_domain_fp_drift: float) -> float | None:
+    if path.endswith(".calibration_ece"):
+        return max_ece_drift
+    if ".false_positive_rate_by_domain." in path:
+        return max_domain_fp_drift
+    return None
+
+
+def _build_drift_summary(
+    checks: list[dict[str, Any]],
+    previous_payload: dict[str, Any] | None,
+    *,
+    max_ece_drift: float,
+    max_domain_fp_drift: float,
+) -> tuple[list[dict[str, Any]], int]:
+    summary: list[dict[str, Any]] = []
+    drift_failures = 0
+    for check in checks:
+        if check.get("constraint") != "max":
+            continue
+        path = str(check.get("path", ""))
+        drift_limit = _drift_limit_for_path(
+            path,
+            max_ece_drift=max_ece_drift,
+            max_domain_fp_drift=max_domain_fp_drift,
+        )
+        if drift_limit is None:
+            continue
+
+        current_value = check.get("current")
+        entry: dict[str, Any] = {
+            "path": path,
+            "current": current_value,
+            "previous": None,
+            "delta": None,
+            "limit": drift_limit,
+            "status": "no_baseline",
+        }
+        if previous_payload is None:
+            summary.append(entry)
+            continue
+        if current_value is None:
+            entry["status"] = "missing_current_metric"
+            summary.append(entry)
+            continue
+
+        try:
+            previous_value = _value_at_path(previous_payload, path)
+        except KeyError:
+            entry["status"] = "no_previous_metric"
+            summary.append(entry)
+            continue
+
+        delta = float(current_value) - previous_value
+        status = "pass" if delta <= drift_limit else "fail"
+        if status == "fail":
+            drift_failures += 1
+        entry.update(
+            {
+                "previous": previous_value,
+                "delta": delta,
+                "status": status,
+            }
+        )
+        summary.append(entry)
+    return summary, drift_failures
+
+
+def _fail_reasons_from_report(
+    checks: list[dict[str, Any]], drift_summary: list[dict[str, Any]]
+) -> list[str]:
+    reasons: list[str] = []
+    for check in checks:
+        if check.get("passed", False):
+            continue
+        path = str(check.get("path", ""))
+        if path.endswith(".calibration_ece") and "ece_limit_breach" not in reasons:
+            reasons.append("ece_limit_breach")
+        elif ".false_positive_rate_by_domain." in path and "domain_fp_breach" not in reasons:
+            reasons.append("domain_fp_breach")
+    if any(item.get("status") == "fail" for item in drift_summary):
+        reasons.append("drift_spike")
+    return reasons
+
+
 def _build_markdown(report: dict[str, Any]) -> str:
     rows = report["checks"]
+    drift_rows = report.get("drift_summary", [])
     lines = [
         "# Benchmark Regression Check",
         "",
         f"- Generated: `{report['generated_at']}`",
         f"- Baseline snapshot: `{report['baseline_snapshot']}`",
         f"- Current benchmark: `{report['current_benchmark']}`",
+        f"- Previous benchmark: `{report.get('previous_benchmark') or 'n/a'}`",
         f"- Targets config: `{report.get('targets_config') or 'n/a'}`",
         f"- Target profile: `{report.get('target_profile') or 'n/a'}`",
+        f"- Fail reasons: `{', '.join(report.get('fail_reasons', [])) or 'none'}`",
         f"- Status: `{'pass' if report['passed'] else 'fail'}`",
         "",
         "| Metric | Constraint | Current | Limit | Delta | Source | Result |",
@@ -146,6 +251,31 @@ def _build_markdown(report: dict[str, Any]) -> str:
                 result="PASS" if item["passed"] else "FAIL",
             )
         )
+    if drift_rows:
+        lines.extend(
+            [
+                "",
+                "## Drift Summary",
+                "",
+                "| Metric | Current | Previous | Delta | Limit | Status |",
+                "| --- | ---: | ---: | ---: | ---: | --- |",
+            ]
+        )
+        for item in drift_rows:
+            current_value = item.get("current")
+            previous_value = item.get("previous")
+            delta_value = item.get("delta")
+            limit_value = item.get("limit")
+            lines.append(
+                "| {metric} | {current} | {previous} | {delta} | {limit} | {status} |".format(
+                    metric=item.get("path", "n/a"),
+                    current="n/a" if current_value is None else f"{float(current_value):.4f}",
+                    previous="n/a" if previous_value is None else f"{float(previous_value):.4f}",
+                    delta="n/a" if delta_value is None else f"{float(delta_value):+.4f}",
+                    limit="n/a" if limit_value is None else f"{float(limit_value):.4f}",
+                    status=str(item.get("status", "unknown")).upper(),
+                )
+            )
     lines.append("")
     return "\n".join(lines)
 
@@ -157,9 +287,13 @@ def run() -> int:
     report_json_path = Path(args.report_json).expanduser().resolve()
     report_md_path = Path(args.report_md).expanduser().resolve()
     targets_config_path = Path(args.targets_config).expanduser().resolve() if args.targets_config else None
+    previous_path = Path(args.previous).expanduser().resolve() if args.previous else None
 
     current_payload = json.loads(current_path.read_text(encoding="utf-8"))
     baseline_payload = json.loads(baseline_path.read_text(encoding="utf-8"))
+    previous_payload: dict[str, Any] | None = None
+    if previous_path is not None and previous_path.exists():
+        previous_payload = json.loads(previous_path.read_text(encoding="utf-8"))
 
     checks: list[dict[str, Any]] = []
     failures = 0
@@ -214,15 +348,33 @@ def run() -> int:
                 }
             )
 
+    drift_summary, drift_failures = _build_drift_summary(
+        checks,
+        previous_payload,
+        max_ece_drift=float(args.max_ece_drift),
+        max_domain_fp_drift=float(args.max_domain_fp_drift),
+    )
+    failures += drift_failures
+    fail_reasons = _fail_reasons_from_report(checks, drift_summary)
+
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "baseline_snapshot": str(baseline_path),
         "current_benchmark": str(current_path),
+        "previous_benchmark": str(previous_path) if previous_path is not None and previous_path.exists() else "",
         "targets_config": str(targets_config_path) if targets_config_path is not None else "",
         "target_profile": str(args.target_profile or ""),
         "total_checks": len(checks),
         "failed_checks": failures,
         "passed": failures == 0,
+        "fail_reasons": fail_reasons,
+        "drift_config": {
+            "max_ece_drift": float(args.max_ece_drift),
+            "max_domain_fp_drift": float(args.max_domain_fp_drift),
+        },
+        "drift_total_checks": len(drift_summary),
+        "drift_failed_checks": drift_failures,
+        "drift_summary": drift_summary,
         "checks": checks,
     }
 
@@ -249,6 +401,21 @@ def run() -> int:
                 f"current={current_text} "
                 f"limit={limit_text} "
                 f"source={item.get('source', 'unknown')}"
+            )
+        for item in drift_summary:
+            if item.get("status") != "fail":
+                continue
+            current_value = item.get("current")
+            previous_value = item.get("previous")
+            delta_value = item.get("delta")
+            limit_value = item.get("limit")
+            print(
+                "FAILED_DRIFT "
+                f"path={item.get('path')} "
+                f"current={'n/a' if current_value is None else f'{float(current_value):.4f}'} "
+                f"previous={'n/a' if previous_value is None else f'{float(previous_value):.4f}'} "
+                f"delta={'n/a' if delta_value is None else f'{float(delta_value):+.4f}'} "
+                f"limit={'n/a' if limit_value is None else f'{float(limit_value):.4f}'}"
             )
         print(f"Regression check failed: {failures} metric(s) below allowed threshold.")
         return 1
