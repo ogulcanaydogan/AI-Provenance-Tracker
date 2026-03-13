@@ -134,7 +134,7 @@ jobs:
     name: Deploy Helm Runtime
     needs: prepare
     if: ${{ needs.prepare.outputs.deploy_helm == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, spark]
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
@@ -176,6 +176,27 @@ jobs:
           fi
           chmod 600 ~/.kube/config
 
+      - name: Validate kube API endpoint
+        run: |
+          set -euo pipefail
+          server="$(awk '/^[[:space:]]*server:[[:space:]]*/ {print $2; exit}' ~/.kube/config || true)"
+          if [ -z "${server}" ]; then
+            echo "kubeconfig does not contain a cluster server endpoint."
+            exit 1
+          fi
+          host="$(printf '%s' "${server}" | sed -E 's#^[a-zA-Z]+://([^/:]+).*$#\1#')"
+          if [ -z "${host}" ]; then
+            echo "Failed to parse kube API host from server endpoint: ${server}"
+            exit 1
+          fi
+          case "${host}" in
+            localhost|127.0.0.1|0.0.0.0|::1)
+              echo "Refusing loopback kube API endpoint in CI: ${server}"
+              exit 1
+              ;;
+          esac
+          echo "Using kube API endpoint: ${server}"
+
       - name: Pull pinned images from GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -212,6 +233,12 @@ jobs:
           printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
           cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
           cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+
+      - name: Cluster reachability preflight
+        run: |
+          set -euo pipefail
+          helm ls --namespace "${HELM_NAMESPACE}" >/dev/null
+          echo "Cluster reachability preflight passed for namespace ${HELM_NAMESPACE}"
 
       - name: Deploy pinned tag with Helm
         run: |
@@ -454,7 +481,7 @@ jobs:
     name: Rollback Helm Runtime
     needs: [prepare, deploy_helm, smoke_gate]
     if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_helm'].result == 'success' && needs['smoke_gate'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, spark]
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
@@ -487,6 +514,27 @@ jobs:
             echo "Loaded kubeconfig from plain-text secret"
           fi
           chmod 600 ~/.kube/config
+
+      - name: Validate kube API endpoint
+        run: |
+          set -euo pipefail
+          server="$(awk '/^[[:space:]]*server:[[:space:]]*/ {print $2; exit}' ~/.kube/config || true)"
+          if [ -z "${server}" ]; then
+            echo "kubeconfig does not contain a cluster server endpoint."
+            exit 1
+          fi
+          host="$(printf '%s' "${server}" | sed -E 's#^[a-zA-Z]+://([^/:]+).*$#\1#')"
+          if [ -z "${host}" ]; then
+            echo "Failed to parse kube API host from server endpoint: ${server}"
+            exit 1
+          fi
+          case "${host}" in
+            localhost|127.0.0.1|0.0.0.0|::1)
+              echo "Refusing loopback kube API endpoint in CI: ${server}"
+              exit 1
+              ;;
+          esac
+          echo "Using kube API endpoint: ${server}"
 
       - name: Pull rollback images from GHCR
         run: |
@@ -522,6 +570,12 @@ jobs:
           printf '%s' "${COSIGN_PUBLIC_KEY}" > cosign.pub
           cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.api_ref }}"
           cosign verify --key cosign.pub "${{ steps.resolve_digests.outputs.worker_ref }}"
+
+      - name: Cluster reachability preflight
+        run: |
+          set -euo pipefail
+          helm ls --namespace "${HELM_NAMESPACE}" >/dev/null
+          echo "Cluster reachability preflight passed for namespace ${HELM_NAMESPACE}"
 
       - name: Roll back Helm release to previous SHA
         run: |
