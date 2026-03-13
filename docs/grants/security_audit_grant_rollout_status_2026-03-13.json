@@ -1,0 +1,453 @@
+{
+  "generated_at": "2026-03-13T15:50:29.496756+00:00",
+  "owner": "ogulcanaydogan",
+  "tiers": {
+    "tier1": [
+      {
+        "repo": "AI-Provenance-Tracker",
+        "repo_url": "https://github.com/ogulcanaydogan/AI-Provenance-Tracker",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 2,
+        "pushed_at": "2026-03-13T15:31:59Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": true,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "Verifiable-AI-Output-Ledger",
+        "repo_url": "https://github.com/ogulcanaydogan/Verifiable-AI-Output-Ledger",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-10T08:30:56Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "LLM-Supply-Chain-Attestation",
+        "repo_url": "https://github.com/ogulcanaydogan/LLM-Supply-Chain-Attestation",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-09T09:43:54Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": false,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add CI workflow",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "Sovereign-RAG-Gateway",
+        "repo_url": "https://github.com/ogulcanaydogan/Sovereign-RAG-Gateway",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-09T07:21:24Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add CONTRIBUTING.md",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "Prompt-Injection-Firewall",
+        "repo_url": "https://github.com/ogulcanaydogan/Prompt-Injection-Firewall",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-08T08:52:21Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": true,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      }
+    ],
+    "tier2": [
+      {
+        "repo": "LLM-Cost-Guardian",
+        "repo_url": "https://github.com/ogulcanaydogan/LLM-Cost-Guardian",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-08T08:29:12Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "MMSAFE-Bench",
+        "repo_url": "https://github.com/ogulcanaydogan/MMSAFE-Bench",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-08T00:50:26Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "AI-Model-Card-Generator",
+        "repo_url": "https://github.com/ogulcanaydogan/AI-Model-Card-Generator",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-08T00:42:42Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "AI-Regulation-Compliance-Scanner",
+        "repo_url": "https://github.com/ogulcanaydogan/AI-Regulation-Compliance-Scanner",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-07T17:10:27Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "LLM-SLO-eBPF-Toolkit",
+        "repo_url": "https://github.com/ogulcanaydogan/LLM-SLO-eBPF-Toolkit",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-06T09:32:47Z",
+        "files": {
+          "SECURITY.md": true,
+          "CONTRIBUTING.md": true,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "LowResource-LLM-Forge",
+        "repo_url": "https://github.com/ogulcanaydogan/LowResource-LLM-Forge",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-12T20:57:56Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": true,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "Turkish-LLM",
+        "repo_url": "https://github.com/ogulcanaydogan/Turkish-LLM",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-12T20:54:56Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": false,
+          ".github/workflows/ci.yml": false,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CI workflow",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      },
+      {
+        "repo": "dgx-spark-llm-stack",
+        "repo_url": "https://github.com/ogulcanaydogan/dgx-spark-llm-stack",
+        "default_branch": "main",
+        "is_private": false,
+        "stargazers": 0,
+        "pushed_at": "2026-03-13T15:03:17Z",
+        "files": {
+          "SECURITY.md": false,
+          "CONTRIBUTING.md": false,
+          "LICENSE": true,
+          ".github/workflows/ci.yml": false,
+          ".github/workflows/codeql.yml": false,
+          ".github/workflows/scorecard.yml": false
+        },
+        "file_errors": {},
+        "bestpractices": {
+          "registered": false,
+          "rows": 0,
+          "error": null
+        },
+        "huntr": {
+          "registered": false,
+          "status_code": 404,
+          "error": null
+        },
+        "recommended_actions": [
+          "add SECURITY.md",
+          "add CONTRIBUTING.md",
+          "add CI workflow",
+          "add CodeQL workflow",
+          "add OpenSSF Scorecard workflow",
+          "submit bestpractices.dev badge application",
+          "submit huntr maintainer onboarding request"
+        ]
+      }
+    ]
+  }
+}
