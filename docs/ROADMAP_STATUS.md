@@ -152,6 +152,8 @@ Last updated: 2026-03-13 (v1.6.4 smoke-route remediation merged; acceptance reru
 - Operational note:
   - Smoke-route mismatch follow-up is code-complete in v1.6.4.
   - Remaining blocker is external infra (runner DNS/network), not workflow logic.
+  - Infra handoff thread (single source of truth): [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
+  - Re-run policy: no new Helm acceptance run until `spark-self-hosted` returns `online` and DNS probes pass on host.
 
 ## Baseline Lock
 
