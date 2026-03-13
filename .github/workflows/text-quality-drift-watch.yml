@@ -11,6 +11,14 @@ on:
           - smoke
           - full
         default: full
+      drift_mode:
+        description: "Drift watch mode (normal or failure-path drill)"
+        required: true
+        type: choice
+        options:
+          - normal
+          - drill_fail
+        default: normal
   schedule:
     - cron: "15 3 * * *"
 
@@ -45,6 +53,31 @@ jobs:
             echo "profile=${profile}"
             echo "target_profile=${target_profile}"
             echo "baseline_snapshot=${baseline_snapshot}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve drift mode
+        id: drift
+        run: |
+          set -euo pipefail
+          drift_mode="normal"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            requested_mode="${{ github.event.inputs.drift_mode || 'normal' }}"
+            if [ "$requested_mode" = "drill_fail" ]; then
+              drift_mode="drill_fail"
+            fi
+          fi
+
+          max_ece_drift="${DRIFT_MAX_ECE}"
+          max_domain_fp_drift="${DRIFT_MAX_DOMAIN_FP}"
+          if [ "$drift_mode" = "drill_fail" ]; then
+            max_ece_drift="0.0"
+            max_domain_fp_drift="0.0"
+          fi
+
+          {
+            echo "drift_mode=${drift_mode}"
+            echo "max_ece_drift=${max_ece_drift}"
+            echo "max_domain_fp_drift=${max_domain_fp_drift}"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v6
@@ -137,6 +170,49 @@ jobs:
           done
 
           previous_benchmark="$(find benchmark/results/drift/previous -type f -name benchmark_results.json | head -n 1 || true)"
+          drill_mode="${{ steps.drift.outputs.drift_mode }}"
+          if [ "$drill_mode" = "drill_fail" ]; then
+            source_benchmark="$previous_benchmark"
+            source_kind="successful_previous_run"
+            if [ -z "$source_benchmark" ] || [ ! -f "$source_benchmark" ]; then
+              source_benchmark="benchmark/results/drift/current/benchmark_results.json"
+              source_kind="current_run_fallback"
+            fi
+            if [ ! -f "$source_benchmark" ]; then
+              echo "::error::drill_fail mode requires a benchmark file to derive deterministic previous baseline."
+              exit 1
+            fi
+
+            drill_previous="benchmark/results/drift/previous/drill_previous_benchmark.json"
+            python - <<'PY' "$source_benchmark" "$drill_previous"
+            import json
+            import sys
+            from pathlib import Path
+
+            source = Path(sys.argv[1])
+            target = Path(sys.argv[2])
+            payload = json.loads(source.read_text(encoding="utf-8"))
+
+            task = payload.setdefault("tasks", {}).setdefault("ai_vs_human_detection", {})
+            epsilon = 1e-6
+            calibration_ece = float(task.get("calibration_ece", 0.0))
+            task["calibration_ece"] = calibration_ece - epsilon
+
+            domain_node = task.setdefault("false_positive_rate_by_domain", {})
+            for domain in ("code", "finance", "legal", "science"):
+                current_value = float(domain_node.get(domain, 0.0))
+                domain_node[domain] = current_value - epsilon
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            PY
+            previous_benchmark="$drill_previous"
+            if [ -z "$selected_run_id" ]; then
+              selected_run_id="synthetic_drill_previous"
+            fi
+            echo "Using deterministic drill previous baseline from ${source_kind}."
+          fi
+
           if [ -n "$selected_run_id" ] && [ -n "$previous_benchmark" ] && [ -f "$previous_benchmark" ]; then
             {
               echo "has_previous=true"
@@ -162,8 +238,8 @@ jobs:
             --baseline "${{ steps.profile.outputs.baseline_snapshot }}"
             --targets-config benchmark/config/benchmark_targets.yaml
             --target-profile "${{ steps.profile.outputs.target_profile }}"
-            --max-ece-drift "${DRIFT_MAX_ECE}"
-            --max-domain-fp-drift "${DRIFT_MAX_DOMAIN_FP}"
+            --max-ece-drift "${{ steps.drift.outputs.max_ece_drift }}"
+            --max-domain-fp-drift "${{ steps.drift.outputs.max_domain_fp_drift }}"
             --report-json benchmark/results/drift/current/regression_check.json
             --report-md benchmark/results/drift/current/regression_check.md
           )
@@ -175,6 +251,8 @@ jobs:
 
       - name: Build drift summary
         if: ${{ always() }}
+        env:
+          DRIFT_MODE: ${{ steps.drift.outputs.drift_mode }}
         run: |
           python - <<'PY'
           import json
@@ -192,10 +270,12 @@ jobs:
           failed_checks = [item for item in report.get("checks", []) if not item.get("passed", False)]
           drift_failures = [item for item in report.get("drift_summary", []) if item.get("status") == "fail"]
           fail_reasons = report.get("fail_reasons", [])
+          drill_mode = os.getenv("DRIFT_MODE", "normal")
 
           lines = [
               "## Text Quality Drift Watch",
               f"- status: {'pass' if report.get('passed') else 'fail'}",
+              f"- drill_mode: {'true' if drill_mode == 'drill_fail' else 'false'}",
               f"- fail_reasons: {', '.join(fail_reasons) if fail_reasons else 'none'}",
               f"- target_profile: {report.get('target_profile') or 'n/a'}",
               f"- previous_benchmark: {report.get('previous_benchmark') or 'n/a'}",
@@ -248,6 +328,8 @@ jobs:
       - name: Upsert tracking issue on drift failure
         if: ${{ always() && steps.regression.outcome == 'failure' }}
         uses: actions/github-script@v8
+        env:
+          DRIFT_MODE: ${{ steps.drift.outputs.drift_mode }}
         with:
           script: |
             const fs = require("fs");
@@ -255,6 +337,7 @@ jobs:
             const repo = context.repo.repo;
             const labelName = "ops-quality-drift";
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const drillMode = process.env.DRIFT_MODE === "drill_fail" ? "true" : "false";
             const reportPath = "benchmark/results/drift/current/regression_check.json";
             const report = fs.existsSync(reportPath) ? JSON.parse(fs.readFileSync(reportPath, "utf8")) : {};
 
@@ -299,6 +382,7 @@ jobs:
               "Text quality drift failure detected.",
               "",
               `- Workflow run: ${runUrl}`,
+              `- drill_mode: ${drillMode}`,
               `- Target profile: ${report.target_profile || "n/a"}`,
               `- Fail reasons: ${failReasons}`,
               "",
@@ -330,6 +414,7 @@ jobs:
                 "Text quality drift watch is failing.",
                 "",
                 `- First failure run: ${runUrl}`,
+                `- drill_mode: ${drillMode}`,
                 "",
                 "This issue is managed by workflow automation and will be updated until recovery.",
               ].join("\n"),
@@ -345,12 +430,15 @@ jobs:
       - name: Close tracking issue on drift recovery
         if: ${{ always() && steps.regression.outcome == 'success' }}
         uses: actions/github-script@v8
+        env:
+          DRIFT_MODE: ${{ steps.drift.outputs.drift_mode }}
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const labelName = "ops-quality-drift";
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const drillMode = process.env.DRIFT_MODE === "drill_fail" ? "true" : "false";
 
             const searchResult = await github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:issue is:open label:${labelName}`,
@@ -368,9 +456,10 @@ jobs:
                 repo,
                 issue_number: issue.number,
                 body: [
-                  "Text quality drift recovered.",
+                  "Text quality drift recovered (drill recovered).",
                   "",
                   `- Recovery run: ${runUrl}`,
+                  `- drill_mode: ${drillMode}`,
                 ].join("\n"),
               });
               await github.rest.issues.update({
