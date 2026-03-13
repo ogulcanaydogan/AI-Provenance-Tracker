@@ -98,6 +98,24 @@ Last updated: 2026-03-13 (v1.6.3 Helm deploy acceptance PASSED)
   - `Show Helm release status` — **passed**
   - `Post-Deploy Smoke Gate` — failed (expected: `PRODUCTION_API_URL` targets Spark SSH, not K8s ClusterIP)
   - `Rollback Helm Runtime` — passed (auto-rollback triggered by smoke, works as designed)
+- Deterministic closure run (temporary smoke bypass): [23067771819](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23067771819)
+  - Temporary controls for this run:
+    - `ENABLE_DEPLOY_SMOKE_GATE=false`
+    - `ENABLE_AUTO_ROLLBACK=false`
+  - Helm path acceptance:
+    - `Set up Helm` — passed (`v3.20.1+ga2369ca`)
+    - `Require kubeconfig secret` — passed
+    - `Validate kube API endpoint` — passed (`https://100.80.116.20:6443`)
+    - `Cluster reachability preflight` — passed
+    - `Deploy pinned tag with Helm` — passed
+    - `Show Helm release status` — passed
+  - Expected behavior in this run:
+    - `Post-Deploy Smoke Gate` — skipped (gate temporarily disabled for Helm acceptance proof)
+    - `Rollback Helm Runtime` — skipped (auto-rollback temporarily disabled)
+  - Control restore completed immediately after run:
+    - `ENABLE_DEPLOY_SMOKE_GATE=true`
+    - `ENABLE_AUTO_ROLLBACK=true`
+  - Follow-up note: smoke route mismatch remediation remains tracked separately (`PRODUCTION_API_URL` vs deployed target route).
 - Pod evidence at deploy time:
   - `provenance-provenance-stack-api` (2 replicas): Running 1/1, health `/health` → 200
   - `provenance-provenance-stack-worker` (1 replica): Running 1/1
