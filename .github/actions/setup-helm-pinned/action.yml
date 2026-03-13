@@ -1,0 +1,72 @@
+name: Setup Helm (Pinned + Checksum)
+description: Install a pinned Helm v3 binary with SHA256 verification on Linux amd64 runners.
+
+inputs:
+  version:
+    description: Helm version tag (for example v3.20.1).
+    required: false
+    default: v3.20.1
+
+outputs:
+  helm-path:
+    description: Absolute path to the installed helm binary.
+    value: ${{ steps.install.outputs.helm-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        version="${{ inputs.version }}"
+        if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Unsupported Helm version format: $version"
+          echo "Expected format: v<major>.<minor>.<patch>"
+          exit 1
+        fi
+
+        case "$version" in
+          v3.20.1)
+            expected_sha256="0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3"
+            ;;
+          *)
+            echo "No pinned checksum is configured for Helm version: $version"
+            echo "Add the version + checksum mapping in .github/actions/setup-helm-pinned/action.yml."
+            exit 1
+            ;;
+        esac
+
+        archive="helm-${version}-linux-amd64.tar.gz"
+        download_url="https://get.helm.sh/${archive}"
+
+        tmp_dir="${RUNNER_TEMP}/setup-helm-pinned-${version}"
+        archive_path="${tmp_dir}/${archive}"
+        extract_dir="${tmp_dir}/extract"
+
+        mkdir -p "$tmp_dir" "$extract_dir"
+
+        curl -fsSL "$download_url" -o "$archive_path"
+
+        actual_sha256="$(sha256sum "$archive_path" | awk '{print $1}')"
+        if [ "$actual_sha256" != "$expected_sha256" ]; then
+          echo "Helm checksum verification failed for ${archive}"
+          echo "expected=${expected_sha256}"
+          echo "actual=${actual_sha256}"
+          exit 1
+        fi
+
+        tar -xzf "$archive_path" -C "$extract_dir"
+
+        helm_path="${extract_dir}/linux-amd64/helm"
+        if [ ! -f "$helm_path" ]; then
+          echo "Helm binary not found after extraction: $helm_path"
+          exit 1
+        fi
+        chmod +x "$helm_path"
+
+        echo "$(dirname "$helm_path")" >> "$GITHUB_PATH"
+        echo "helm-path=$helm_path" >> "$GITHUB_OUTPUT"
+
+        helm version --short
