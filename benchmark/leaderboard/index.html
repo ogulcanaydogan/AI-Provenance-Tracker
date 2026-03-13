@@ -66,7 +66,7 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 1080px;
+        min-width: 1320px;
       }
 
       th,
@@ -123,8 +123,11 @@
             <tr>
               <th>Rank</th>
               <th>Model</th>
+              <th>Profile</th>
               <th>Detection F1</th>
               <th>ROC-AUC</th>
+              <th>Text ECE</th>
+              <th>Text Domain FP Max</th>
               <th>Audio F1 <span class="exp">Experimental</span></th>
               <th>Video F1 <span class="exp">Experimental</span></th>
               <th>Attribution Acc</th>
@@ -134,7 +137,7 @@
             </tr>
           </thead>
           <tbody id="rows">
-            <tr><td colspan="10">Loading leaderboard...</td></tr>
+            <tr><td colspan="13">Loading leaderboard...</td></tr>
           </tbody>
         </table>
       </section>
@@ -156,7 +159,7 @@
 
           const entries = Array.isArray(board.entries) ? board.entries : [];
           if (!entries.length) {
-            rowsEl.innerHTML = '<tr><td colspan="10">No entries yet.</td></tr>';
+            rowsEl.innerHTML = '<tr><td colspan="13">No entries yet.</td></tr>';
             return;
           }
 
@@ -166,8 +169,11 @@
                 <tr>
                   <td>${entry.rank ?? "-"}</td>
                   <td>${entry.model_id ?? "-"}</td>
+                  <td>${entry.benchmark_profile ?? "-"}</td>
                   <td>${entry.detection_f1 ?? "-"}</td>
                   <td>${entry.roc_auc ?? "-"}</td>
+                  <td>${entry.text_calibration_ece ?? "-"}</td>
+                  <td>${entry.text_domain_fp_max ?? "-"}</td>
                   <td>${entry.audio_detection_f1 ?? "-"}${entry.audio_video_experimental ? ' <span class="exp">Experimental</span>' : ''}</td>
                   <td>${entry.video_detection_f1 ?? "-"}${entry.audio_video_experimental ? ' <span class="exp">Experimental</span>' : ''}</td>
                   <td>${entry.attribution_accuracy ?? "-"}</td>
@@ -180,7 +186,7 @@
             .join("");
         } catch (error) {
           updatedEl.textContent = "Updated: failed to load";
-          rowsEl.innerHTML = `<tr><td colspan="10">Failed to load leaderboard: ${error.message}</td></tr>`;
+          rowsEl.innerHTML = `<tr><td colspan="13">Failed to load leaderboard: ${error.message}</td></tr>`;
         }
       }
 

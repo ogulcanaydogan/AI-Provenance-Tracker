@@ -93,6 +93,13 @@ jobs:
             --target-profile full_v3 \
             --min-metadata-rows 1500 \
             --enforce
+      - name: Build public parity report
+        run: |
+          python benchmark/eval/build_public_parity_report.py \
+            --benchmark-results benchmark/results/latest/benchmark_results.json \
+            --leaderboard benchmark/leaderboard/leaderboard.json \
+            --output-json benchmark/results/latest/public_parity_report.json \
+            --output-md benchmark/results/latest/public_parity_report.md
       - name: Stop backend
         if: always()
         run: |
@@ -111,6 +118,8 @@ jobs:
             benchmark/results/latest/regression_check.md
             benchmark/results/latest/dataset_health.json
             benchmark/results/latest/dataset_health.md
+            benchmark/results/latest/public_parity_report.json
+            benchmark/results/latest/public_parity_report.md
           retention-days: 14
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

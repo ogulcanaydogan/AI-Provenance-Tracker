@@ -308,14 +308,18 @@ def _http_file_post(
     return _execute_request(request)
 
 
-def _execute_request(request: urllib.request.Request) -> tuple[int, dict[str, Any] | None, str]:
+def _execute_request(
+    request: urllib.request.Request,
+) -> tuple[int, dict[str, Any] | None, str]:
     try:
         with urllib.request.urlopen(request, timeout=25) as response:
             text = response.read().decode("utf-8")
             payload = json.loads(text) if text else {}
             return response.status, payload, ""
     except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+        body = (
+            exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+        )
         try:
             payload = json.loads(body) if body else None
         except json.JSONDecodeError:
@@ -543,7 +547,9 @@ def _score_rows_precomputed(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 **enriched,
                 "status": status,
                 "score": float(score) if isinstance(score, (int, float)) else None,
-                "prediction": int(float(score) >= 0.5) if isinstance(score, (int, float)) else None,
+                "prediction": int(float(score) >= 0.5)
+                if isinstance(score, (int, float))
+                else None,
                 "http_status": None,
                 "provider_statuses": {},
                 "error": "" if status == "ok" else "missing_precomputed_score",
@@ -582,8 +588,12 @@ def _select_profile_rows(
 
 
 def _roc_auc(labels: list[int], scores: list[float]) -> float:
-    positives = [score for label, score in zip(labels, scores, strict=False) if label == 1]
-    negatives = [score for label, score in zip(labels, scores, strict=False) if label == 0]
+    positives = [
+        score for label, score in zip(labels, scores, strict=False) if label == 1
+    ]
+    negatives = [
+        score for label, score in zip(labels, scores, strict=False) if label == 0
+    ]
     if not positives or not negatives:
         return 0.0
 
@@ -610,7 +620,8 @@ def _calibration_ece(labels: list[int], scores: list[float], bins: int = 10) -> 
         selected = [
             idx
             for idx, score in enumerate(scores)
-            if score >= low and (score < high or (bin_index == bins - 1 and score <= high))
+            if score >= low
+            and (score < high or (bin_index == bins - 1 and score <= high))
         ]
         if not selected:
             continue
@@ -625,10 +636,14 @@ def _calibration_ece(labels: list[int], scores: list[float], bins: int = 10) -> 
 def _brier_score(labels: list[int], scores: list[float]) -> float:
     if not labels:
         return 0.0
-    return mean((score - label) ** 2 for label, score in zip(labels, scores, strict=False))
+    return mean(
+        (score - label) ** 2 for label, score in zip(labels, scores, strict=False)
+    )
 
 
-def _binary_metrics(labels: list[int], scores: list[float], threshold: float) -> dict[str, float | int]:
+def _binary_metrics(
+    labels: list[int], scores: list[float], threshold: float
+) -> dict[str, float | int]:
     predictions = [1 if score >= threshold else 0 for score in scores]
 
     tp = fp = fn = tn = 0
@@ -644,7 +659,11 @@ def _binary_metrics(labels: list[int], scores: list[float], threshold: float) ->
 
     precision = _safe_div(tp, tp + fp)
     recall = _safe_div(tp, tp + fn)
-    f1 = _safe_div(2 * precision * recall, precision + recall) if precision + recall else 0.0
+    f1 = (
+        _safe_div(2 * precision * recall, precision + recall)
+        if precision + recall
+        else 0.0
+    )
     accuracy = _safe_div(tp + tn, len(labels))
 
     return {
@@ -687,7 +706,9 @@ def _false_positive_by_domain(
 
 
 def _evaluate_detection(rows: list[dict[str, Any]], threshold: float) -> dict[str, Any]:
-    valid_rows = [row for row in rows if row["status"] == "ok" and row["score"] is not None]
+    valid_rows = [
+        row for row in rows if row["status"] == "ok" and row["score"] is not None
+    ]
     labels = [int(row["label_is_ai"]) for row in valid_rows]
     scores = [float(row["score"]) for row in valid_rows]
     failed_count = len(rows) - len(valid_rows)
@@ -701,7 +722,9 @@ def _evaluate_detection(rows: list[dict[str, Any]], threshold: float) -> dict[st
         }
 
     calibration_rows = [
-        row for row in valid_rows if str(row.get("modality", "")).strip().lower() == "text"
+        row
+        for row in valid_rows
+        if str(row.get("modality", "")).strip().lower() == "text"
     ]
     calibration_scope = "all_modalities"
     if calibration_rows and len(calibration_rows) < len(valid_rows):
@@ -720,9 +743,13 @@ def _evaluate_detection(rows: list[dict[str, Any]], threshold: float) -> dict[st
             "roc_auc": _round(_roc_auc(labels, scores)),
             "calibration_scope": calibration_scope,
             "calibration_samples": len(calibration_rows),
-            "calibration_ece": _round(_calibration_ece(calibration_labels, calibration_scores)),
+            "calibration_ece": _round(
+                _calibration_ece(calibration_labels, calibration_scores)
+            ),
             "brier_score": _round(_brier_score(calibration_labels, calibration_scores)),
-            "false_positive_rate_by_domain": _false_positive_by_domain(calibration_rows, threshold),
+            "false_positive_rate_by_domain": _false_positive_by_domain(
+                calibration_rows, threshold
+            ),
         }
     )
     return metrics
@@ -735,7 +762,9 @@ def _evaluate_attribution(rows: list[dict[str, Any]]) -> dict[str, Any]:
     per_family_correct: dict[str, int] = {}
 
     for row in rows:
-        truth = str(row.get("true_model_family") or row.get("source_model_family") or "")
+        truth = str(
+            row.get("true_model_family") or row.get("source_model_family") or ""
+        )
         pred = str(row.get("predicted_model_family_baseline") or "")
         if not truth or not pred:
             continue
@@ -778,12 +807,16 @@ def _evaluate_tamper(rows: list[dict[str, Any]], threshold: float) -> dict[str, 
 
     clean_f1 = transform_f1.get("clean", 0.0)
     attacked = [
-        score for name, score in transform_f1.items() if name in {"paraphrase", "translate", "human_edit"}
+        score
+        for name, score in transform_f1.items()
+        if name in {"paraphrase", "translate", "human_edit"}
     ]
     attacked_avg_f1 = mean(attacked) if attacked else 0.0
     clean_auc = transform_auc.get("clean", 0.0)
     attacked_auc = [
-        score for name, score in transform_auc.items() if name in {"paraphrase", "translate", "human_edit"}
+        score
+        for name, score in transform_auc.items()
+        if name in {"paraphrase", "translate", "human_edit"}
     ]
     attacked_avg_auc = mean(attacked_auc) if attacked_auc else 0.0
 
@@ -850,6 +883,26 @@ def _as_float(task: dict[str, Any], key: str) -> float:
     return float(value) if isinstance(value, (int, float)) else 0.0
 
 
+def _text_domain_fp_max(detection: dict[str, Any]) -> float:
+    node = detection.get("false_positive_rate_by_domain")
+    if not isinstance(node, dict):
+        return 0.0
+
+    focused_domains = ("code", "finance", "legal", "science")
+    focused_values = [
+        float(node[domain])
+        for domain in focused_domains
+        if isinstance(node.get(domain), (int, float))
+    ]
+    if focused_values:
+        return max(focused_values)
+
+    all_values = [
+        float(value) for value in node.values() if isinstance(value, (int, float))
+    ]
+    return max(all_values) if all_values else 0.0
+
+
 def _upsert_leaderboard_entry(
     leaderboard_path: Path,
     model_id: str,
@@ -881,6 +934,9 @@ def _upsert_leaderboard_entry(
         "video_detection_f1": _round(video_f1),
         "attribution_accuracy": _round(_as_float(attribution, "accuracy")),
         "robustness_score": _round(_as_float(tamper, "robustness_score")),
+        "text_calibration_ece": _round(_as_float(detection, "calibration_ece")),
+        "text_domain_fp_max": _round(_text_domain_fp_max(detection)),
+        "benchmark_profile": str(results.get("profile", "unknown")),
         "overall_score": _round(overall),
         "audio_video_experimental": True,
     }
@@ -893,8 +949,11 @@ def _upsert_leaderboard_entry(
             "columns": [
                 "rank",
                 "model_id",
+                "benchmark_profile",
                 "detection_f1",
                 "roc_auc",
+                "text_calibration_ece",
+                "text_domain_fp_max",
                 "audio_detection_f1",
                 "video_detection_f1",
                 "attribution_accuracy",
@@ -908,8 +967,11 @@ def _upsert_leaderboard_entry(
     board["columns"] = [
         "rank",
         "model_id",
+        "benchmark_profile",
         "detection_f1",
         "roc_auc",
+        "text_calibration_ece",
+        "text_domain_fp_max",
         "audio_detection_f1",
         "video_detection_f1",
         "attribution_accuracy",
@@ -918,7 +980,9 @@ def _upsert_leaderboard_entry(
         "updated_at",
     ]
 
-    existing = [item for item in board.get("entries", []) if item.get("model_id") != model_id]
+    existing = [
+        item for item in board.get("entries", []) if item.get("model_id") != model_id
+    ]
     existing.append(entry)
     existing.sort(key=lambda item: float(item.get("overall_score", 0.0)), reverse=True)
 
@@ -926,12 +990,17 @@ def _upsert_leaderboard_entry(
     for index, item in enumerate(existing, start=1):
         item["rank"] = index
         item.setdefault("audio_video_experimental", True)
+        item.setdefault("benchmark_profile", "legacy")
+        item.setdefault("text_calibration_ece", None)
+        item.setdefault("text_domain_fp_max", None)
         ranked_entries.append(item)
 
     board["updated_at"] = results["generated_at"]
     board["entries"] = ranked_entries
     leaderboard_path.parent.mkdir(parents=True, exist_ok=True)
-    leaderboard_path.write_text(json.dumps(board, ensure_ascii=False, indent=2), encoding="utf-8")
+    leaderboard_path.write_text(
+        json.dumps(board, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return board
 
 
@@ -973,7 +1042,15 @@ def run() -> int:
     _validate_required_fields(
         raw_tamper_rows,
         "tamper_robustness.jsonl",
-        ("sample_id", "task", "domain", "label_is_ai", "modality", "input_ref", "transform"),
+        (
+            "sample_id",
+            "task",
+            "domain",
+            "label_is_ai",
+            "modality",
+            "input_ref",
+            "transform",
+        ),
     )
     if raw_audio_rows:
         _validate_required_fields(
@@ -1055,7 +1132,10 @@ def run() -> int:
         scored_video_rows = _score_rows_precomputed(video_rows)
 
     all_scored_rows = (
-        scored_detection_rows + scored_tamper_rows + scored_audio_rows + scored_video_rows
+        scored_detection_rows
+        + scored_tamper_rows
+        + scored_audio_rows
+        + scored_video_rows
     )
 
     results = {
@@ -1098,7 +1178,9 @@ def run() -> int:
             "video_detection": len(raw_video_rows),
         },
         "dataset_hashes": {
-            "detection_multidomain": _sha256(datasets_dir / "detection_multidomain.jsonl"),
+            "detection_multidomain": _sha256(
+                datasets_dir / "detection_multidomain.jsonl"
+            ),
             "source_attribution": _sha256(datasets_dir / "source_attribution.jsonl"),
             "tamper_robustness": _sha256(datasets_dir / "tamper_robustness.jsonl"),
             "audio_detection": _sha256(datasets_dir / "audio_detection.jsonl")
@@ -1133,7 +1215,9 @@ def run() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     result_json_path = output_dir / "benchmark_results.json"
     scored_samples_path = output_dir / "scored_samples.jsonl"
-    result_json_path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+    result_json_path.write_text(
+        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     _write_scored_samples(scored_samples_path, all_scored_rows)
 
     summary_path = output_dir / "baseline_results.md"

@@ -81,7 +81,9 @@ def _domain_checks(payload: dict[str, Any], args: argparse.Namespace) -> list[di
         else {}
     )
     domain_profiles = (
-        payload.get("domain_profiles", {}) if isinstance(payload.get("domain_profiles"), dict) else {}
+        payload.get("domain_profiles", {})
+        if isinstance(payload.get("domain_profiles"), dict)
+        else {}
     )
 
     checks: list[dict[str, Any]] = []
@@ -139,7 +141,9 @@ def _domain_checks(payload: dict[str, Any], args: argparse.Namespace) -> list[di
     return checks
 
 
-def _failures(payload: dict[str, Any], args: argparse.Namespace, domain_checks: list[dict[str, Any]]) -> list[str]:
+def _failures(
+    payload: dict[str, Any], args: argparse.Namespace, domain_checks: list[dict[str, Any]]
+) -> list[str]:
     failures: list[str] = []
 
     sample_count = int(payload.get("sample_count", 0) or 0)

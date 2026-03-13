@@ -168,7 +168,9 @@ def run() -> int:
 
     print(f"Wrote hard negatives: {output_path}")
     print(f"Rows: {len(output_rows)}")
-    print(f"Priority domains: {', '.join(sorted(priority_domains)) if priority_domains else 'none'}")
+    print(
+        f"Priority domains: {', '.join(sorted(priority_domains)) if priority_domains else 'none'}"
+    )
     return 0
 
 

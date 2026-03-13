@@ -98,7 +98,9 @@ def _check_required(payload: dict[str, Any] | None, required_keys: tuple[str, ..
     return [f"missing:{item}" for item in missing]
 
 
-def _infer_root_cause_hint(health_probe: dict[str, Any], checks: list[dict[str, Any]]) -> str | None:
+def _infer_root_cause_hint(
+    health_probe: dict[str, Any], checks: list[dict[str, Any]]
+) -> str | None:
     detect_statuses = [int(item.get("status_code", 0) or 0) for item in checks]
     if len(checks) == 4 and all(status == 404 for status in detect_statuses):
         return "base_url_route_mismatch"

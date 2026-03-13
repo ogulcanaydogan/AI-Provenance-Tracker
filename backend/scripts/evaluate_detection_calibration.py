@@ -194,7 +194,10 @@ def _apply_calibration_to_scores(
     scores: list[tuple[float, bool]],
     calibration_map: dict[str, Any] | None,
 ) -> list[tuple[float, bool]]:
-    return [(_apply_calibration_map(score, calibration_map), label_is_ai) for score, label_is_ai in scores]
+    return [
+        (_apply_calibration_map(score, calibration_map), label_is_ai)
+        for score, label_is_ai in scores
+    ]
 
 
 def _normalize_raw_domain(value: Any) -> str:
@@ -363,7 +366,9 @@ async def _score_samples_with_metadata(
             continue
         scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
         metadata["model_version"] = metadata["model_version"] or result.model_version
-        metadata["calibration_version"] = metadata["calibration_version"] or result.calibration_version
+        metadata["calibration_version"] = (
+            metadata["calibration_version"] or result.calibration_version
+        )
     return scores, skipped_samples, metadata
 
 
@@ -412,7 +417,9 @@ async def run() -> int:
         print("No labeled samples found.")
         return 1
 
-    scores, skipped_samples, version_meta = await _score_samples_with_metadata(samples, args.content_type)
+    scores, skipped_samples, version_meta = await _score_samples_with_metadata(
+        samples, args.content_type
+    )
     if not scores:
         print("No valid samples were scored.")
         return 1

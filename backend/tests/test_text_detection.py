@@ -189,20 +189,22 @@ class TestTextPreprocessing:
             "calibration_map": {"type": "platt", "coef": 10.0, "intercept": -8.0},
         }
 
-        is_ai, confidence, _model_pred, decision_band, _distance, _reason = detector._make_prediction(
-            perplexity=20.0,
-            burstiness=0.2,
-            vocab_richness=0.5,
-            avg_sentence_length=18.0,
-            repetition=0.1,
-            punctuation_diversity=0.3,
-            stopword_ratio=0.25,
-            sentence_length_variance=8.0,
-            sentence_length_kurtosis=0.0,
-            word_count=150,
-            sentence_count=8,
-            ml_score=0.6,
-            calibration_profile=profile,
+        is_ai, confidence, _model_pred, decision_band, _distance, _reason = (
+            detector._make_prediction(
+                perplexity=20.0,
+                burstiness=0.2,
+                vocab_richness=0.5,
+                avg_sentence_length=18.0,
+                repetition=0.1,
+                punctuation_diversity=0.3,
+                stopword_ratio=0.25,
+                sentence_length_variance=8.0,
+                sentence_length_kurtosis=0.0,
+                word_count=150,
+                sentence_count=8,
+                ml_score=0.6,
+                calibration_profile=profile,
+            )
         )
 
         assert confidence < 0.5
