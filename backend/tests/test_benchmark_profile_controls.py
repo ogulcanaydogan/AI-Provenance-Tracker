@@ -77,6 +77,95 @@ def test_select_profile_rows_unknown_profile_raises() -> None:
         )
 
 
+def test_evaluate_detection_uses_text_rows_for_calibration_metrics() -> None:
+    rows = [
+        {
+            "sample_id": "text-human",
+            "task": "ai_vs_human_detection",
+            "modality": "text",
+            "domain": "code",
+            "label_is_ai": 0,
+            "status": "ok",
+            "score": 0.001,
+        },
+        {
+            "sample_id": "text-ai",
+            "task": "ai_vs_human_detection",
+            "modality": "text",
+            "domain": "finance",
+            "label_is_ai": 1,
+            "status": "ok",
+            "score": 0.999,
+        },
+        {
+            "sample_id": "image-human",
+            "task": "ai_vs_human_detection",
+            "modality": "image",
+            "domain": "legal",
+            "label_is_ai": 0,
+            "status": "ok",
+            "score": 0.25,
+        },
+        {
+            "sample_id": "image-ai",
+            "task": "ai_vs_human_detection",
+            "modality": "image",
+            "domain": "science",
+            "label_is_ai": 1,
+            "status": "ok",
+            "score": 0.487,
+        },
+    ]
+
+    metrics = run_benchmark_module._evaluate_detection(rows, threshold=0.45)
+
+    assert metrics["f1"] == 1.0
+    assert metrics["calibration_scope"] == "text_only"
+    assert metrics["calibration_samples"] == 2
+    assert float(metrics["calibration_ece"]) < 0.01
+    assert metrics["false_positive_rate_by_domain"] == {"code": 0.0}
+
+
+def test_evaluate_tamper_uses_auc_ratio_when_clean_f1_is_zero() -> None:
+    rows = []
+    for transform, ai_score in (
+        ("clean", 0.10),
+        ("paraphrase", 0.20),
+        ("translate", 0.19),
+        ("human_edit", 0.18),
+    ):
+        rows.extend(
+            [
+                {
+                    "sample_id": f"{transform}-human",
+                    "task": "tamper_detection",
+                    "modality": "text",
+                    "domain": "general",
+                    "transform": transform,
+                    "label_is_ai": 0,
+                    "status": "ok",
+                    "score": 0.05,
+                },
+                {
+                    "sample_id": f"{transform}-ai",
+                    "task": "tamper_detection",
+                    "modality": "text",
+                    "domain": "general",
+                    "transform": transform,
+                    "label_is_ai": 1,
+                    "status": "ok",
+                    "score": ai_score,
+                },
+            ]
+        )
+
+    metrics = run_benchmark_module._evaluate_tamper(rows, threshold=0.45)
+
+    assert metrics["clean_f1"] == 0.0
+    assert metrics["robustness_basis"] == "roc_auc_ratio"
+    assert metrics["robustness_score"] == 1.0
+
+
 def test_dataset_health_unknown_target_profile_fails(tmp_path: Path) -> None:
     datasets_dir = tmp_path / "datasets"
     datasets_dir.mkdir(parents=True, exist_ok=True)

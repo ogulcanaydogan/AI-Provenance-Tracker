@@ -700,15 +700,29 @@ def _evaluate_detection(rows: list[dict[str, Any]], threshold: float) -> dict[st
             "failed_samples": failed_count,
         }
 
+    calibration_rows = [
+        row for row in valid_rows if str(row.get("modality", "")).strip().lower() == "text"
+    ]
+    calibration_scope = "all_modalities"
+    if calibration_rows and len(calibration_rows) < len(valid_rows):
+        calibration_scope = "text_only"
+    elif not calibration_rows:
+        calibration_rows = valid_rows
+
+    calibration_labels = [int(row["label_is_ai"]) for row in calibration_rows]
+    calibration_scores = [float(row["score"]) for row in calibration_rows]
+
     metrics = _binary_metrics(labels, scores, threshold)
     metrics.update(
         {
             "evaluated_samples": len(valid_rows),
             "failed_samples": failed_count,
             "roc_auc": _round(_roc_auc(labels, scores)),
-            "calibration_ece": _round(_calibration_ece(labels, scores)),
-            "brier_score": _round(_brier_score(labels, scores)),
-            "false_positive_rate_by_domain": _false_positive_by_domain(valid_rows, threshold),
+            "calibration_scope": calibration_scope,
+            "calibration_samples": len(calibration_rows),
+            "calibration_ece": _round(_calibration_ece(calibration_labels, calibration_scores)),
+            "brier_score": _round(_brier_score(calibration_labels, calibration_scores)),
+            "false_positive_rate_by_domain": _false_positive_by_domain(calibration_rows, threshold),
         }
     )
     return metrics
@@ -755,23 +769,41 @@ def _evaluate_tamper(rows: list[dict[str, Any]], threshold: float) -> dict[str, 
 
     transform_metrics: dict[str, dict[str, Any]] = {}
     transform_f1: dict[str, float] = {}
+    transform_auc: dict[str, float] = {}
     for transform, group_rows in sorted(by_transform.items()):
         metrics = _evaluate_detection(group_rows, threshold)
         transform_metrics[transform] = metrics
         transform_f1[transform] = float(metrics.get("f1", 0.0))
+        transform_auc[transform] = float(metrics.get("roc_auc", 0.0))
 
     clean_f1 = transform_f1.get("clean", 0.0)
     attacked = [
         score for name, score in transform_f1.items() if name in {"paraphrase", "translate", "human_edit"}
     ]
     attacked_avg_f1 = mean(attacked) if attacked else 0.0
-    robustness_score = _safe_div(attacked_avg_f1, clean_f1) if clean_f1 else 0.0
+    clean_auc = transform_auc.get("clean", 0.0)
+    attacked_auc = [
+        score for name, score in transform_auc.items() if name in {"paraphrase", "translate", "human_edit"}
+    ]
+    attacked_avg_auc = mean(attacked_auc) if attacked_auc else 0.0
+
+    robustness_basis = "f1_ratio"
+    if clean_f1 >= 0.05:
+        robustness_score = _safe_div(attacked_avg_f1, clean_f1)
+    elif clean_auc > 0:
+        robustness_score = _safe_div(attacked_avg_auc, clean_auc)
+        robustness_basis = "roc_auc_ratio"
+    else:
+        robustness_score = 0.0
 
     return {
         "samples": len(rows),
         "per_transform": transform_metrics,
         "clean_f1": _round(clean_f1),
         "attacked_avg_f1": _round(attacked_avg_f1),
+        "clean_roc_auc": _round(clean_auc),
+        "attacked_avg_roc_auc": _round(attacked_avg_auc),
+        "robustness_basis": robustness_basis,
         "robustness_score": _round(robustness_score),
     }
 
