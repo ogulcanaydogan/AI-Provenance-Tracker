@@ -219,6 +219,9 @@ jobs:
             --target-profile "${{ steps.profile.outputs.target_profile }}"
             --max-ece-drift "${{ steps.drift.outputs.max_ece_drift }}"
             --max-domain-fp-drift "${{ steps.drift.outputs.max_domain_fp_drift }}"
+            --max-generated-age-hours 72
+            --require-quality-metrics
+            --forbid-absolute-paths
             --report-json benchmark/results/drift/current/regression_check.json
             --report-md benchmark/results/drift/current/regression_check.md
           )

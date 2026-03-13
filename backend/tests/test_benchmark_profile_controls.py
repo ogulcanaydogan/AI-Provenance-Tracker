@@ -4,6 +4,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -758,3 +759,282 @@ def test_regression_drift_spike_fails(tmp_path: Path) -> None:
     assert payload["drift_failed_checks"] == 1
     assert any(item["status"] == "fail" for item in payload["drift_summary"])
     assert "drift_spike" in payload["fail_reasons"]
+
+
+def test_regression_strict_guards_pass_with_fresh_quality(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {"path": "tasks.ai_vs_human_detection.f1", "baseline": 0.7, "max_drop": 0.3}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    targets_path = tmp_path / "targets.json"
+    targets_path.write_text(
+        json.dumps(
+            {
+                "targets": {
+                    "full_v3": {
+                        "quality_targets": {
+                            "ai_vs_human_detection": {
+                                "calibration_ece_max": 0.08,
+                                "false_positive_rate_by_domain_max": {
+                                    "code": 0.3,
+                                    "finance": 0.3,
+                                    "legal": 0.3,
+                                    "science": 0.3,
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "generated_at": datetime.now(UTC).isoformat(),
+                "run_metadata": {
+                    "run_command": "python benchmark/eval/run_public_benchmark.py --output-dir benchmark/results/latest"
+                },
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.03,
+                        "false_positive_rate_by_domain": {
+                            "code": 0.2,
+                            "finance": 0.2,
+                            "legal": 0.2,
+                            "science": 0.2,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--baseline",
+            str(baseline_path),
+            "--targets-config",
+            str(targets_path),
+            "--target-profile",
+            "full_v3",
+            "--max-generated-age-hours",
+            "24",
+            "--require-quality-metrics",
+            "--forbid-absolute-paths",
+            "--report-json",
+            str(tmp_path / "report.json"),
+            "--report-md",
+            str(tmp_path / "report.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert payload["passed"] is True
+    assert payload["fail_reasons"] == []
+
+
+def test_regression_strict_guard_fails_when_quality_metrics_missing(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {"path": "tasks.ai_vs_human_detection.f1", "baseline": 0.7, "max_drop": 0.3}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current_missing_quality.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "generated_at": datetime.now(UTC).isoformat(),
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "false_positive_rate_by_domain": {
+                            "code": 0.2,
+                            "finance": 0.2,
+                            "legal": 0.2,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--baseline",
+            str(baseline_path),
+            "--max-generated-age-hours",
+            "24",
+            "--require-quality-metrics",
+            "--report-json",
+            str(tmp_path / "report_missing_quality.json"),
+            "--report-md",
+            str(tmp_path / "report_missing_quality.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads((tmp_path / "report_missing_quality.json").read_text(encoding="utf-8"))
+    assert "missing_quality_metrics" in payload["fail_reasons"]
+
+
+def test_regression_strict_guard_fails_on_invalid_absolute_path_reference(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {"path": "tasks.ai_vs_human_detection.f1", "baseline": 0.7, "max_drop": 0.3}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current_invalid_path.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "generated_at": datetime.now(UTC).isoformat(),
+                "run_metadata": {
+                    "run_command": "python benchmark/eval/run_public_benchmark.py --output-dir /tmp/out"
+                },
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.03,
+                        "false_positive_rate_by_domain": {
+                            "code": 0.2,
+                            "finance": 0.2,
+                            "legal": 0.2,
+                            "science": 0.2,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--baseline",
+            str(baseline_path),
+            "--max-generated-age-hours",
+            "24",
+            "--require-quality-metrics",
+            "--forbid-absolute-paths",
+            "--report-json",
+            str(tmp_path / "report_invalid_path.json"),
+            "--report-md",
+            str(tmp_path / "report_invalid_path.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads((tmp_path / "report_invalid_path.json").read_text(encoding="utf-8"))
+    assert "invalid_path_reference" in payload["fail_reasons"]
+
+
+def test_regression_strict_guard_fails_when_generated_at_is_stale(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": [
+                    {"path": "tasks.ai_vs_human_detection.f1", "baseline": 0.7, "max_drop": 0.3}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    current_path = tmp_path / "current_stale.json"
+    current_path.write_text(
+        json.dumps(
+            {
+                "generated_at": (datetime.now(UTC) - timedelta(hours=120)).isoformat(),
+                "tasks": {
+                    "ai_vs_human_detection": {
+                        "f1": 0.75,
+                        "calibration_ece": 0.03,
+                        "false_positive_rate_by_domain": {
+                            "code": 0.2,
+                            "finance": 0.2,
+                            "legal": 0.2,
+                            "science": 0.2,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REGRESSION_CHECK_PATH),
+            "--current",
+            str(current_path),
+            "--baseline",
+            str(baseline_path),
+            "--max-generated-age-hours",
+            "24",
+            "--require-quality-metrics",
+            "--report-json",
+            str(tmp_path / "report_stale.json"),
+            "--report-md",
+            str(tmp_path / "report_stale.md"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    payload = json.loads((tmp_path / "report_stale.json").read_text(encoding="utf-8"))
+    assert "stale_current_results" in payload["fail_reasons"]

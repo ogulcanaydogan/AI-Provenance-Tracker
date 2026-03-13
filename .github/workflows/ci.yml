@@ -228,3 +228,75 @@ jobs:
           name: public-benchmark-artifacts
           path: benchmark/results/ci
           retention-days: 14
+
+  committed-benchmark-evidence-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Detect benchmark evidence changes
+        id: changed
+        run: |
+          set -euo pipefail
+
+          event="${{ github.event_name }}"
+          base_sha=""
+          head_sha="${{ github.sha }}"
+
+          if [ "$event" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          elif [ "$event" = "push" ]; then
+            base_sha="${{ github.event.before }}"
+          else
+            base_sha="$(git rev-parse HEAD~1 2>/dev/null || true)"
+          fi
+
+          if [ -z "$base_sha" ] || [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No comparable base SHA; skipping committed evidence guard."
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "$base_sha" "$head_sha" | grep -E '^benchmark/results/latest/' || true)"
+          if [ -n "$changed_files" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "changed_files<<EOF"
+              echo "$changed_files"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip guard when benchmark evidence is unchanged
+        if: ${{ steps.changed.outputs.changed != 'true' }}
+        run: echo "No committed changes under benchmark/results/latest/**"
+
+      - name: Enforce strict committed benchmark evidence guard
+        if: ${{ steps.changed.outputs.changed == 'true' }}
+        run: |
+          mkdir -p benchmark/results/ci
+          python benchmark/eval/check_benchmark_regression.py \
+            --current benchmark/results/latest/benchmark_results.json \
+            --baseline benchmark/baselines/public_benchmark_snapshot_full.json \
+            --targets-config benchmark/config/benchmark_targets.yaml \
+            --target-profile full_v3 \
+            --max-generated-age-hours 72 \
+            --require-quality-metrics \
+            --forbid-absolute-paths \
+            --report-json benchmark/results/ci/committed_evidence_regression_check.json \
+            --report-md benchmark/results/ci/committed_evidence_regression_check.md
+
+      - name: Upload committed evidence guard artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: committed-benchmark-evidence-guard
+          path: benchmark/results/ci/committed_evidence_regression_check.*
+          retention-days: 14

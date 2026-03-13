@@ -5,9 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import shlex
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+WINDOWS_ABS_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+URL_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
+
+QUALITY_REQUIRED_DOMAIN_KEYS = ("code", "finance", "legal", "science")
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,6 +66,22 @@ def parse_args() -> argparse.Namespace:
         default=0.05,
         help="Maximum allowed positive drift delta for false_positive_rate_by_domain metrics.",
     )
+    parser.add_argument(
+        "--max-generated-age-hours",
+        type=float,
+        default=0.0,
+        help="Maximum allowed age for current benchmark generated_at. <=0 disables freshness check.",
+    )
+    parser.add_argument(
+        "--require-quality-metrics",
+        action="store_true",
+        help="Require calibration_ece and domain FP metrics for ai_vs_human_detection task.",
+    )
+    parser.add_argument(
+        "--forbid-absolute-paths",
+        action="store_true",
+        help="Fail if benchmark payload contains absolute file-system paths outside repository root.",
+    )
     return parser.parse_args()
 
 
@@ -69,6 +92,159 @@ def _value_at_path(payload: dict[str, Any], path: str) -> float:
             raise KeyError(path)
         node = node[key]
     return float(node)
+
+
+def _try_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_iso8601(value: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _collect_missing_quality_metrics(current_payload: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    tasks_node = current_payload.get("tasks", {})
+    if not isinstance(tasks_node, dict):
+        return [
+            "tasks.ai_vs_human_detection.calibration_ece",
+            "tasks.ai_vs_human_detection.false_positive_rate_by_domain",
+        ]
+    detection_node = tasks_node.get("ai_vs_human_detection", {})
+    if not isinstance(detection_node, dict):
+        return [
+            "tasks.ai_vs_human_detection.calibration_ece",
+            "tasks.ai_vs_human_detection.false_positive_rate_by_domain",
+        ]
+
+    ece_path = "tasks.ai_vs_human_detection.calibration_ece"
+    if "calibration_ece" not in detection_node:
+        missing.append(ece_path)
+    else:
+        ece = _try_float(detection_node.get("calibration_ece"))
+        if ece is None:
+            missing.append(ece_path)
+
+    domain_node = detection_node.get("false_positive_rate_by_domain")
+    if not isinstance(domain_node, dict):
+        missing.append("tasks.ai_vs_human_detection.false_positive_rate_by_domain")
+        return missing
+
+    for domain in QUALITY_REQUIRED_DOMAIN_KEYS:
+        path = f"tasks.ai_vs_human_detection.false_positive_rate_by_domain.{domain}"
+        if domain not in domain_node:
+            missing.append(path)
+            continue
+        if _try_float(domain_node.get(domain)) is None:
+            missing.append(path)
+    return missing
+
+
+def _iter_strings(node: Any) -> list[str]:
+    values: list[str] = []
+    if isinstance(node, str):
+        values.append(node)
+        return values
+    if isinstance(node, dict):
+        for value in node.values():
+            values.extend(_iter_strings(value))
+        return values
+    if isinstance(node, list):
+        for item in node:
+            values.extend(_iter_strings(item))
+    return values
+
+
+def _looks_like_url(value: str) -> bool:
+    return bool(URL_SCHEME_RE.match(value.strip()))
+
+
+def _is_absolute_path(value: str) -> bool:
+    stripped = value.strip()
+    return stripped.startswith("/") or bool(WINDOWS_ABS_PATH_RE.match(stripped))
+
+
+def _extract_path_candidates(value: str) -> set[str]:
+    candidates: set[str] = set()
+    stripped = value.strip()
+    if not stripped or _looks_like_url(stripped):
+        return candidates
+
+    def add_if_path(candidate: str) -> None:
+        token = candidate.strip().strip("\"'`,;()[]{}")
+        if not token or _looks_like_url(token):
+            return
+        if "=" in token and not token.startswith("/") and not WINDOWS_ABS_PATH_RE.match(token):
+            # Support --flag=/abs/path patterns.
+            token = token.split("=", 1)[1].strip().strip("\"'`,;()[]{}")
+        if _is_absolute_path(token):
+            candidates.add(token)
+
+    add_if_path(stripped)
+    if " " in stripped or "\t" in stripped:
+        try:
+            tokens = shlex.split(stripped)
+        except ValueError:
+            tokens = stripped.split()
+        for token in tokens:
+            add_if_path(token)
+    return candidates
+
+
+def _is_path_inside_repo(path_value: str, repo_root: Path) -> bool:
+    if WINDOWS_ABS_PATH_RE.match(path_value):
+        return False
+    path = Path(path_value).expanduser()
+    if not path.is_absolute():
+        return True
+    resolved = path.resolve(strict=False)
+    try:
+        resolved.relative_to(repo_root)
+        return True
+    except ValueError:
+        pass
+
+    # Allow CI absolute paths when they clearly map to an existing repo-relative path.
+    parts = list(resolved.parts)
+    repo_anchor_dirs = {
+        ".github",
+        "backend",
+        "benchmark",
+        "config",
+        "deploy",
+        "docs",
+        "frontend",
+        "scripts",
+        "tests",
+    }
+    for idx, part in enumerate(parts):
+        if part not in repo_anchor_dirs:
+            continue
+        candidate_rel = Path(*parts[idx:])
+        if candidate_rel == Path("."):
+            continue
+        if (repo_root / candidate_rel).exists():
+            return True
+
+    return False
+
+
+def _collect_invalid_absolute_paths(current_payload: dict[str, Any], repo_root: Path) -> list[str]:
+    invalid: list[str] = []
+    for raw in _iter_strings(current_payload):
+        for candidate in _extract_path_candidates(raw):
+            if not _is_path_inside_repo(candidate, repo_root):
+                invalid.append(candidate)
+    return sorted(set(invalid))
 
 
 def _load_quality_limits(targets_config_path: Path, target_profile: str) -> list[dict[str, Any]]:
@@ -204,9 +380,24 @@ def _fail_reasons_from_report(
         if check.get("passed", False):
             continue
         path = str(check.get("path", ""))
-        if path.endswith(".calibration_ece") and "ece_limit_breach" not in reasons:
+        constraint = str(check.get("constraint", ""))
+        if constraint == "max_age_hours" and "stale_current_results" not in reasons:
+            reasons.append("stale_current_results")
+        if constraint == "present" and "missing_quality_metrics" not in reasons:
+            reasons.append("missing_quality_metrics")
+        if constraint == "repo_path" and "invalid_path_reference" not in reasons:
+            reasons.append("invalid_path_reference")
+        if (
+            constraint == "max"
+            and path.endswith(".calibration_ece")
+            and "ece_limit_breach" not in reasons
+        ):
             reasons.append("ece_limit_breach")
-        elif ".false_positive_rate_by_domain." in path and "domain_fp_breach" not in reasons:
+        elif (
+            constraint == "max"
+            and ".false_positive_rate_by_domain." in path
+            and "domain_fp_breach" not in reasons
+        ):
             reasons.append("domain_fp_breach")
     if any(item.get("status") == "fail" for item in drift_summary):
         reasons.append("drift_spike")
@@ -232,21 +423,51 @@ def _build_markdown(report: dict[str, Any]) -> str:
         "| --- | --- | ---: | ---: | ---: | --- | --- |",
     ]
     for item in rows:
-        constraint = ">=" if item["constraint"] == "min" else "<="
-        delta = (
-            item["current"] - item["limit"]
-            if item["current"] is not None and item["limit"] is not None
-            else 0.0
-        )
-        current_text = f"{item['current']:.4f}" if item["current"] is not None else "n/a"
-        limit_text = f"{item['limit']:.4f}" if item["limit"] is not None else "n/a"
+        constraint_kind = item.get("constraint")
+        constraint = "n/a"
+        current_text = "n/a"
+        limit_text = "n/a"
+        delta_text = "n/a"
+        if constraint_kind == "min":
+            constraint = ">="
+            if item["current"] is not None:
+                current_text = f"{item['current']:.4f}"
+            if item["limit"] is not None:
+                limit_text = f"{item['limit']:.4f}"
+            if item["current"] is not None and item["limit"] is not None:
+                delta_text = f"{item['current'] - item['limit']:+.4f}"
+        elif constraint_kind == "max":
+            constraint = "<="
+            if item["current"] is not None:
+                current_text = f"{item['current']:.4f}"
+            if item["limit"] is not None:
+                limit_text = f"{item['limit']:.4f}"
+            if item["current"] is not None and item["limit"] is not None:
+                delta_text = f"{item['current'] - item['limit']:+.4f}"
+        elif constraint_kind == "max_age_hours":
+            constraint = "<= age(h)"
+            if item["current"] is not None:
+                current_text = f"{float(item['current']):.2f}"
+            if item["limit"] is not None:
+                limit_text = f"{float(item['limit']):.2f}"
+            if item["current"] is not None and item["limit"] is not None:
+                delta_text = f"{float(item['current']) - float(item['limit']):+.2f}"
+        elif constraint_kind == "present":
+            constraint = "present"
+            current_text = "yes" if item.get("current") else "no"
+            limit_text = "required"
+        elif constraint_kind == "repo_path":
+            constraint = "within_repo"
+            current_text = str(item.get("current", "n/a"))
+            limit_text = str(item.get("limit", "n/a"))
+
         lines.append(
-            "| {metric} | {constraint} | {current} | {limit} | {delta:+.4f} | {source} | {result} |".format(
+            "| {metric} | {constraint} | {current} | {limit} | {delta} | {source} | {result} |".format(
                 metric=item["path"],
                 constraint=constraint,
                 current=current_text,
                 limit=limit_text,
-                delta=delta,
+                delta=delta_text,
                 source=item.get("source", "baseline"),
                 result="PASS" if item["passed"] else "FAIL",
             )
@@ -288,6 +509,7 @@ def run() -> int:
     report_md_path = Path(args.report_md).expanduser().resolve()
     targets_config_path = Path(args.targets_config).expanduser().resolve() if args.targets_config else None
     previous_path = Path(args.previous).expanduser().resolve() if args.previous else None
+    repo_root = Path.cwd().resolve()
 
     current_payload = json.loads(current_path.read_text(encoding="utf-8"))
     baseline_payload = json.loads(baseline_path.read_text(encoding="utf-8"))
@@ -348,6 +570,69 @@ def run() -> int:
                 }
             )
 
+    if args.max_generated_age_hours > 0:
+        generated_at_raw = str(current_payload.get("generated_at", "")).strip()
+        generated_at = _parse_iso8601(generated_at_raw) if generated_at_raw else None
+        age_hours: float | None = None
+        freshness_passed = False
+        if generated_at is not None:
+            age_hours = (datetime.now(UTC) - generated_at).total_seconds() / 3600.0
+            freshness_passed = age_hours <= float(args.max_generated_age_hours)
+        checks.append(
+            {
+                "path": "generated_at",
+                "constraint": "max_age_hours",
+                "limit": float(args.max_generated_age_hours),
+                "source": "freshness_guard",
+                "baseline": None,
+                "current": age_hours,
+                "max_drop": None,
+                "min_allowed": None,
+                "delta": (age_hours - float(args.max_generated_age_hours)) if age_hours is not None else None,
+                "passed": freshness_passed,
+            }
+        )
+        if not freshness_passed:
+            failures += 1
+
+    if args.require_quality_metrics:
+        missing_metrics = _collect_missing_quality_metrics(current_payload)
+        for metric_path in missing_metrics:
+            checks.append(
+                {
+                    "path": metric_path,
+                    "constraint": "present",
+                    "limit": "required",
+                    "source": "quality_required",
+                    "baseline": None,
+                    "current": False,
+                    "max_drop": None,
+                    "min_allowed": None,
+                    "delta": None,
+                    "passed": False,
+                }
+            )
+        failures += len(missing_metrics)
+
+    if args.forbid_absolute_paths:
+        invalid_paths = _collect_invalid_absolute_paths(current_payload, repo_root=repo_root)
+        for invalid_path in invalid_paths:
+            checks.append(
+                {
+                    "path": "run_metadata.path_reference",
+                    "constraint": "repo_path",
+                    "limit": str(repo_root),
+                    "source": "path_guard",
+                    "baseline": None,
+                    "current": invalid_path,
+                    "max_drop": None,
+                    "min_allowed": None,
+                    "delta": None,
+                    "passed": False,
+                }
+            )
+        failures += len(invalid_paths)
+
     drift_summary, drift_failures = _build_drift_summary(
         checks,
         previous_payload,
@@ -364,6 +649,11 @@ def run() -> int:
         "previous_benchmark": str(previous_path) if previous_path is not None and previous_path.exists() else "",
         "targets_config": str(targets_config_path) if targets_config_path is not None else "",
         "target_profile": str(args.target_profile or ""),
+        "strict_config": {
+            "max_generated_age_hours": float(args.max_generated_age_hours),
+            "require_quality_metrics": bool(args.require_quality_metrics),
+            "forbid_absolute_paths": bool(args.forbid_absolute_paths),
+        },
         "total_checks": len(checks),
         "failed_checks": failures,
         "passed": failures == 0,
@@ -389,11 +679,37 @@ def run() -> int:
         for item in checks:
             if item.get("passed", False):
                 continue
-            constraint = "<=" if item.get("constraint") == "max" else ">="
+            constraint_kind = item.get("constraint")
+            if constraint_kind == "max":
+                constraint = "<="
+            elif constraint_kind == "min":
+                constraint = ">="
+            elif constraint_kind == "max_age_hours":
+                constraint = "<= age(h)"
+            elif constraint_kind == "present":
+                constraint = "present"
+            elif constraint_kind == "repo_path":
+                constraint = "within_repo"
+            else:
+                constraint = str(constraint_kind or "n/a")
             current_value = item.get("current")
             limit_value = item.get("limit")
-            current_text = "n/a" if current_value is None else f"{float(current_value):.4f}"
-            limit_text = "n/a" if limit_value is None else f"{float(limit_value):.4f}"
+            if isinstance(current_value, bool):
+                current_text = "yes" if current_value else "no"
+            elif isinstance(current_value, (int, float)):
+                current_text = f"{float(current_value):.4f}"
+            elif current_value is None:
+                current_text = "n/a"
+            else:
+                current_text = str(current_value)
+            if isinstance(limit_value, bool):
+                limit_text = "yes" if limit_value else "no"
+            elif isinstance(limit_value, (int, float)):
+                limit_text = f"{float(limit_value):.4f}"
+            elif limit_value is None:
+                limit_text = "n/a"
+            else:
+                limit_text = str(limit_value)
             print(
                 "FAILED_METRIC "
                 f"path={item.get('path')} "

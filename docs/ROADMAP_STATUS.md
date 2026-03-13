@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-13 (v1.4.1 failure-path drill evidence lock)
+Last updated: 2026-03-13 (v1.5 benchmark evidence sync + strict stale guard)
 
 ## Overall
 
@@ -48,7 +48,38 @@ Last updated: 2026-03-13 (v1.4.1 failure-path drill evidence lock)
 - Ops thread evidence:
   - Issue thread: [#45](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/45)
   - Two failure comments include `drill_mode: true`
-  - Recovery comment includes `Text quality drift recovered (drill recovered).`
+- Recovery comment includes `Text quality drift recovered (drill recovered).`
+
+## v1.5 Evidence Lock (Benchmark Evidence Sync + Strict Guard)
+
+- Manual evidence sync workflow implemented:
+  - Script: `scripts/sync_benchmark_evidence_from_ci.sh`
+  - Source workflow: `Publish Benchmark Leaderboard` (latest successful, `main`)
+  - Artifact: `benchmark-run-artifacts`
+  - Synced files: `benchmark_results.json`, `regression_check.json/md`, `dataset_health.json/md`, `scored_samples.jsonl`, `baseline_results.md`
+  - Lock file: `benchmark/results/latest/evidence_lock.json` (`run_id`, `run_url`, `profile`, `synced_at`, `artifact_name`)
+- Strict benchmark guards implemented in regression checker:
+  - `--max-generated-age-hours`
+  - `--require-quality-metrics`
+  - `--forbid-absolute-paths`
+  - New fail reasons: `stale_current_results`, `missing_quality_metrics`, `invalid_path_reference`
+- Strict mode enforced in workflows:
+  - `.github/workflows/public-benchmark.yml`
+  - `.github/workflows/publish-leaderboard.yml`
+  - `.github/workflows/text-quality-drift-watch.yml`
+  - `.github/workflows/ci.yml` now includes `committed-benchmark-evidence-guard` (runs only when `benchmark/results/latest/**` changes)
+- Evidence sync execution status:
+  - Local sync run completed via `scripts/sync_benchmark_evidence_from_ci.sh`
+  - Source run: [23034632639](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23034632639) (`Publish Benchmark Leaderboard`, `main`)
+  - Evidence lock generated at `benchmark/results/latest/evidence_lock.json`:
+    - `run_id`: `23034632639`
+    - `profile`: `full_v3`
+    - `artifact_name`: `benchmark-run-artifacts`
+  - Strict guard verification (local) passed:
+    - `--max-generated-age-hours 72`
+    - `--require-quality-metrics`
+    - `--forbid-absolute-paths`
+    - `regression_check.json`: `passed=true`, `fail_reasons=[]`
 
 ## Baseline Lock
 
