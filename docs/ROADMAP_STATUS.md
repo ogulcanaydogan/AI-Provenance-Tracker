@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-13 (v1.5 benchmark evidence sync + strict stale guard)
+Last updated: 2026-03-13 (v1.6.3 Helm acceptance remediation attempts + blocker evidence)
 
 ## Overall
 
@@ -80,6 +80,28 @@ Last updated: 2026-03-13 (v1.5 benchmark evidence sync + strict stale guard)
     - `--require-quality-metrics`
     - `--forbid-absolute-paths`
     - `regression_check.json`: `passed=true`, `fail_reasons=[]`
+
+## v1.6.3 Helm Deploy Acceptance (Self-hosted Route) Status
+
+- Code path remains ready on `main`:
+  - self-hosted Helm routing + preflights (`0e712fa`)
+  - pinned Helm setup action hardening (`49e3252`, `a617161`)
+- Latest `CI` remains green: [23056875337](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23056875337)
+- Acceptance attempt 1 (non-loopback kube endpoint): [23057739655](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23057739655)
+  - `KUBE_CONFIG_DATA` server: `https://100.80.116.20:6443`
+  - Result: `failure` at `Cluster reachability preflight`
+  - Error: `connect: connection refused`
+- Acceptance attempt 2 (runner-hostname experiment): [23058010170](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23058010170)
+  - `KUBE_CONFIG_DATA` server: `https://spark-5fc3:6443`
+  - Result: `failure` at `Cluster reachability preflight`
+  - Error: resolves to `127.0.0.1:6443`, `connect: connection refused`
+- Both attempts passed these guard steps before failing:
+  - `Set up Helm`
+  - `Require kubeconfig secret`
+  - `Validate kube API endpoint`
+  - `Pull pinned images from GHCR`
+  - `Resolve image digests`
+- Policy state (blocked by design): v1.6.3 acceptance stays open until cluster-admin provides a kube-apiserver endpoint that is reachable from `spark-self-hosted` and passes Helm preflight.
 
 ## Baseline Lock
 
