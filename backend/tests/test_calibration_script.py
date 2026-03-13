@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import importlib.util
+import sys
 import types
 from pathlib import Path
 
@@ -20,12 +22,21 @@ def _load_script_module() -> types.ModuleType:
 
 class _DummyMediaDetector:
     async def detect(self, _payload: bytes, _filename: str):  # noqa: ANN001
-        return types.SimpleNamespace(confidence=0.81)
+        return types.SimpleNamespace(
+            confidence=0.81,
+            model_version="media-detector:dummy",
+            calibration_version="calibration:dummy",
+        )
 
 
 class _DummyTextDetector:
-    async def detect(self, _text: str):  # noqa: ANN001
-        return types.SimpleNamespace(confidence=0.22)
+    async def detect(self, _text: str, domain: str | None = None):  # noqa: ANN001
+        _ = domain
+        return types.SimpleNamespace(
+            confidence=0.22,
+            model_version="text-detector:dummy",
+            calibration_version="calibration:dummy",
+        )
 
 
 @pytest.mark.asyncio
@@ -134,3 +145,85 @@ def test_calibration_error_metrics_in_expected_range() -> None:
     )
     assert 0 <= metrics["ece"] <= 1
     assert 0 <= metrics["brier_score"] <= 1
+
+
+def test_platt_scaler_reduces_calibration_error() -> None:
+    module = _load_script_module()
+    raw_scores = [
+        (0.4, False),
+        (0.4, False),
+        (0.4, False),
+        (0.6, True),
+        (0.6, True),
+        (0.6, True),
+    ]
+    calibration_map = module._fit_platt_scaler(raw_scores)
+    assert calibration_map is not None
+    assert calibration_map["type"] == "platt"
+
+    calibrated_scores = module._apply_calibration_to_scores(raw_scores, calibration_map)
+    raw_metrics = module._calibration_error_metrics(raw_scores)
+    calibrated_metrics = module._calibration_error_metrics(calibrated_scores)
+
+    assert calibrated_metrics["ece"] < raw_metrics["ece"]
+    assert calibrated_metrics["brier_score"] < raw_metrics["brier_score"]
+
+
+@pytest.mark.asyncio
+async def test_run_writes_calibration_map_and_versions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script_module()
+
+    input_path = tmp_path / "samples.jsonl"
+    input_path.write_text(
+        "\n".join(
+            [
+                json.dumps({"modality": "text", "label_is_ai": False}),
+                json.dumps({"modality": "text", "label_is_ai": True}),
+                json.dumps({"modality": "text", "label_is_ai": False}),
+                json.dumps({"modality": "text", "label_is_ai": True}),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "report.json"
+    profile_path = tmp_path / "profile.json"
+
+    async def _fake_scores(_samples: list[dict[str, object]], _content_type: str):
+        return (
+            [(0.41, False), (0.42, False), (0.58, True), (0.59, True)],
+            0,
+            {"model_version": "text-detector:test", "calibration_version": "cal:test"},
+        )
+
+    monkeypatch.setattr(module, "_score_samples_with_metadata", _fake_scores)
+
+    original_argv = sys.argv
+    sys.argv = [
+        "evaluate_detection_calibration.py",
+        "--input",
+        str(input_path),
+        "--content-type",
+        "text",
+        "--output",
+        str(output_path),
+        "--write-profile",
+        "--profile-output",
+        str(profile_path),
+        "--min-samples",
+        "4",
+    ]
+    try:
+        rc = await module.run()
+    finally:
+        sys.argv = original_argv
+
+    assert rc == 0
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+
+    assert report["model_version"] == "text-detector:test"
+    assert report["calibration_version"] == "cal:test"
+    assert report["calibration_map"]["type"] == "platt"
+    assert profile["calibration_map"]["type"] == "platt"

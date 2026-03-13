@@ -495,11 +495,12 @@ class TextDetector:
 
         if ml_score is not None:
             ml_weight = float(profile["ml_weight"])
-            confidence = (ml_weight * float(ml_score)) + ((1.0 - ml_weight) * heuristic_score)
+            raw_confidence = (ml_weight * float(ml_score)) + ((1.0 - ml_weight) * heuristic_score)
         else:
-            confidence = heuristic_score
+            raw_confidence = heuristic_score
 
-        confidence = float(np.clip(confidence, 0.02, 0.98))
+        raw_confidence = float(np.clip(raw_confidence, 0.02, 0.98))
+        confidence = self._apply_calibration_map(raw_confidence, profile)
         threshold = float(profile["decision_threshold"])
         decision_band, distance_to_threshold, uncertainty_reason = self.apply_decision_band(
             confidence=confidence,
@@ -737,6 +738,24 @@ class TextDetector:
             return 0.5
         clipped = float(np.clip(value, low, high))
         return float(np.clip((clipped - low) / (high - low), 0.0, 1.0))
+
+    def _apply_calibration_map(self, score: float, profile: dict[str, object]) -> float:
+        clipped_score = float(np.clip(score, 0.0, 1.0))
+        calibration_map = profile.get("calibration_map")
+        if not isinstance(calibration_map, dict):
+            return clipped_score
+        if str(calibration_map.get("type", "")).lower() != "platt":
+            return clipped_score
+
+        try:
+            coef = float(calibration_map["coef"])
+            intercept = float(calibration_map["intercept"])
+        except (KeyError, TypeError, ValueError):
+            return clipped_score
+
+        logit = float(np.clip((coef * clipped_score) + intercept, -60.0, 60.0))
+        calibrated = 1.0 / (1.0 + math.exp(-logit))
+        return float(np.clip(calibrated, 0.0, 1.0))
 
     def _generate_explanation(
         self,

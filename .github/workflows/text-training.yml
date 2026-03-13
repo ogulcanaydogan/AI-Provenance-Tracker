@@ -103,6 +103,11 @@ jobs:
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
 
+      - name: Enforce golden-pair regression gate
+        run: |
+          cd backend
+          pytest tests/test_text_detector_golden_pairs.py -q -o addopts=''
+
       - name: Upload training artifacts
         if: always()
         uses: actions/upload-artifact@v7
@@ -179,6 +184,11 @@ jobs:
         run: |
           make calibrate-text MIN_SAMPLES=120 MIN_DOMAIN_SAMPLES=40
           make text-quality-gate MAX_FP_RATE=0.08 MAX_ECE=0.08
+
+      - name: Enforce golden-pair regression gate
+        run: |
+          cd backend
+          pytest tests/test_text_detector_golden_pairs.py -q -o addopts=''
 
       - name: Upload training artifacts
         if: always()

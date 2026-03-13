@@ -170,3 +170,41 @@ class TestTextPreprocessing:
             settings.text_detection_model = original_model
 
         assert resolved == str(model_dir)
+
+    def test_apply_calibration_map_identity_without_map(self):
+        detector = TextDetector()
+        profile = {"decision_threshold": 0.5}
+        score = detector._apply_calibration_map(0.61, profile)
+        assert score == pytest.approx(0.61, abs=1e-9)
+
+    def test_make_prediction_uses_calibrated_confidence(self):
+        detector = TextDetector()
+        profile = {
+            **detector._calibration_profile,
+            "weights": dict(detector._calibration_profile["weights"]),
+            "ranges": dict(detector._calibration_profile["ranges"]),
+            "ml_weight": 1.0,
+            "decision_threshold": 0.5,
+            "uncertainty_margin": 0.01,
+            "calibration_map": {"type": "platt", "coef": 10.0, "intercept": -8.0},
+        }
+
+        is_ai, confidence, _model_pred, decision_band, _distance, _reason = detector._make_prediction(
+            perplexity=20.0,
+            burstiness=0.2,
+            vocab_richness=0.5,
+            avg_sentence_length=18.0,
+            repetition=0.1,
+            punctuation_diversity=0.3,
+            stopword_ratio=0.25,
+            sentence_length_variance=8.0,
+            sentence_length_kurtosis=0.0,
+            word_count=150,
+            sentence_count=8,
+            ml_score=0.6,
+            calibration_profile=profile,
+        )
+
+        assert confidence < 0.5
+        assert decision_band == "human"
+        assert is_ai is False

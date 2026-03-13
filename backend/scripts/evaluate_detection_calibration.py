@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+from sklearn.linear_model import LogisticRegression
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
@@ -148,6 +150,53 @@ def _calibration_error_metrics(
     }
 
 
+def _fit_platt_scaler(scores: list[tuple[float, bool]]) -> dict[str, Any] | None:
+    if len(scores) < 2:
+        return None
+
+    x = np.array([score for score, _ in scores], dtype=float).reshape(-1, 1)
+    y = np.array([1 if is_ai else 0 for _, is_ai in scores], dtype=int)
+
+    if len(np.unique(y)) < 2 or len(np.unique(x)) < 2:
+        return None
+
+    model = LogisticRegression(solver="lbfgs", C=1000.0, max_iter=2000)
+    model.fit(x, y)
+    coef = float(model.coef_[0][0])
+    intercept = float(model.intercept_[0])
+    return {
+        "type": "platt",
+        "coef": round(coef, 6),
+        "intercept": round(intercept, 6),
+        "sample_count": len(scores),
+    }
+
+
+def _apply_calibration_map(score: float, calibration_map: dict[str, Any] | None) -> float:
+    clipped = float(np.clip(score, 0.0, 1.0))
+    if not isinstance(calibration_map, dict):
+        return clipped
+    if str(calibration_map.get("type", "")).lower() != "platt":
+        return clipped
+
+    try:
+        coef = float(calibration_map["coef"])
+        intercept = float(calibration_map["intercept"])
+    except (KeyError, TypeError, ValueError):
+        return clipped
+
+    logit = float(np.clip((coef * clipped) + intercept, -60.0, 60.0))
+    calibrated = 1.0 / (1.0 + math.exp(-logit))
+    return float(np.clip(calibrated, 0.0, 1.0))
+
+
+def _apply_calibration_to_scores(
+    scores: list[tuple[float, bool]],
+    calibration_map: dict[str, Any] | None,
+) -> list[tuple[float, bool]]:
+    return [(_apply_calibration_map(score, calibration_map), label_is_ai) for score, label_is_ai in scores]
+
+
 def _resolve_sample_path(sample: dict[str, Any], content_type: str) -> Path | None:
     key_candidates = {
         "image": ("image_path", "path", "file_path"),
@@ -225,7 +274,15 @@ def _normalize_domain(value: Any) -> str:
 async def _score_samples(
     samples: list[dict[str, Any]], content_type: str
 ) -> tuple[list[tuple[float, bool]], int]:
+    scores, skipped, _metadata = await _score_samples_with_metadata(samples, content_type)
+    return scores, skipped
+
+
+async def _score_samples_with_metadata(
+    samples: list[dict[str, Any]], content_type: str
+) -> tuple[list[tuple[float, bool]], int, dict[str, str | None]]:
     scores: list[tuple[float, bool]] = []
+    metadata: dict[str, str | None] = {"model_version": None, "calibration_version": None}
     if content_type == "text":
         detector = TextDetector()
         for sample in samples:
@@ -235,9 +292,14 @@ async def _score_samples(
             text = _resolve_text_sample(sample)
             if not text:
                 continue
-            result = await detector.detect(text)
+            domain_hint = _normalize_domain(sample.get("domain"))
+            result = await detector.detect(text, domain=domain_hint)
             scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
-        return scores, len(samples) - len(scores)
+            metadata["model_version"] = metadata["model_version"] or result.model_version
+            metadata["calibration_version"] = (
+                metadata["calibration_version"] or result.calibration_version
+            )
+        return scores, len(samples) - len(scores), metadata
 
     if content_type == "image":
         detector = ImageDetector()
@@ -262,7 +324,9 @@ async def _score_samples(
             skipped_samples += 1
             continue
         scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
-    return scores, skipped_samples
+        metadata["model_version"] = metadata["model_version"] or result.model_version
+        metadata["calibration_version"] = metadata["calibration_version"] or result.calibration_version
+    return scores, skipped_samples, metadata
 
 
 async def _score_text_samples_by_domain(
@@ -279,7 +343,8 @@ async def _score_text_samples_by_domain(
         if not text:
             skipped += 1
             continue
-        result = await detector.detect(text)
+        domain_hint = _normalize_domain(sample.get("domain"))
+        result = await detector.detect(text, domain=domain_hint)
         domain = _normalize_domain(sample.get("domain"))
         domain_scores.setdefault(domain, []).append(
             (float(result.confidence), bool(sample.get("label_is_ai")))
@@ -309,7 +374,7 @@ async def run() -> int:
         print("No labeled samples found.")
         return 1
 
-    scores, skipped_samples = await _score_samples(samples, args.content_type)
+    scores, skipped_samples, version_meta = await _score_samples_with_metadata(samples, args.content_type)
     if not scores:
         print("No valid samples were scored.")
         return 1
@@ -320,8 +385,14 @@ async def run() -> int:
         )
         return 1
 
+    calibration_map: dict[str, Any] | None = None
+    evaluated_scores = scores
+    if args.content_type == "text":
+        calibration_map = _fit_platt_scaler(scores)
+        evaluated_scores = _apply_calibration_to_scores(scores, calibration_map)
+
     thresholds = [i / 20 for i in range(4, 19)]  # 0.20 .. 0.90
-    metrics = [_threshold_metrics(scores, threshold) for threshold in thresholds]
+    metrics = [_threshold_metrics(evaluated_scores, threshold) for threshold in thresholds]
     best = max(
         metrics,
         key=lambda item: (
@@ -330,22 +401,26 @@ async def run() -> int:
             -item["fp_rate"],
         ),
     )
-    uncertainty_margin = _estimate_uncertainty_margin(scores, best["threshold"])
-    calibration_errors = _calibration_error_metrics(scores)
+    uncertainty_margin = _estimate_uncertainty_margin(evaluated_scores, best["threshold"])
+    calibration_errors = _calibration_error_metrics(evaluated_scores)
 
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "content_type": args.content_type,
         "input_sample_count": len(samples),
-        "sample_count": len(scores),
+        "sample_count": len(evaluated_scores),
         "skipped_samples": skipped_samples,
         "recommended_threshold": best["threshold"],
         "recommended_uncertainty_margin": uncertainty_margin,
         "ece": calibration_errors["ece"],
         "brier_score": calibration_errors["brier_score"],
+        "model_version": version_meta.get("model_version"),
+        "calibration_version": version_meta.get("calibration_version"),
         "best_metrics": best,
         "all_thresholds": metrics,
     }
+    if calibration_map:
+        report["calibration_map"] = calibration_map
 
     if args.content_type == "text" and args.include_domain_profiles:
         domain_scores, _domain_skipped = await _score_text_samples_by_domain(samples)
@@ -353,8 +428,9 @@ async def run() -> int:
         for domain, domain_values in sorted(domain_scores.items()):
             if len(domain_values) < args.min_domain_samples:
                 continue
+            domain_evaluated = _apply_calibration_to_scores(domain_values, calibration_map)
             domain_metrics = [
-                _threshold_metrics(domain_values, threshold) for threshold in thresholds
+                _threshold_metrics(domain_evaluated, threshold) for threshold in thresholds
             ]
             domain_best = max(
                 domain_metrics,
@@ -365,12 +441,12 @@ async def run() -> int:
                 ),
             )
             domain_profiles[domain] = {
-                "sample_count": len(domain_values),
+                "sample_count": len(domain_evaluated),
                 "recommended_threshold": domain_best["threshold"],
                 "recommended_uncertainty_margin": _estimate_uncertainty_margin(
-                    domain_values, domain_best["threshold"]
+                    domain_evaluated, domain_best["threshold"]
                 ),
-                **_calibration_error_metrics(domain_values),
+                **_calibration_error_metrics(domain_evaluated),
                 "best_metrics": domain_best,
             }
         report["domain_profiles"] = domain_profiles
@@ -386,11 +462,13 @@ async def run() -> int:
             **detector._calibration_profile,  # noqa: SLF001 - internal profile baseline
             "version": f"calibrated-{datetime.now(UTC).strftime('%Y%m%d')}",
             "source": str(input_path),
-            "sample_count": len(scores),
+            "sample_count": len(evaluated_scores),
             "decision_threshold": best["threshold"],
             "uncertainty_margin": uncertainty_margin,
             "calibrated_at": datetime.now(UTC).isoformat(),
         }
+        if calibration_map:
+            profile_payload["calibration_map"] = calibration_map
         if args.include_domain_profiles and isinstance(report.get("domain_profiles"), dict):
             profile_payload["domain_profiles"] = {
                 domain: {
