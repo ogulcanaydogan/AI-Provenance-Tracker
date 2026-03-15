@@ -10,6 +10,7 @@ Analyses text and images in production mode, with audio/video detection exposed 
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-red.svg)](https://pytorch.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
 
 ---
 
