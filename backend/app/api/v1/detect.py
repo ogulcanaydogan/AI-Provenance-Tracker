@@ -38,6 +38,17 @@ image_detector = ImageDetector()
 audio_detector = AudioDetector()
 video_detector = VideoDetector()
 
+IMAGE_URL_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+VIDEO_URL_EXTENSIONS = (".mp4", ".webm", ".mov", ".avi", ".mkv")
+SOCIAL_MEDIA_HOST_SUFFIXES = (
+    "instagram.com",
+    "facebook.com",
+    "tiktok.com",
+    "x.com",
+    "twitter.com",
+    "threads.net",
+)
+
 
 class UrlDetectionRequest(BaseModel):
     """Request payload for URL-based detection."""
@@ -60,9 +71,19 @@ def _filename_from_url(url: str) -> str:
     """Infer a filename from URL path."""
     path = urlparse(url).path.rstrip("/")
     if not path:
-        return "downloaded_image"
+        return "downloaded_file"
     filename = path.split("/")[-1]
-    return filename or "downloaded_image"
+    return filename or "downloaded_file"
+
+
+def _is_social_media_host(url: str) -> bool:
+    hostname = (urlparse(url).hostname or "").strip().lower()
+    if not hostname:
+        return False
+    return any(
+        hostname == suffix or hostname.endswith(f".{suffix}")
+        for suffix in SOCIAL_MEDIA_HOST_SUFFIXES
+    )
 
 
 def _format_sse(event: str, payload: dict) -> str:
@@ -495,9 +516,10 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
     Detect AI-generated content from a URL.
 
     Fetches content from the URL and analyzes it.
-    Supports text articles and images.
+    Supports text articles, images, and direct media video links.
     """
     max_image_size_bytes = settings.max_image_size_mb * 1024 * 1024
+    max_video_size_bytes = settings.max_video_size_mb * 1024 * 1024
     source_url = str(request.url)
 
     try:
@@ -520,14 +542,16 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
 
     content_type = response.headers.get("content-type", "").split(";")[0].strip().lower()
     resolved_url = str(response.url)
+    url_path = urlparse(resolved_url).path.lower()
 
     is_image = content_type.startswith("image/")
+    is_video = content_type.startswith("video/")
     is_text = content_type.startswith("text/") or "json" in content_type or "xml" in content_type
 
     if not content_type:
-        path = urlparse(resolved_url).path.lower()
-        is_image = path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"))
-        is_text = not is_image
+        is_image = url_path.endswith(IMAGE_URL_EXTENSIONS)
+        is_video = url_path.endswith(VIDEO_URL_EXTENSIONS)
+        is_text = not is_image and not is_video
 
     if is_image:
         image_data = response.content
@@ -576,7 +600,63 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
             "result": image_result,
         }
 
+    if is_video:
+        video_data = response.content
+        if len(video_data) > max_video_size_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video exceeds maximum size of {settings.max_video_size_mb}MB",
+            )
+
+        filename = _filename_from_url(resolved_url)
+        video_result = await video_detector.detect(video_data, filename)
+        video_result.model_version = "video-detector:heuristic-v1"
+        video_result.calibration_version = "video-heuristic-v1"
+        video_result = await _apply_consensus(
+            content_type="video",
+            result=video_result,
+            binary=video_data,
+            filename=filename,
+        )
+        analysis_id = await analysis_store.save_video_result(
+            video_data=video_data,
+            filename=filename,
+            result=video_result,
+            source="url",
+            source_url=resolved_url,
+        )
+        video_result.analysis_id = analysis_id
+        await audit_event_store.safe_log_event(
+            event_type="detection.completed",
+            source="url",
+            payload={
+                "content_type": "video",
+                "analysis_id": analysis_id,
+                "source": "url",
+                "source_url": resolved_url,
+                "filename": filename,
+                "is_ai_generated": video_result.is_ai_generated,
+                "confidence": video_result.confidence,
+            },
+        )
+
+        return {
+            "analysis_id": analysis_id,
+            "content_type": "video",
+            "url": resolved_url,
+            "result": video_result,
+        }
+
     if is_text:
+        if _is_social_media_host(resolved_url) and "html" in content_type:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Non-direct social media page URLs are unsupported in URL detection v1. "
+                    "Provide a direct media file URL."
+                ),
+            )
+
         raw_text = response.text
         extracted_text = _extract_text_from_html(raw_text) if "html" in content_type else raw_text
         extracted_text = re.sub(r"\s+", " ", extracted_text).strip()

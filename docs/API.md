@@ -164,8 +164,14 @@ Content-Type: application/json
 }
 ```
 
-Fetches the page, extracts visible text, and runs text detection.
-Returns the same response shape as text detection.
+Supported URL modes:
+
+- Text/article pages -> extracts visible text and runs text detection.
+- Direct image URLs -> runs image detection.
+- Direct video URLs (`video/*` or URL extension like `.mp4`) -> runs video detection.
+
+For social media post/reel page URLs (for example Instagram HTML pages), URL detection v1 does not
+run page-level media extraction; provide a direct media file URL.
 
 ---
 

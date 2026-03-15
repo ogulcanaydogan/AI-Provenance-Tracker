@@ -155,6 +155,21 @@ Last updated: 2026-03-13 (v1.6.4 smoke-route remediation merged; acceptance reru
   - Infra handoff thread (single source of truth): [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
   - Re-run policy: no new Helm acceptance run until `spark-self-hosted` returns `online` and DNS probes pass on host.
 
+## v1.7 Domain Cutover + Video URL v1 — IN PROGRESS
+
+- Domain/runtime config update applied:
+  - `vars.SPARK_PUBLIC_API_URL=https://api.whoisfake.com`
+  - Variable timestamp: `2026-03-15T12:38:19Z`
+  - `ENABLE_DEPLOY_SMOKE_GATE=true`, `ENABLE_AUTO_ROLLBACK=true` unchanged
+- Helm acceptance rerun (domain-cutover validation):
+  - Run: [23110531781](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23110531781)
+  - Result: `failure` at `Cluster reachability preflight`
+  - Error: `Kubernetes cluster unreachable: Get "https://100.80.116.20:6443/version": dial tcp 100.80.116.20:6443: connect: connection refused`
+  - Follow-up posted in single infra thread: [#46 comment](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46#issuecomment-4062911318)
+- Status:
+  - v1.7 deploy acceptance remains blocked by kube endpoint reachability from runner.
+  - Video URL detection v1 implementation is tracked in this sprint branch/commit set.
+
 ## Baseline Lock
 
 - Baseline branch: `main`

@@ -622,6 +622,85 @@ async def test_url_detection_unsupported_content_type(client: AsyncClient):
     assert "unsupported content type" in response.json()["detail"].lower()
 
 
+@pytest.mark.asyncio
+async def test_url_detection_direct_video_success(client: AsyncClient):
+    """Direct video URL is detected with video pipeline."""
+
+    async def mp4_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            status_code=200,
+            headers={"content-type": "video/mp4"},
+            content=_create_test_mp4(),
+            request=request,
+        )
+
+    with patch.object(httpx.AsyncClient, "get", new=mp4_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://cdn.example.com/media/clip.mp4"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["content_type"] == "video"
+    assert payload["analysis_id"]
+    assert payload["url"] == "https://cdn.example.com/media/clip.mp4"
+    assert payload["result"]["filename"] == "clip.mp4"
+    assert "analysis" in payload["result"]
+
+
+@pytest.mark.asyncio
+async def test_url_detection_direct_video_rejects_oversized_payload(client: AsyncClient):
+    """Video URL payload above max_video_size_mb is rejected."""
+    old_max = settings.max_video_size_mb
+    settings.max_video_size_mb = 0
+    try:
+
+        async def mp4_get(self, url, **kwargs):  # noqa: ARG001
+            request = httpx.Request("GET", url)
+            return httpx.Response(
+                status_code=200,
+                headers={"content-type": "video/mp4"},
+                content=_create_test_mp4(),
+                request=request,
+            )
+
+        with patch.object(httpx.AsyncClient, "get", new=mp4_get):
+            response = await client.post(
+                "/api/v1/detect/url",
+                json={"url": "https://cdn.example.com/media/clip.mp4"},
+            )
+    finally:
+        settings.max_video_size_mb = old_max
+
+    assert response.status_code == 400
+    assert "video exceeds maximum size" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_url_detection_social_page_requires_direct_media_url(client: AsyncClient):
+    """Social page URLs are rejected unless they resolve directly to media."""
+
+    async def instagram_html_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            status_code=200,
+            headers={"content-type": "text/html"},
+            text="<html><body><h1>Instagram Reel</h1></body></html>",
+            request=request,
+        )
+
+    with patch.object(httpx.AsyncClient, "get", new=instagram_html_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://www.instagram.com/reel/ABC123/"},
+        )
+
+    assert response.status_code == 400
+    assert "non-direct social media page urls are unsupported" in response.json()["detail"].lower()
+
+
 # ---------------------------------------------------------------------------
 # Batch text – stop_on_error and partial failure tests
 # ---------------------------------------------------------------------------
