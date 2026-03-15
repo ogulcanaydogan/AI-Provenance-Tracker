@@ -27,6 +27,9 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://provenance-detect.vercel.app",
+        "https://whoisfake.com",
+        "https://www.whoisfake.com",
+        "https://ai-provenance-tracker.vercel.app",
     ]
 
     # Server
