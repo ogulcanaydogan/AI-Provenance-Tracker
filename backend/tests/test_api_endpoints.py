@@ -738,9 +738,10 @@ async def test_url_detection_social_page_without_public_media_returns_determinis
         )
 
     assert response.status_code == 400
-    assert "platform page detected but no public direct media found" in response.json()[
-        "detail"
-    ].lower()
+    assert (
+        "platform page detected but no public direct media found"
+        in response.json()["detail"].lower()
+    )
 
 
 # ---------------------------------------------------------------------------

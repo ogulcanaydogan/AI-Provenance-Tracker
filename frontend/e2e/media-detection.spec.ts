@@ -76,7 +76,9 @@ test.describe("Video Detection Page", () => {
 
   test("renders description", async ({ page }) => {
     await expect(
-      page.getByText("Upload a short video clip to analyze")
+      page.getByText(
+        "Upload a short video clip or provide a direct/public video URL for analysis."
+      )
     ).toBeVisible();
   });
 
