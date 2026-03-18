@@ -5,8 +5,10 @@ import {
   BackendEvaluationResponse,
   BackendHistoryItem,
   BackendHistoryResponse,
+  BackendUrlDetectionResponse,
   BackendXCollectEstimateRequest,
   BackendXCollectEstimateResponse,
+  ContentType,
   DetectionResult,
   DetectionSignal,
   HistoryResponse,
@@ -261,7 +263,7 @@ function buildVideoSignals(result: BackendDetectionResponse): DetectionSignal[] 
 
 function mapDetection(
   payload: BackendDetectionResponse,
-  contentType: "text" | "image" | "audio" | "video",
+  contentType: ContentType,
   analyzedAt?: string
 ): DetectionResult {
   const confidence = clamp(payload.confidence, 0, 1);
@@ -283,6 +285,10 @@ function mapDetection(
     analyzed_at: analyzedAt || new Date().toISOString(),
     model_prediction: payload.model_prediction,
   };
+}
+
+function isDetectionContentType(value: string): value is ContentType {
+  return value === "text" || value === "image" || value === "audio" || value === "video";
 }
 
 function mapHistoryItem(item: BackendHistoryItem): DetectionResult {
@@ -502,6 +508,19 @@ export async function detectVideo(file: File): Promise<DetectionResult> {
   });
   const payload = await handleResponse<BackendDetectionResponse>(response);
   return mapDetection(payload, "video");
+}
+
+export async function detectUrl(url: string): Promise<DetectionResult> {
+  const response = await request(`${API_URL}/api/v1/detect/url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  const payload = await handleResponse<BackendUrlDetectionResponse>(response);
+  if (!isDetectionContentType(payload.content_type)) {
+    throw new Error(`Unsupported URL detection content type: ${payload.content_type}`);
+  }
+  return mapDetection(payload.result, payload.content_type);
 }
 
 export async function getHistory(

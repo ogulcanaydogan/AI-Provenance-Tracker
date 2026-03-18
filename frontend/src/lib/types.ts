@@ -157,6 +157,14 @@ export type BackendDetectionResponse =
   | BackendAudioDetectionResponse
   | BackendVideoDetectionResponse;
 
+export interface BackendUrlDetectionResponse {
+  analysis_id: string;
+  content_type: ContentType;
+  url: string;
+  result: BackendDetectionResponse;
+  text_length?: number;
+}
+
 export interface BackendHistoryItem {
   analysis_id: string;
   content_type: ContentType;

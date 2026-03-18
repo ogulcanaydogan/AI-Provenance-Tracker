@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, FileText, Image, Mic, Video, BarChart3, Github } from "lucide-react";
+import { Menu, X, FileText, Image, Mic, Video, BarChart3, Github, Link2 } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/detect/text", label: "Text", icon: FileText },
   { href: "/detect/image", label: "Image", icon: Image },
   { href: "/detect/audio", label: "Audio", icon: Mic },
   { href: "/detect/video", label: "Video", icon: Video },
+  { href: "/detect/url", label: "URL", icon: Link2 },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
 ];
 

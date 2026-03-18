@@ -36,6 +36,14 @@ const mockVideoHook = {
   reset: vi.fn(),
 };
 
+const mockUrlHook = {
+  status: "idle" as string,
+  result: null as unknown,
+  error: null as string | null,
+  analyze: vi.fn(),
+  reset: vi.fn(),
+};
+
 vi.mock("@/hooks/useTextDetection", () => ({
   useTextDetection: () => mockTextHook,
 }));
@@ -52,10 +60,15 @@ vi.mock("@/hooks/useVideoDetection", () => ({
   useVideoDetection: () => mockVideoHook,
 }));
 
+vi.mock("@/hooks/useUrlDetection", () => ({
+  useUrlDetection: () => mockUrlHook,
+}));
+
 import TextDetectionPage from "@/app/detect/text/page";
 import ImageDetectionPage from "@/app/detect/image/page";
 import AudioDetectionPage from "@/app/detect/audio/page";
 import VideoDetectionPage from "@/app/detect/video/page";
+import UrlDetectionPage from "@/app/detect/url/page";
 
 const mockDetectionResult = {
   id: "test-1",
@@ -71,7 +84,7 @@ const mockDetectionResult = {
 };
 
 function resetAllHooks() {
-  [mockTextHook, mockImageHook, mockAudioHook, mockVideoHook].forEach((h) => {
+  [mockTextHook, mockImageHook, mockAudioHook, mockVideoHook, mockUrlHook].forEach((h) => {
     h.status = "idle";
     h.result = null;
     h.error = null;
@@ -228,12 +241,17 @@ describe("VideoDetectionPage", () => {
 
   it("renders description", () => {
     render(<VideoDetectionPage />);
-    expect(screen.getByText(/Upload a short video clip to analyze/)).toBeDefined();
+    expect(screen.getByText(/Upload a short video clip or provide a direct\/public video URL/)).toBeDefined();
   });
 
   it("renders VideoUpload dropzone in idle state", () => {
     render(<VideoDetectionPage />);
     expect(screen.getByText(/Drag & drop a video/)).toBeDefined();
+  });
+
+  it("renders URL detector as alternative path", () => {
+    render(<VideoDetectionPage />);
+    expect(screen.getByLabelText("URL to analyze")).toBeDefined();
   });
 
   it("shows AnalysisLoader when loading", () => {
@@ -254,6 +272,21 @@ describe("VideoDetectionPage", () => {
     mockVideoHook.result = mockDetectionResult;
     render(<VideoDetectionPage />);
     expect(screen.getByText("Analyze another video")).toBeDefined();
+  });
+});
+
+describe("UrlDetectionPage", () => {
+  it("renders heading and URL input", () => {
+    render(<UrlDetectionPage />);
+    expect(screen.getByText("URL Detection")).toBeDefined();
+    expect(screen.getByLabelText("URL to analyze")).toBeDefined();
+  });
+
+  it("shows error state", () => {
+    mockUrlHook.status = "error";
+    mockUrlHook.error = "Network/CORS issue";
+    render(<UrlDetectionPage />);
+    expect(screen.getAllByText("Network/CORS issue").length).toBeGreaterThan(0);
   });
 });
 

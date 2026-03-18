@@ -3,6 +3,7 @@ import {
   detectImage,
   detectAudio,
   detectVideo,
+  detectUrl,
   getAnalysis,
   getEvaluation,
 } from "@/lib/api";
@@ -106,6 +107,80 @@ describe("detectVideo", () => {
     const file = new File(["fake"], "test.mp4", { type: "video/mp4" });
     const result = await detectVideo(file);
 
+    expect(result.content_type).toBe("video");
+    expect(result.signals).toHaveLength(4);
+  });
+});
+
+describe("detectUrl", () => {
+  it("maps URL text detection response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        analysis_id: "url-text-1",
+        content_type: "text",
+        url: "https://example.com/article",
+        result: {
+          analysis_id: "url-text-1",
+          confidence: 0.92,
+          is_ai_generated: true,
+          decision_band: "ai",
+          distance_to_threshold: 0.41,
+          uncertainty_reason: null,
+          explanation: "Language pattern alignment suggests synthetic generation.",
+          model_prediction: "gpt-4",
+          analysis: {
+            perplexity: 8.2,
+            burstiness: 0.19,
+            vocabulary_richness: 0.44,
+            average_sentence_length: 12.4,
+            repetition_score: 0.68,
+            punctuation_diversity: 0.21,
+            stopword_ratio: 0.38,
+            sentence_length_variance: 17.9,
+            sentence_length_kurtosis: 0.61,
+          },
+        },
+      }),
+    });
+
+    const result = await detectUrl("https://example.com/article");
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_URL}/api/v1/detect/url`,
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(result.id).toBe("url-text-1");
+    expect(result.content_type).toBe("text");
+    expect(result.verdict).toBe("ai_generated");
+  });
+
+  it("maps URL direct video response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        analysis_id: "url-video-1",
+        content_type: "video",
+        url: "https://cdn.example.com/clip.mp4",
+        result: {
+          analysis_id: "url-video-1",
+          confidence: 0.63,
+          is_ai_generated: true,
+          explanation: "Signature and entropy pattern overlap with generated media.",
+          model_prediction: null,
+          analysis: {
+            entropy_score: 6.7,
+            byte_uniformity: 0.42,
+            repeated_chunk_ratio: 0.11,
+            signature_flags: ["synthetic_motion_signature"],
+            file_size_mb: 14.8,
+          },
+        },
+      }),
+    });
+
+    const result = await detectUrl("https://cdn.example.com/clip.mp4");
+    expect(result.id).toBe("url-video-1");
     expect(result.content_type).toBe("video");
     expect(result.signals).toHaveLength(4);
   });

@@ -169,9 +169,13 @@ Supported URL modes:
 - Text/article pages -> extracts visible text and runs text detection.
 - Direct image URLs -> runs image detection.
 - Direct video URLs (`video/*` or URL extension like `.mp4`) -> runs video detection.
+- Platform page URLs (Instagram/TikTok/X/Facebook/Threads HTML pages) -> resolves `og:video` /
+  `og:image` when publicly available, then runs media detection.
 
-For social media post/reel page URLs (for example Instagram HTML pages), URL detection v1 does not
-run page-level media extraction; provide a direct media file URL.
+If a platform page is public but does not expose direct media in OG metadata (or requires auth/private
+access), the API returns a deterministic error:
+
+`Platform page detected but no public direct media found`
 
 ---
 

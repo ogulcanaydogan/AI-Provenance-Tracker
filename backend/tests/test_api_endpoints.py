@@ -679,8 +679,48 @@ async def test_url_detection_direct_video_rejects_oversized_payload(client: Asyn
 
 
 @pytest.mark.asyncio
-async def test_url_detection_social_page_requires_direct_media_url(client: AsyncClient):
-    """Social page URLs are rejected unless they resolve directly to media."""
+async def test_url_detection_social_page_with_og_video_success(client: AsyncClient):
+    """Social page URL resolves og:video and runs video detection."""
+
+    async def instagram_og_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        if url == "https://www.instagram.com/reel/ABC123/":
+            return httpx.Response(
+                status_code=200,
+                headers={"content-type": "text/html"},
+                text=(
+                    '<html><head><meta property="og:video" '
+                    'content="https://cdn.example.com/media/reel.mp4" /></head></html>'
+                ),
+                request=request,
+            )
+        if url == "https://cdn.example.com/media/reel.mp4":
+            return httpx.Response(
+                status_code=200,
+                headers={"content-type": "video/mp4"},
+                content=_create_test_mp4(),
+                request=request,
+            )
+        return httpx.Response(status_code=404, request=request)
+
+    with patch.object(httpx.AsyncClient, "get", new=instagram_og_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://www.instagram.com/reel/ABC123/"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["content_type"] == "video"
+    assert payload["analysis_id"]
+    assert payload["url"] == "https://cdn.example.com/media/reel.mp4"
+
+
+@pytest.mark.asyncio
+async def test_url_detection_social_page_without_public_media_returns_deterministic_error(
+    client: AsyncClient,
+):
+    """Social page URL without OG media returns deterministic unsupported detail."""
 
     async def instagram_html_get(self, url, **kwargs):  # noqa: ARG001
         request = httpx.Request("GET", url)
@@ -698,7 +738,9 @@ async def test_url_detection_social_page_requires_direct_media_url(client: Async
         )
 
     assert response.status_code == 400
-    assert "non-direct social media page urls are unsupported" in response.json()["detail"].lower()
+    assert "platform page detected but no public direct media found" in response.json()[
+        "detail"
+    ].lower()
 
 
 # ---------------------------------------------------------------------------

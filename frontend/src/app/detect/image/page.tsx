@@ -4,7 +4,8 @@ import { ImageUpload } from "@/components/detection/ImageUpload";
 import { ResultCard } from "@/components/detection/ResultCard";
 import { AnalysisLoader } from "@/components/detection/AnalysisLoader";
 import { useImageDetection } from "@/hooks/useImageDetection";
-import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, Link2 } from "lucide-react";
 
 export default function ImageDetectionPage() {
   const { status, result, error, analyze, reset } = useImageDetection();
@@ -24,6 +25,16 @@ export default function ImageDetectionPage() {
       </div>
 
       <ImageUpload onAnalyze={analyze} isLoading={status === "loading"} />
+      <div className="mt-4 rounded-xl border border-[#262626] bg-[#121212] p-4 text-sm text-gray-300 flex flex-wrap items-center justify-between gap-3">
+        <p>Have a public link instead of a local file?</p>
+        <Link
+          href="/detect/url"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#333] text-gray-200 hover:text-white hover:border-[#4a4a4a] transition-colors"
+        >
+          <Link2 className="h-4 w-4" />
+          Use URL Detection
+        </Link>
+      </div>
 
       <div className="mt-8" aria-live="polite" aria-atomic="true">
         {status === "loading" && <AnalysisLoader />}

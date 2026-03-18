@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Shield, Github } from "lucide-react";
 
 export default function Footer() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.whoisfake.com";
 
   return (
     <footer className="border-t border-[#262626] py-10 mt-16">
@@ -43,6 +43,11 @@ export default function Footer() {
               <li>
                 <Link href="/detect/video" className="text-gray-500 hover:text-white transition-colors text-sm">
                   Video Detection
+                </Link>
+              </li>
+              <li>
+                <Link href="/detect/url" className="text-gray-500 hover:text-white transition-colors text-sm">
+                  URL Detection
                 </Link>
               </li>
             </ul>

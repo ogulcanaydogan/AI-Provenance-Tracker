@@ -3,12 +3,17 @@
 import { useState } from "react";
 import TextDetector from "@/components/TextDetector";
 import ImageDetector from "@/components/ImageDetector";
+import { URLDetector } from "@/components/detection/URLDetector";
+import { ResultCard } from "@/components/detection/ResultCard";
+import { AnalysisLoader } from "@/components/detection/AnalysisLoader";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useUrlDetection } from "@/hooks/useUrlDetection";
 import Link from "next/link";
 import {
   FileText,
   Image as ImageIcon,
+  Link2,
   Mic,
   Video,
   Shield,
@@ -21,7 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-type Tab = "text" | "image";
+type Tab = "text" | "image" | "url";
 
 const CAPABILITIES = [
   {
@@ -99,6 +104,7 @@ const MODALITIES = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("text");
+  const { status, result, error, analyze, reset } = useUrlDetection();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -118,8 +124,8 @@ export default function Home() {
                 AI Provenance Tracker
               </h1>
               <p className="text-gray-400 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed">
-                Detect AI-generated content across text, images, audio, and video.
-                Get explainable confidence scores with full signal breakdowns — not black-box verdicts.
+                Upload, paste, or analyze URL and generate an explainable report fast.
+                Built for fact-checkers and newsroom verification workflows.
               </p>
             </div>
 
@@ -128,7 +134,7 @@ export default function Home() {
                 href="#try-it"
                 className="btn-primary inline-flex items-center gap-2 text-sm"
               >
-                Try It Now
+                Start First Analysis
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
@@ -170,7 +176,7 @@ export default function Home() {
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">Try It</h2>
             <p className="text-gray-500">
-              Paste text or upload an image to see the detection engine in action.
+              Upload/Paste/URL -&gt; Explainable report.
             </p>
           </div>
 
@@ -198,12 +204,55 @@ export default function Home() {
                 <ImageIcon className="h-4 w-4" />
                 Image
               </button>
+              <button
+                onClick={() => setActiveTab("url")}
+                className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-medium transition-all text-sm ${
+                  activeTab === "url"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Link2 className="h-4 w-4" />
+                URL
+              </button>
             </div>
           </div>
 
           <div className="card p-6">
-            {activeTab === "text" ? <TextDetector /> : <ImageDetector />}
+            {activeTab === "text" && <TextDetector />}
+            {activeTab === "image" && <ImageDetector />}
+            {activeTab === "url" && (
+              <div className="space-y-6">
+                <URLDetector
+                  onAnalyze={analyze}
+                  isLoading={status === "loading"}
+                  error={error}
+                  examples={[
+                    "https://example.com/news/article",
+                    "https://www.instagram.com/reel/ABC123/",
+                    "https://cdn.example.com/media/clip.mp4",
+                  ]}
+                />
+                {status === "loading" && <AnalysisLoader />}
+                {status === "success" && result && (
+                  <div className="space-y-3">
+                    <ResultCard result={result} />
+                    <button
+                      onClick={reset}
+                      className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
+                    >
+                      Analyze another URL
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+          <p className="mt-4 text-xs text-gray-500">
+            Methodology limits: results are probabilistic and should be treated as evidence support,
+            not a final verdict. Experimental modalities: social URL resolution depends on public OG
+            metadata and may not work for private/auth-required pages.
+          </p>
         </section>
 
         {/* Capabilities Grid */}
@@ -285,11 +334,25 @@ export default function Home() {
 
         {/* CTA Section */}
         <section className="container mx-auto px-4 py-16 max-w-3xl text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Explore the Platform</h2>
+          <h2 className="text-2xl font-bold text-white mb-3">Run Verification Workflows</h2>
           <p className="text-gray-500 mb-8">
-            Browse the analytics dashboard, review detection history, or check the API documentation.
+            Start detection first, then review dashboard/history if needed.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/detect/url"
+              className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
+            >
+              <Link2 className="h-4 w-4" />
+              URL Analyze
+            </Link>
+            <Link
+              href="/detect/video"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm font-medium"
+            >
+              <Video className="h-4 w-4" />
+              Video Analyze
+            </Link>
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm font-medium"
@@ -298,14 +361,7 @@ export default function Home() {
               Dashboard
             </Link>
             <Link
-              href="/history"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm font-medium"
-            >
-              <Layers className="h-4 w-4" />
-              History
-            </Link>
-            <Link
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/docs`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "https://api.whoisfake.com"}/docs`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm font-medium"

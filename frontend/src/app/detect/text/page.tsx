@@ -4,7 +4,8 @@ import { TextInput } from "@/components/detection/TextInput";
 import { ResultCard } from "@/components/detection/ResultCard";
 import { AnalysisLoader } from "@/components/detection/AnalysisLoader";
 import { useTextDetection } from "@/hooks/useTextDetection";
-import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, Link2 } from "lucide-react";
 
 export default function TextDetectionPage() {
   const { status, result, error, progressMessage, analyze, reset } = useTextDetection();
@@ -24,6 +25,16 @@ export default function TextDetectionPage() {
       </div>
 
       <TextInput onAnalyze={analyze} isLoading={status === "loading"} />
+      <div className="mt-4 rounded-xl border border-[#262626] bg-[#121212] p-4 text-sm text-gray-300 flex flex-wrap items-center justify-between gap-3">
+        <p>Need to analyze a web article or platform post link instead?</p>
+        <Link
+          href="/detect/url"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#333] text-gray-200 hover:text-white hover:border-[#4a4a4a] transition-colors"
+        >
+          <Link2 className="h-4 w-4" />
+          Use URL Detection
+        </Link>
+      </div>
 
       <div className="mt-8" aria-live="polite" aria-atomic="true">
         {status === "loading" && (

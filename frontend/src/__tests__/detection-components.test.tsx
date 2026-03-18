@@ -5,6 +5,7 @@ import { ConfidenceGauge } from "@/components/detection/ConfidenceGauge";
 import { SignalBreakdown } from "@/components/detection/SignalBreakdown";
 import { ResultCard } from "@/components/detection/ResultCard";
 import { TextInput } from "@/components/detection/TextInput";
+import { URLDetector } from "@/components/detection/URLDetector";
 
 describe("AnalysisLoader", () => {
   it("renders accessible loading state", () => {
@@ -96,6 +97,11 @@ describe("ResultCard", () => {
     render(<ResultCard result={result} />);
     expect(screen.getByText("Detection Signals")).toBeDefined();
   });
+
+  it("renders shareable evidence action", () => {
+    render(<ResultCard result={result} />);
+    expect(screen.getByText("Copy Shareable Evidence")).toBeDefined();
+  });
 });
 
 describe("TextInput", () => {
@@ -165,5 +171,37 @@ describe("TextInput", () => {
   it("shows character count", () => {
     render(<TextInput onAnalyze={vi.fn()} isLoading={false} />);
     expect(screen.getByText("0 / 50,000")).toBeDefined();
+  });
+});
+
+describe("URLDetector", () => {
+  it("renders URL input", () => {
+    render(<URLDetector onAnalyze={vi.fn()} isLoading={false} />);
+    expect(screen.getByLabelText("URL to analyze")).toBeDefined();
+  });
+
+  it("calls onAnalyze for valid URL", () => {
+    const onAnalyze = vi.fn();
+    render(<URLDetector onAnalyze={onAnalyze} isLoading={false} />);
+    const input = screen.getByLabelText("URL to analyze");
+    fireEvent.change(input, { target: { value: "https://example.com/article" } });
+    fireEvent.click(screen.getByText("Analyze URL"));
+    expect(onAnalyze).toHaveBeenCalledWith("https://example.com/article");
+  });
+
+  it("shows loading label", () => {
+    render(<URLDetector onAnalyze={vi.fn()} isLoading={true} />);
+    expect(screen.getByText("Resolving URL...")).toBeDefined();
+  });
+
+  it("shows normalized error message block", () => {
+    render(
+      <URLDetector
+        onAnalyze={vi.fn()}
+        isLoading={false}
+        error="Platform page detected but no public direct media found."
+      />
+    );
+    expect(screen.getByRole("alert")).toBeDefined();
   });
 });

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import re
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -48,6 +49,9 @@ SOCIAL_MEDIA_HOST_SUFFIXES = (
     "twitter.com",
     "threads.net",
 )
+OG_VIDEO_PROPERTIES = ("og:video", "og:video:url", "og:video:secure_url")
+OG_IMAGE_PROPERTIES = ("og:image", "og:image:url", "og:image:secure_url")
+PLATFORM_MEDIA_MISSING_DETAIL = "Platform page detected but no public direct media found"
 
 
 class UrlDetectionRequest(BaseModel):
@@ -84,6 +88,141 @@ def _is_social_media_host(url: str) -> bool:
         hostname == suffix or hostname.endswith(f".{suffix}")
         for suffix in SOCIAL_MEDIA_HOST_SUFFIXES
     )
+
+
+def _extract_meta_tag_attributes(tag: str) -> dict[str, str]:
+    attrs: dict[str, str] = {}
+    for match in re.finditer(r"""([a-zA-Z_:][\w:.-]*)\s*=\s*(['"])(.*?)\2""", tag):
+        attrs[match.group(1).lower()] = html.unescape(match.group(3).strip())
+    return attrs
+
+
+def _resolve_social_og_media_url(page_html: str, page_url: str) -> str | None:
+    video_url: str | None = None
+    image_url: str | None = None
+    for meta_tag in re.findall(r"(?is)<meta\b[^>]*>", page_html):
+        attrs = _extract_meta_tag_attributes(meta_tag)
+        prop = (attrs.get("property") or attrs.get("name") or "").strip().lower()
+        content = (attrs.get("content") or "").strip()
+        if not content:
+            continue
+        if prop in OG_VIDEO_PROPERTIES and not video_url:
+            video_url = urljoin(page_url, content)
+        if prop in OG_IMAGE_PROPERTIES and not image_url:
+            image_url = urljoin(page_url, content)
+    return video_url or image_url
+
+
+def _infer_content_flags(content_type: str, resolved_url: str) -> tuple[bool, bool, bool]:
+    normalized_content_type = content_type.split(";")[0].strip().lower()
+    url_path = urlparse(resolved_url).path.lower()
+    is_image = normalized_content_type.startswith("image/")
+    is_video = normalized_content_type.startswith("video/")
+    is_text = normalized_content_type.startswith("text/") or "json" in normalized_content_type
+    is_text = is_text or "xml" in normalized_content_type
+    if not normalized_content_type:
+        is_image = url_path.endswith(IMAGE_URL_EXTENSIONS)
+        is_video = url_path.endswith(VIDEO_URL_EXTENSIONS)
+        is_text = not is_image and not is_video
+    return is_image, is_video, is_text
+
+
+async def _analyze_image_from_url(
+    *, image_data: bytes, resolved_url: str, max_image_size_bytes: int
+) -> dict:
+    if len(image_data) > max_image_size_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image exceeds maximum size of {settings.max_image_size_mb}MB",
+        )
+
+    filename = _filename_from_url(resolved_url)
+    image_result = await image_detector.detect(image_data, filename)
+    image_result.model_version = f"image-detector:{settings.image_detection_model}"
+    image_result.calibration_version = "image-heuristic-v1"
+    image_result = await _apply_consensus(
+        content_type="image",
+        result=image_result,
+        binary=image_data,
+        filename=filename,
+    )
+    analysis_id = await analysis_store.save_image_result(
+        image_data=image_data,
+        filename=filename,
+        result=image_result,
+        source="url",
+        source_url=resolved_url,
+    )
+    image_result.analysis_id = analysis_id
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="url",
+        payload={
+            "content_type": "image",
+            "analysis_id": analysis_id,
+            "source": "url",
+            "source_url": resolved_url,
+            "filename": filename,
+            "is_ai_generated": image_result.is_ai_generated,
+            "confidence": image_result.confidence,
+        },
+    )
+
+    return {
+        "analysis_id": analysis_id,
+        "content_type": "image",
+        "url": resolved_url,
+        "result": image_result,
+    }
+
+
+async def _analyze_video_from_url(
+    *, video_data: bytes, resolved_url: str, max_video_size_bytes: int
+) -> dict:
+    if len(video_data) > max_video_size_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Video exceeds maximum size of {settings.max_video_size_mb}MB",
+        )
+
+    filename = _filename_from_url(resolved_url)
+    video_result = await video_detector.detect(video_data, filename)
+    video_result.model_version = "video-detector:heuristic-v1"
+    video_result.calibration_version = "video-heuristic-v1"
+    video_result = await _apply_consensus(
+        content_type="video",
+        result=video_result,
+        binary=video_data,
+        filename=filename,
+    )
+    analysis_id = await analysis_store.save_video_result(
+        video_data=video_data,
+        filename=filename,
+        result=video_result,
+        source="url",
+        source_url=resolved_url,
+    )
+    video_result.analysis_id = analysis_id
+    await audit_event_store.safe_log_event(
+        event_type="detection.completed",
+        source="url",
+        payload={
+            "content_type": "video",
+            "analysis_id": analysis_id,
+            "source": "url",
+            "source_url": resolved_url,
+            "filename": filename,
+            "is_ai_generated": video_result.is_ai_generated,
+            "confidence": video_result.confidence,
+        },
+    )
+
+    return {
+        "analysis_id": analysis_id,
+        "content_type": "video",
+        "url": resolved_url,
+        "result": video_result,
+    }
 
 
 def _format_sse(event: str, payload: dict) -> str:
@@ -531,177 +670,119 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                 source_url,
                 headers={"User-Agent": "AIProvenanceTracker/0.1"},
             )
+            if response.status_code >= 400:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"URL returned status code {response.status_code}",
+                )
+
+            content_type = response.headers.get("content-type", "")
+            content_type_lower = content_type.lower()
+            resolved_url = str(response.url)
+            is_image, is_video, is_text = _infer_content_flags(content_type, resolved_url)
+
+            if is_image:
+                return await _analyze_image_from_url(
+                    image_data=response.content,
+                    resolved_url=resolved_url,
+                    max_image_size_bytes=max_image_size_bytes,
+                )
+
+            if is_video:
+                return await _analyze_video_from_url(
+                    video_data=response.content,
+                    resolved_url=resolved_url,
+                    max_video_size_bytes=max_video_size_bytes,
+                )
+
+            if is_text:
+                raw_text = response.text
+                if _is_social_media_host(resolved_url) and "html" in content_type_lower:
+                    media_url = _resolve_social_og_media_url(raw_text, resolved_url)
+                    if not media_url:
+                        raise HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
+
+                    try:
+                        media_response = await client.get(
+                            media_url,
+                            headers={"User-Agent": "AIProvenanceTracker/0.1"},
+                        )
+                    except httpx.HTTPError as exc:
+                        raise HTTPException(
+                            status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL
+                        ) from exc
+
+                    if media_response.status_code >= 400:
+                        raise HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
+
+                    resolved_media_url = str(media_response.url)
+                    media_content_type = media_response.headers.get("content-type", "")
+                    media_is_image, media_is_video, _ = _infer_content_flags(
+                        media_content_type, resolved_media_url
+                    )
+
+                    if media_is_image:
+                        return await _analyze_image_from_url(
+                            image_data=media_response.content,
+                            resolved_url=resolved_media_url,
+                            max_image_size_bytes=max_image_size_bytes,
+                        )
+                    if media_is_video:
+                        return await _analyze_video_from_url(
+                            video_data=media_response.content,
+                            resolved_url=resolved_media_url,
+                            max_video_size_bytes=max_video_size_bytes,
+                        )
+                    raise HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
+
+                extracted_text = (
+                    _extract_text_from_html(raw_text) if "html" in content_type_lower else raw_text
+                )
+                extracted_text = re.sub(r"\s+", " ", extracted_text).strip()
+
+                if not extracted_text:
+                    raise HTTPException(status_code=400, detail="No analyzable text found at URL")
+
+                if len(extracted_text) > settings.max_text_length:
+                    extracted_text = extracted_text[: settings.max_text_length]
+
+                text_result = await text_detector.detect(extracted_text)
+                text_result = await _apply_consensus(
+                    content_type="text",
+                    result=text_result,
+                    text=extracted_text,
+                )
+                analysis_id = await analysis_store.save_text_result(
+                    text=extracted_text,
+                    result=text_result,
+                    source="url",
+                    source_url=resolved_url,
+                )
+                text_result.analysis_id = analysis_id
+                await audit_event_store.safe_log_event(
+                    event_type="detection.completed",
+                    source="url",
+                    payload={
+                        "content_type": "text",
+                        "analysis_id": analysis_id,
+                        "source": "url",
+                        "source_url": resolved_url,
+                        "is_ai_generated": text_result.is_ai_generated,
+                        "confidence": text_result.confidence,
+                        "text_length": len(extracted_text),
+                    },
+                )
+
+                return {
+                    "analysis_id": analysis_id,
+                    "content_type": "text",
+                    "url": resolved_url,
+                    "result": text_result,
+                    "text_length": len(extracted_text),
+                }
+
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}"
+            )
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {exc}") from exc
-
-    if response.status_code >= 400:
-        raise HTTPException(
-            status_code=400,
-            detail=f"URL returned status code {response.status_code}",
-        )
-
-    content_type = response.headers.get("content-type", "").split(";")[0].strip().lower()
-    resolved_url = str(response.url)
-    url_path = urlparse(resolved_url).path.lower()
-
-    is_image = content_type.startswith("image/")
-    is_video = content_type.startswith("video/")
-    is_text = content_type.startswith("text/") or "json" in content_type or "xml" in content_type
-
-    if not content_type:
-        is_image = url_path.endswith(IMAGE_URL_EXTENSIONS)
-        is_video = url_path.endswith(VIDEO_URL_EXTENSIONS)
-        is_text = not is_image and not is_video
-
-    if is_image:
-        image_data = response.content
-        if len(image_data) > max_image_size_bytes:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Image exceeds maximum size of {settings.max_image_size_mb}MB",
-            )
-
-        filename = _filename_from_url(resolved_url)
-        image_result = await image_detector.detect(image_data, filename)
-        image_result.model_version = f"image-detector:{settings.image_detection_model}"
-        image_result.calibration_version = "image-heuristic-v1"
-        image_result = await _apply_consensus(
-            content_type="image",
-            result=image_result,
-            binary=image_data,
-            filename=filename,
-        )
-        analysis_id = await analysis_store.save_image_result(
-            image_data=image_data,
-            filename=filename,
-            result=image_result,
-            source="url",
-            source_url=resolved_url,
-        )
-        image_result.analysis_id = analysis_id
-        await audit_event_store.safe_log_event(
-            event_type="detection.completed",
-            source="url",
-            payload={
-                "content_type": "image",
-                "analysis_id": analysis_id,
-                "source": "url",
-                "source_url": resolved_url,
-                "filename": filename,
-                "is_ai_generated": image_result.is_ai_generated,
-                "confidence": image_result.confidence,
-            },
-        )
-
-        return {
-            "analysis_id": analysis_id,
-            "content_type": "image",
-            "url": resolved_url,
-            "result": image_result,
-        }
-
-    if is_video:
-        video_data = response.content
-        if len(video_data) > max_video_size_bytes:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Video exceeds maximum size of {settings.max_video_size_mb}MB",
-            )
-
-        filename = _filename_from_url(resolved_url)
-        video_result = await video_detector.detect(video_data, filename)
-        video_result.model_version = "video-detector:heuristic-v1"
-        video_result.calibration_version = "video-heuristic-v1"
-        video_result = await _apply_consensus(
-            content_type="video",
-            result=video_result,
-            binary=video_data,
-            filename=filename,
-        )
-        analysis_id = await analysis_store.save_video_result(
-            video_data=video_data,
-            filename=filename,
-            result=video_result,
-            source="url",
-            source_url=resolved_url,
-        )
-        video_result.analysis_id = analysis_id
-        await audit_event_store.safe_log_event(
-            event_type="detection.completed",
-            source="url",
-            payload={
-                "content_type": "video",
-                "analysis_id": analysis_id,
-                "source": "url",
-                "source_url": resolved_url,
-                "filename": filename,
-                "is_ai_generated": video_result.is_ai_generated,
-                "confidence": video_result.confidence,
-            },
-        )
-
-        return {
-            "analysis_id": analysis_id,
-            "content_type": "video",
-            "url": resolved_url,
-            "result": video_result,
-        }
-
-    if is_text:
-        if _is_social_media_host(resolved_url) and "html" in content_type:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Non-direct social media page URLs are unsupported in URL detection v1. "
-                    "Provide a direct media file URL."
-                ),
-            )
-
-        raw_text = response.text
-        extracted_text = _extract_text_from_html(raw_text) if "html" in content_type else raw_text
-        extracted_text = re.sub(r"\s+", " ", extracted_text).strip()
-
-        if not extracted_text:
-            raise HTTPException(status_code=400, detail="No analyzable text found at URL")
-
-        if len(extracted_text) > settings.max_text_length:
-            extracted_text = extracted_text[: settings.max_text_length]
-
-        text_result = await text_detector.detect(extracted_text)
-        text_result = await _apply_consensus(
-            content_type="text",
-            result=text_result,
-            text=extracted_text,
-        )
-        analysis_id = await analysis_store.save_text_result(
-            text=extracted_text,
-            result=text_result,
-            source="url",
-            source_url=resolved_url,
-        )
-        text_result.analysis_id = analysis_id
-        await audit_event_store.safe_log_event(
-            event_type="detection.completed",
-            source="url",
-            payload={
-                "content_type": "text",
-                "analysis_id": analysis_id,
-                "source": "url",
-                "source_url": resolved_url,
-                "is_ai_generated": text_result.is_ai_generated,
-                "confidence": text_result.confidence,
-                "text_length": len(extracted_text),
-            },
-        )
-
-        return {
-            "analysis_id": analysis_id,
-            "content_type": "text",
-            "url": resolved_url,
-            "result": text_result,
-            "text_length": len(extracted_text),
-        }
-
-    raise HTTPException(
-        status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}"
-    )

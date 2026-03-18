@@ -32,6 +32,7 @@ describe("Header", () => {
     expect(screen.getByText("Image")).toBeDefined();
     expect(screen.getByText("Audio")).toBeDefined();
     expect(screen.getByText("Video")).toBeDefined();
+    expect(screen.getByText("URL")).toBeDefined();
     expect(screen.getByText("Dashboard")).toBeDefined();
   });
 
@@ -67,6 +68,7 @@ describe("Footer", () => {
     expect(screen.getByText("Image Detection")).toBeDefined();
     expect(screen.getByText("Audio Detection")).toBeDefined();
     expect(screen.getByText("Video Detection")).toBeDefined();
+    expect(screen.getByText("URL Detection")).toBeDefined();
   });
 
   it("renders platform links", () => {

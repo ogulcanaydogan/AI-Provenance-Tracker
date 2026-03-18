@@ -19,12 +19,16 @@ export const metadata: Metadata = {
     "image detection",
   ],
   authors: [{ name: "Ogulcan Aydogan", url: "https://ogulcanaydogan.com" }],
-  metadataBase: new URL("https://github.com/ogulcanaydogan/AI-Provenance-Tracker"),
+  metadataBase: new URL("https://whoisfake.com"),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "AI Provenance Tracker",
     description:
       "Detect AI-generated content across text, images, audio, and video with explainable scoring and multi-provider consensus.",
     type: "website",
+    url: "https://whoisfake.com",
     siteName: "AI Provenance Tracker",
     locale: "en_GB",
   },
