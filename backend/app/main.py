@@ -52,6 +52,10 @@ openapi_tags = [
         "name": "intel",
         "description": "X (Twitter) intelligence collection, trust reports, and cost estimation.",
     },
+    {
+        "name": "billing",
+        "description": "API key plan sync, usage metering, and billing webhook integration.",
+    },
 ]
 
 app = FastAPI(

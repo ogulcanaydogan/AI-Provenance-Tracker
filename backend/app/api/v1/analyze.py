@@ -6,10 +6,13 @@ import csv
 import io
 import json as json_lib
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.core.config import settings
+from app.middleware.rate_limiter import _client_identifier, rate_limiter
+from app.services.api_key_plan_store import api_key_plan_store
 from app.services.analysis_store import analysis_store
 from app.services.audit_events import audit_event_store
 from app.services.evaluation_store import evaluation_store
@@ -32,6 +35,37 @@ class AnalysisResponse(BaseModel):
     analysis_type: str
     details: dict
     metadata: dict | None = None
+
+
+def _derive_verdict(record_result: dict) -> str:
+    decision_band = str(record_result.get("decision_band") or "").strip().lower()
+    if decision_band == "ai":
+        return "likely_ai"
+    if decision_band == "human":
+        return "likely_human"
+    if decision_band == "uncertain":
+        return "uncertain"
+    return "likely_ai" if bool(record_result.get("is_ai_generated")) else "likely_human"
+
+
+def _build_evidence_payload(record) -> dict:
+    result = record.result if isinstance(record.result, dict) else {}
+    return {
+        "analysis_id": record.analysis_id,
+        "content_type": record.content_type,
+        "verdict": _derive_verdict(result),
+        "confidence": float(result.get("confidence", 0.0) or 0.0),
+        "decision_band": result.get("decision_band"),
+        "uncertainty_reason": result.get("uncertainty_reason"),
+        "timestamp": record.created_at.isoformat(),
+        "source": record.source,
+        "source_url": record.source_url,
+        "explanation": result.get("explanation"),
+        "detector_versions": {
+            "model_version": result.get("model_version"),
+            "calibration_version": result.get("calibration_version"),
+        },
+    }
 
 
 @router.post("/detailed", response_model=AnalysisResponse)
@@ -80,6 +114,17 @@ async def detailed_analysis(request: AnalysisRequest) -> AnalysisResponse:
     )
 
 
+@router.get("/evidence/{analysis_id}")
+async def get_evidence_pack(analysis_id: str) -> dict:
+    """
+    Return a machine-readable shareable evidence pack for a single analysis id.
+    """
+    record = await analysis_store.get_record(analysis_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return _build_evidence_payload(record)
+
+
 @router.get("/history")
 async def get_analysis_history(
     limit: int = Query(default=10, ge=1, le=100),
@@ -103,6 +148,22 @@ async def get_analysis_history(
         "limit": limit,
         "offset": offset,
         "content_type": content_type.strip() or None,
+    }
+
+
+@router.get("/usage")
+async def get_usage_metering(request: Request) -> dict:
+    """
+    Return current usage metering for caller API key/IP and monthly leaderboard snapshot.
+    """
+    api_key = request.headers.get(settings.api_key_header)
+    client_key = api_key or _client_identifier(request)
+    plan = await api_key_plan_store.resolve_plan(api_key)
+    current = await rate_limiter.get_client_usage(client_key, plan=plan)
+    top_monthly = await rate_limiter.list_monthly_usage()
+    return {
+        "current": current,
+        "top_monthly": top_monthly[:25],
     }
 
 

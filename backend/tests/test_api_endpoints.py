@@ -15,6 +15,7 @@ from app.api.v1 import detect as detect_module
 from app.core.config import settings
 from app.middleware.rate_limiter import rate_limiter
 from app.models.detection import ConsensusSummary, ProviderConsensusVote
+from app.services.api_key_plan_store import api_key_plan_store
 
 
 def _create_test_png() -> bytes:
@@ -316,6 +317,110 @@ async def test_analysis_detailed_not_found(client: AsyncClient):
         json={"content_id": "00000000-0000-0000-0000-000000000000"},
     )
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_analysis_evidence_pack_endpoint(client: AsyncClient):
+    detect_response = await client.post(
+        "/api/v1/detect/text",
+        json={"text": "Evidence pack test text sample." * 8},
+    )
+    assert detect_response.status_code == 200
+    analysis_id = detect_response.json()["analysis_id"]
+
+    evidence_response = await client.get(f"/api/v1/analyze/evidence/{analysis_id}")
+    assert evidence_response.status_code == 200
+    payload = evidence_response.json()
+    assert payload["analysis_id"] == analysis_id
+    assert payload["content_type"] == "text"
+    assert payload["confidence"] >= 0.0
+    assert "detector_versions" in payload
+    assert "model_version" in payload["detector_versions"]
+    assert "calibration_version" in payload["detector_versions"]
+
+
+@pytest.mark.asyncio
+async def test_usage_metering_endpoint_returns_plan_and_caps(client: AsyncClient):
+    old_keys = list(settings.api_keys)
+    old_plan_map = dict(settings.api_key_plans)
+    settings.api_keys = ["starter-key"]
+    settings.api_key_plans = {"starter-key": "starter"}
+    rate_limiter._hits.clear()
+    rate_limiter._daily_points.clear()
+    rate_limiter._monthly_usage.clear()
+    try:
+        response = await client.post(
+            "/api/v1/detect/text",
+            headers={settings.api_key_header: "starter-key"},
+            json={"text": "Usage metering call." * 6},
+        )
+        assert response.status_code == 200
+
+        usage_response = await client.get(
+            "/api/v1/analyze/usage",
+            headers={settings.api_key_header: "starter-key"},
+        )
+        assert usage_response.status_code == 200
+        payload = usage_response.json()
+        assert payload["current"]["plan"] == "starter"
+        assert payload["current"]["daily_points"] >= 1
+        assert payload["current"]["monthly_requests"] >= 1
+        assert isinstance(payload["top_monthly"], list)
+    finally:
+        settings.api_keys = old_keys
+        settings.api_key_plans = old_plan_map
+
+
+@pytest.mark.asyncio
+async def test_billing_plan_sync_and_stripe_webhook(client: AsyncClient, tmp_path: Path):
+    old_secret = settings.billing_webhook_secret
+    old_override_file = settings.billing_plan_overrides_file
+    old_price_plan_map = dict(settings.stripe_price_plan_map)
+    settings.billing_webhook_secret = "billing-secret"
+    settings.billing_plan_overrides_file = str(tmp_path / "billing_overrides.json")
+    settings.stripe_price_plan_map = {"price_pro_monthly": "pro"}
+    api_key_plan_store._loaded = False  # force reload from tmp path
+    api_key_plan_store._overrides = {}
+    try:
+        sync_response = await client.post(
+            "/api/v1/billing/plan-sync",
+            headers={"X-Billing-Webhook-Secret": "billing-secret"},
+            json={
+                "api_key": "sync-key-123",
+                "plan": "enterprise",
+                "source": "test",
+            },
+        )
+        assert sync_response.status_code == 200
+        assert sync_response.json()["record"]["plan"] == "enterprise"
+
+        webhook_response = await client.post(
+            "/api/v1/billing/stripe/webhook",
+            headers={"X-Billing-Webhook-Secret": "billing-secret"},
+            json={
+                "id": "evt_test_123",
+                "type": "customer.subscription.updated",
+                "data": {
+                    "object": {
+                        "id": "sub_test_123",
+                        "customer": "cus_test_123",
+                        "metadata": {"api_key": "stripe-key-456"},
+                        "items": {"data": [{"price": {"id": "price_pro_monthly"}}]},
+                    }
+                },
+            },
+        )
+        assert webhook_response.status_code == 200
+        assert webhook_response.json()["applied"] is True
+
+        resolved_plan = await api_key_plan_store.resolve_plan("stripe-key-456")
+        assert resolved_plan == "pro"
+    finally:
+        settings.billing_webhook_secret = old_secret
+        settings.billing_plan_overrides_file = old_override_file
+        settings.stripe_price_plan_map = old_price_plan_map
+        api_key_plan_store._loaded = False
+        api_key_plan_store._overrides = {}
 
 
 @pytest.mark.asyncio

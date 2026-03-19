@@ -156,10 +156,49 @@ jobs:
           path: ops/reports/deploy_cost_gate.*
           retention-days: 14
 
-  deploy:
+  runner-heartbeat:
     needs: cost-precheck
     if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
-    runs-on: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
+    outputs:
+      resolved_runner_type: ${{ steps.resolve_runner.outputs.runner_type }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Resolve runner type
+        id: resolve_runner
+        env:
+          INPUT_RUNNER_TYPE: ${{ github.event.inputs.runner_type || '' }}
+          SPARK_RUNNER_TYPE_VAR: ${{ vars.SPARK_RUNNER_TYPE }}
+        run: |
+          set -euo pipefail
+          runner_type="${SPARK_RUNNER_TYPE_VAR:-github-hosted}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${INPUT_RUNNER_TYPE}" ]; then
+            runner_type="${INPUT_RUNNER_TYPE}"
+          fi
+          echo "runner_type=${runner_type}" >> "$GITHUB_OUTPUT"
+          echo "Resolved runner_type=${runner_type}"
+      - name: Verify self-hosted runner heartbeat
+        if: ${{ steps.resolve_runner.outputs.runner_type == 'self-hosted' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/check_runner_heartbeat.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --runner-name "spark-self-hosted" \
+            --required-labels "self-hosted,linux,spark" \
+            --checks 2 \
+            --interval-seconds 10
+      - name: Skip heartbeat for github-hosted mode
+        if: ${{ steps.resolve_runner.outputs.runner_type != 'self-hosted' }}
+        run: echo "Runner heartbeat check skipped for github-hosted mode."
+
+  deploy:
+    needs: [cost-precheck, runner-heartbeat]
+    if: ${{ needs.cost-precheck.outputs.allow_run == 'true' && needs.runner-heartbeat.result == 'success' }}
+    runs-on: ${{ needs.runner-heartbeat.outputs.resolved_runner_type == 'self-hosted' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 35
     env:
       SPARK_SSH_HOST: ${{ secrets.SPARK_SSH_HOST }}

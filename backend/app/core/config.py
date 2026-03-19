@@ -64,6 +64,26 @@ class Settings(BaseSettings):
     require_api_key: bool = False
     api_key_header: str = "X-API-Key"
     api_keys: list[str] = []
+    api_key_plans: dict[str, str] = {}
+    api_key_default_plan: str = "starter"
+    api_plan_window_limits: dict[str, int] = {
+        "starter": 120,
+        "pro": 300,
+        "enterprise": 1200,
+    }
+    api_plan_daily_point_caps: dict[str, int] = {
+        "starter": 3000,
+        "pro": 12000,
+        "enterprise": 60000,
+    }
+    api_plan_monthly_request_caps: dict[str, int] = {
+        "starter": 20000,
+        "pro": 120000,
+        "enterprise": 1000000,
+    }
+    billing_plan_overrides_file: str = "evidence/billing/api_key_plan_overrides.json"
+    billing_webhook_secret: str = ""
+    stripe_price_plan_map: dict[str, str] = {}
 
     # Spend-control points (per client per day)
     daily_spend_cap_points: int = 1000

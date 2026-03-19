@@ -18,6 +18,20 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify self-hosted runner heartbeat
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/check_runner_heartbeat.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --runner-name "spark-self-hosted" \
+            --required-labels "self-hosted,linux,spark" \
+            --checks 2 \
+            --interval-seconds 10
       - name: Trigger pinned Spark deploy for published SHA
         uses: actions/github-script@v8
         with:

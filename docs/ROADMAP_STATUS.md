@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-19 (v1.8.2 conservative FP hotfix merged; deploy acceptance blocked by offline self-hosted runner)
+Last updated: 2026-03-19 (v1.9 monetization + runner-heartbeat guard implemented in code; pending live deploy validation)
 
 ## Overall
 
@@ -10,6 +10,26 @@ Last updated: 2026-03-19 (v1.8.2 conservative FP hotfix merged; deploy acceptanc
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
+
+- Delivery stabilization hardening:
+  - Added self-hosted runner heartbeat guard script: `scripts/check_runner_heartbeat.py`
+  - `Deploy Spark After Image Publish` now blocks dispatch when `spark-self-hosted` is not online for 2 consecutive checks.
+  - `Deploy Spark Runtime` now has a pre-deploy `runner-heartbeat` gate job before any self-hosted execution.
+- Monetization MVP foundations:
+  - Plan-aware API key controls (`starter|pro|enterprise`) with plan-specific burst, daily spend caps, and monthly request caps.
+  - New billing API endpoints:
+    - `POST /api/v1/billing/plan-sync`
+    - `POST /api/v1/billing/stripe/webhook`
+  - Usage metering endpoint:
+    - `GET /api/v1/analyze/usage`
+- Evidence-first newsroom productization:
+  - New machine-readable evidence export endpoint:
+    - `GET /api/v1/analyze/evidence/{analysis_id}`
+  - Frontend newsroom one-pager route:
+    - `/for-newsrooms` (plan cards + evidence payload sample + docs CTA)
+- Conservative quality stance remains active (high-disagreement -> `uncertain`, short-text guard, calibration gates).
 
 ## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
 

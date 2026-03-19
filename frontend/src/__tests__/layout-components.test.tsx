@@ -33,6 +33,7 @@ describe("Header", () => {
     expect(screen.getByText("Audio")).toBeDefined();
     expect(screen.getByText("Video")).toBeDefined();
     expect(screen.getByText("URL")).toBeDefined();
+    expect(screen.getByText("Newsrooms")).toBeDefined();
     expect(screen.getByText("Dashboard")).toBeDefined();
   });
 
@@ -75,6 +76,7 @@ describe("Footer", () => {
     render(<Footer />);
     expect(screen.getByText("Dashboard")).toBeDefined();
     expect(screen.getByText("History")).toBeDefined();
+    expect(screen.getByText("Newsroom Plans")).toBeDefined();
     expect(screen.getByText("API Docs")).toBeDefined();
   });
 

@@ -15,6 +15,9 @@ include your key in every request:
 X-API-Key: your-api-key-here
 ```
 
+For monetized usage, API keys can be mapped to plans (`starter`, `pro`, `enterprise`)
+with plan-specific burst, daily spend cap, and monthly request quotas.
+
 ---
 
 ## Rate Limits
@@ -28,6 +31,11 @@ X-API-Key: your-api-key-here
 
 Exceeding the limit returns `429 Too Many Requests`. Retry after the
 `Retry-After` header value (seconds).
+
+Plan quota overages also return `429` with deterministic detail messages:
+
+- daily spend cap reached for plan
+- monthly request quota reached for plan
 
 ### Spend Control
 
@@ -176,6 +184,56 @@ If a platform page is public but does not expose direct media in OG metadata (or
 access), the API returns a deterministic error:
 
 `Platform page detected but no public direct media found`
+
+---
+
+### Evidence Pack Export
+
+```
+GET /api/v1/analyze/evidence/{analysis_id}
+```
+
+Returns a shareable machine-readable evidence payload:
+
+```json
+{
+  "analysis_id": "abc123",
+  "content_type": "text",
+  "verdict": "uncertain",
+  "confidence": 0.57,
+  "timestamp": "2026-03-19T12:31:00Z",
+  "source_url": "https://example.com/article",
+  "detector_versions": {
+    "model_version": "text-detector:distilroberta-v1",
+    "calibration_version": "calibrated-20260312:news"
+  }
+}
+```
+
+---
+
+### Usage Metering
+
+```
+GET /api/v1/analyze/usage
+```
+
+Returns current caller usage counters and top monthly usage rows.
+Send `X-API-Key` to resolve plan-specific metering.
+
+---
+
+### Billing Plan Sync
+
+```
+POST /api/v1/billing/plan-sync
+POST /api/v1/billing/stripe/webhook
+```
+
+`X-Billing-Webhook-Secret` is required when `BILLING_WEBHOOK_SECRET` is configured.
+
+- `/plan-sync`: manual API key plan upsert for admin/billing jobs.
+- `/stripe/webhook`: Stripe-style subscription events mapped to API key plans.
 
 ---
 

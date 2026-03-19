@@ -7,6 +7,7 @@ from app.detection.text import detector as text_detector_module
 from app.main import app
 from app.middleware.rate_limiter import rate_limiter
 from app.services.analysis_store import analysis_store
+from app.services.api_key_plan_store import api_key_plan_store
 from app.services.audit_events import audit_event_store
 
 
@@ -33,6 +34,9 @@ async def _reset_runtime_state():
     await audit_event_store.reset()
     rate_limiter._hits.clear()
     rate_limiter._daily_points.clear()
+    rate_limiter._monthly_usage.clear()
+    api_key_plan_store._loaded = False
+    api_key_plan_store._overrides = {}
 
     try:
         yield
@@ -44,6 +48,9 @@ async def _reset_runtime_state():
         await audit_event_store.reset()
         rate_limiter._hits.clear()
         rate_limiter._daily_points.clear()
+        rate_limiter._monthly_usage.clear()
+        api_key_plan_store._loaded = False
+        api_key_plan_store._overrides = {}
 
 
 # Sample texts for testing

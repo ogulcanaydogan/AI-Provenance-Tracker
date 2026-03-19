@@ -73,6 +73,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/for-newsrooms" className="text-gray-500 hover:text-white transition-colors text-sm">
+                  Newsroom Plans
+                </Link>
+              </li>
+              <li>
                 <Link
                   href={`${apiUrl}/docs`}
                   target="_blank"

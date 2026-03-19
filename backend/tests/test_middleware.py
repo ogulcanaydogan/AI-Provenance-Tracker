@@ -13,10 +13,13 @@ from app.middleware.rate_limiter import (
     InMemoryRateLimiter,
     _client_identifier,
     _cost_for_bucket,
+    _daily_cap_for_plan,
     _limit_for_bucket,
+    _monthly_request_cap_for_plan,
     _path_bucket,
     rate_limiter,
 )
+from app.services.api_key_plan_store import normalize_plan
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +96,38 @@ class TestBucketLimits:
     def test_unknown_bucket_cost_is_one(self):
         assert _cost_for_bucket("unknown") == 1
 
+    def test_plan_specific_limit_uses_configured_window_limit(self):
+        old_limits = dict(settings.api_plan_window_limits)
+        settings.api_plan_window_limits = {"starter": 11}
+        try:
+            assert _limit_for_bucket("text", plan="starter") == 11
+        finally:
+            settings.api_plan_window_limits = old_limits
+
+    def test_daily_cap_uses_plan_cap(self):
+        old_caps = dict(settings.api_plan_daily_point_caps)
+        settings.api_plan_daily_point_caps = {"pro": 4321}
+        try:
+            assert _daily_cap_for_plan("pro") == 4321
+        finally:
+            settings.api_plan_daily_point_caps = old_caps
+
+    def test_monthly_cap_uses_plan_cap(self):
+        old_caps = dict(settings.api_plan_monthly_request_caps)
+        settings.api_plan_monthly_request_caps = {"enterprise": 987654}
+        try:
+            assert _monthly_request_cap_for_plan("enterprise") == 987654
+        finally:
+            settings.api_plan_monthly_request_caps = old_caps
+
+    def test_normalize_plan_falls_back_to_default(self):
+        old_default = settings.api_key_default_plan
+        settings.api_key_default_plan = "starter"
+        try:
+            assert normalize_plan("unknown-plan") == "starter"
+        finally:
+            settings.api_key_default_plan = old_default
+
 
 # ---------------------------------------------------------------------------
 # Rate limiter — in-memory window behaviour
@@ -138,6 +173,26 @@ async def test_limiter_daily_spend_cap():
         assert "spend cap" in str(exc_info.value.detail).lower()  # type: ignore[union-attr]
     finally:
         settings.daily_spend_cap_points = old_cap
+
+
+@pytest.mark.asyncio
+async def test_limiter_monthly_request_cap():
+    """Exceeding monthly plan request cap raises 429."""
+    limiter = InMemoryRateLimiter()
+    old_monthly_caps = dict(settings.api_plan_monthly_request_caps)
+    old_limits = dict(settings.api_plan_window_limits)
+    settings.api_plan_monthly_request_caps = {"starter": 2}
+    settings.api_plan_window_limits = {"starter": 100}
+    try:
+        await limiter.check("starter-client", "/api/v1/detect/text", plan="starter")
+        await limiter.check("starter-client", "/api/v1/detect/text", plan="starter")
+        with pytest.raises(Exception) as exc_info:
+            await limiter.check("starter-client", "/api/v1/detect/text", plan="starter")
+        assert exc_info.value.status_code == 429  # type: ignore[union-attr]
+        assert "monthly request quota" in str(exc_info.value.detail).lower()  # type: ignore[union-attr]
+    finally:
+        settings.api_plan_monthly_request_caps = old_monthly_caps
+        settings.api_plan_window_limits = old_limits
 
 
 @pytest.mark.asyncio
