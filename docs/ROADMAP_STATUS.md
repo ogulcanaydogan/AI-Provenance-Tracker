@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-13 (v1.6.4 smoke-route remediation merged; acceptance rerun blocked by runner DNS)
+Last updated: 2026-03-19 (v1.8.2 conservative FP hotfix merged; deploy acceptance blocked by offline self-hosted runner)
 
 ## Overall
 
@@ -10,6 +10,35 @@ Last updated: 2026-03-13 (v1.6.4 smoke-route remediation merged; acceptance reru
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
+
+- Implementation commit on `main`: `065f120` (`fix(v1.8.2): conservative text consensus and uncertainty guard`)
+  - Text consensus threshold now runtime-configurable with conservative default (`text_consensus_threshold=0.58`)
+  - High-disagreement guard added: if consensus disagreement exceeds threshold (default `0.18`), text decision is forced to `uncertain`
+  - Conservative calibration defaults applied:
+    - `uncertainty_margin=0.08`
+    - `short_text_min_words=120`
+    - `short_text_min_sentences=4`
+  - Regression tests added for conservative short-text guard and disagreement-to-uncertain behavior.
+- Validation:
+  - CI success: [23286762954](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23286762954)
+  - CodeQL success: [23286762990](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23286762990)
+  - Local regression subset passed:
+    - `backend/tests/test_text_detection.py`
+    - `backend/tests/test_api_endpoints.py`
+- Deploy acceptance status (still blocked):
+  - Push-triggered deploy run: [23286762977](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23286762977)
+    - `deploy` skipped due cost policy block (expected without override)
+  - Manual acceptance run with override + self-hosted runner: [23286817233](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23286817233)
+    - `cost-precheck`: success
+    - `deploy`: queued (no runner attached)
+    - Current runner state: `spark-self-hosted = offline`
+    - Infra blocker thread remains single source of truth: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
+- Live parity snapshot:
+  - `GET https://api.whoisfake.com/health` => `200` (healthy)
+  - `POST /api/v1/detect/url` currently returns `500 Internal Server Error` (production parity not yet revalidated post-hotfix)
+  - Smoke thread remains open until recovery run succeeds: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
 
 ## Platform T&S Best-in-Class Track (v1.1 kickoff)
 
