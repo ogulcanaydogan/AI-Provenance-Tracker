@@ -85,6 +85,8 @@ class Settings(BaseSettings):
     # Provider consensus layer
     consensus_enabled: bool = True
     consensus_threshold: float = 0.5
+    text_consensus_threshold: float = 0.58
+    text_consensus_disagreement_uncertain_threshold: float = 0.18
     provider_timeout_seconds: float = 8.0
     provider_internal_weight: float = 0.6
     provider_copyleaks_weight: float = 0.15

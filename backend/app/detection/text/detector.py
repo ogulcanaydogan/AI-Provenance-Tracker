@@ -540,8 +540,8 @@ class TextDetector:
             "version": "default-v2-tristate",
             "decision_threshold": 0.5,
             "uncertainty_margin": 0.08,
-            "short_text_min_words": 80,
-            "short_text_min_sentences": 3,
+            "short_text_min_words": 120,
+            "short_text_min_sentences": 4,
             "ml_weight": 0.32,
             "weights": {
                 "perplexity": 0.2,

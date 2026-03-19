@@ -68,7 +68,12 @@ class ProviderConsensusEngine:
             final_probability = self._clip(internal_probability)
             disagreement = 0.0
 
-        threshold = self._clip(settings.consensus_threshold)
+        threshold_source = (
+            settings.text_consensus_threshold
+            if content_type == "text"
+            else settings.consensus_threshold
+        )
+        threshold = self._clip(threshold_source)
         return ConsensusSummary(
             final_probability=round(final_probability, 3),
             threshold=threshold,

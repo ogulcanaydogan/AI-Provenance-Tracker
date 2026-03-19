@@ -293,6 +293,22 @@ async def _apply_consensus(
             word_count=word_count,
             sentence_count=sentence_count,
         )
+        disagreement_limit = float(
+            min(
+                1.0,
+                max(0.0, settings.text_consensus_disagreement_uncertain_threshold),
+            )
+        )
+        if consensus.disagreement >= disagreement_limit:
+            disagreement_reason = (
+                f"High provider disagreement ({consensus.disagreement:.3f}) exceeds "
+                f"uncertainty threshold ({disagreement_limit:.3f})."
+            )
+            decision_band = "uncertain"
+            if reason:
+                reason = f"{reason} {disagreement_reason}"
+            else:
+                reason = disagreement_reason
         result.decision_band = decision_band
         result.distance_to_threshold = distance
         result.uncertainty_reason = reason

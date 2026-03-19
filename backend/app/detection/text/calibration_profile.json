@@ -1,9 +1,9 @@
 {
   "version": "calibrated-20260312",
   "decision_threshold": 0.45,
-  "uncertainty_margin": 0.047,
-  "short_text_min_words": 80,
-  "short_text_min_sentences": 3,
+  "uncertainty_margin": 0.08,
+  "short_text_min_words": 120,
+  "short_text_min_sentences": 4,
   "ml_weight": 0.38,
   "weights": {
     "perplexity": 0.2,

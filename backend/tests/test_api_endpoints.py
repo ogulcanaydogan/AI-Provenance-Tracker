@@ -11,8 +11,10 @@ import pytest
 from httpx import AsyncClient
 from PIL import Image
 
+from app.api.v1 import detect as detect_module
 from app.core.config import settings
 from app.middleware.rate_limiter import rate_limiter
+from app.models.detection import ConsensusSummary, ProviderConsensusVote
 
 
 def _create_test_png() -> bytes:
@@ -98,6 +100,58 @@ async def test_text_detection_accepts_domain_hint(client: AsyncClient):
     assert response.status_code == 200
     payload = response.json()
     assert payload["calibration_version"].endswith(":news")
+
+
+@pytest.mark.asyncio
+async def test_text_detection_forces_uncertain_when_provider_disagreement_is_high(
+    client: AsyncClient,
+):
+    async def _high_disagreement_consensus(
+        *,
+        content_type: str,
+        internal_probability: float,
+        text: str | None = None,  # noqa: ARG001
+        binary: bytes | None = None,  # noqa: ARG001
+        filename: str | None = None,  # noqa: ARG001
+    ) -> ConsensusSummary:
+        assert content_type == "text"
+        return ConsensusSummary(
+            final_probability=max(float(internal_probability), 0.9),
+            threshold=0.58,
+            is_ai_generated=True,
+            disagreement=0.42,
+            providers=[
+                ProviderConsensusVote(
+                    provider="internal",
+                    probability=max(float(internal_probability), 0.9),
+                    weight=1.0,
+                    status="ok",
+                    rationale="forced high disagreement",
+                    evidence_type="heuristic",
+                    verification_status="verified",
+                )
+            ],
+        )
+
+    with patch.object(
+        detect_module.provider_consensus_engine,
+        "build_consensus",
+        new=_high_disagreement_consensus,
+    ):
+        response = await client.post(
+            "/api/v1/detect/text",
+            json={
+                "text": (
+                    "This investigation note contains varied structure and neutral language. " * 40
+                )
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["decision_band"] == "uncertain"
+    assert payload["is_ai_generated"] is False
+    assert "high provider disagreement" in payload["uncertainty_reason"].lower()
 
 
 @pytest.mark.asyncio

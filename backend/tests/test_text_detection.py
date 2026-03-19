@@ -139,6 +139,20 @@ class TestTextPreprocessing:
         assert band_uncertain == "uncertain"
         assert reason is not None
 
+    def test_apply_decision_band_short_text_conservative_guard(self):
+        detector = TextDetector()
+        band, _, reason = detector.apply_decision_band(
+            confidence=0.95,
+            threshold=0.5,
+            word_count=110,
+            sentence_count=3,
+        )
+
+        assert band == "uncertain"
+        assert reason is not None
+        assert "120 words" in reason
+        assert "4 sentences" in reason
+
     def test_domain_profile_override_resolution(self):
         detector = TextDetector()
         detector._calibration_profile["domain_profiles"] = {
