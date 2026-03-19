@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-19 (v1.8.4 release executed in code; publish passed; deploy parity blocked by spark runner availability)
+Last updated: 2026-03-19 (v1.8.4 deterministic publish refreshed; self-hosted deploy still blocked by spark runner offline state)
 
 ## Overall
 
@@ -41,20 +41,25 @@ Last updated: 2026-03-19 (v1.8.4 release executed in code; publish passed; deplo
 - Additional deploy workflow hotfix on `main`: `f2ce050`
   - `Deploy Spark Runtime` permissions now include `actions:read` to unblock runner-heartbeat API access.
 - Deterministic publish evidence:
-  - `Publish Service Images` success (real build/push, not skipped): [23311666714](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23311666714)
-  - Published image tag used for deploy attempts: `7b082e1939f3885cb7b86b1f46d616c80ddb9d1f`
+  - `Publish Service Images` success (real build/push, not skipped): [23313421611](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23313421611)
+  - Published image tag prepared for deploy acceptance: `0ffa60941ba939152c29449fc956d5ed4d2b2db0`
 - Deploy attempts:
   - Self-hosted manual deploy failed pre-deploy at runner heartbeat: [23312106399](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312106399)
     - error: `Failed to query runners: HTTP 403 Resource not accessible by integration`
   - GitHub-hosted fallback run completed but remote deploy was skipped due Spark host unreachable from runner: [23312221178](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312221178)
     - log: `Host key scan failed. Spark host is not reachable from this runner; remote deploy will be skipped.`
+  - No new self-hosted deploy run was started after publish refresh because runner gate remained red (`offline` in 2 consecutive checks), per failure policy.
 - Current infra blocker state:
   - `spark-self-hosted` runner = `offline`
-  - local tailscale status: `spark-5fc3` last seen offline (~23h)
+  - local tailscale status: `spark-5fc3` last seen offline (~24h)
+  - direct host access check from control host fails: `ssh spark` -> `connect to host 100.80.116.20 port 22: Operation timed out`
   - single-thread blocker tracking: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
 - Live parity snapshot after release attempt:
   - `GET https://api.whoisfake.com/health` => `200`
-  - `POST https://api.whoisfake.com/api/v1/detect/url` => `500 Internal Server Error`
+  - `POST https://api.whoisfake.com/api/v1/detect/url` => `500 Internal Server Error` (text/image/video/social parity probes all failing)
+  - frontend URL UX remains aligned with v1.8.4:
+    - `https://whoisfake.com/detect/url` => `200`
+    - `https://whoisfake.com/detect/video` keeps `/detect/url` CTA and no inline URL-form copy
   - production smoke queue remains backlogged; tracking issue open: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
 
 ## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
