@@ -16,7 +16,7 @@ import {
 } from "./types";
 
 function normalizeApiUrl(rawUrl: string | undefined): string {
-  return (rawUrl || "http://localhost:8000").replace(/\/+$/, "");
+  return (rawUrl?.trim() || "http://localhost:8000").replace(/\/+$/, "");
 }
 
 const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);

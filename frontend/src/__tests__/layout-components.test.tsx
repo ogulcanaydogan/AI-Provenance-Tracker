@@ -78,6 +78,18 @@ describe("Footer", () => {
     expect(screen.getByText("API Docs")).toBeDefined();
   });
 
+  it("normalizes API docs URL when NEXT_PUBLIC_API_URL has whitespace", () => {
+    const original = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      process.env.NEXT_PUBLIC_API_URL = "https://api.whoisfake.com \n";
+      render(<Footer />);
+      const docsLink = screen.getByRole("link", { name: "API Docs" });
+      expect(docsLink.getAttribute("href")).toBe("https://api.whoisfake.com/docs");
+    } finally {
+      process.env.NEXT_PUBLIC_API_URL = original;
+    }
+  });
+
   it("renders project links", () => {
     render(<Footer />);
     expect(screen.getByText("Contributing")).toBeDefined();

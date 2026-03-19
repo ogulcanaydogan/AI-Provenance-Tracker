@@ -105,6 +105,10 @@ const MODALITIES = [
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("text");
   const { status, result, error, analyze, reset } = useUrlDetection();
+  const apiDocsBase = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://api.whoisfake.com").replace(
+    /\/+$/,
+    ""
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -361,7 +365,7 @@ export default function Home() {
               Dashboard
             </Link>
             <Link
-              href={`${process.env.NEXT_PUBLIC_API_URL || "https://api.whoisfake.com"}/docs`}
+              href={`${apiDocsBase}/docs`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#303030] text-gray-300 hover:text-white hover:border-[#505050] transition-colors text-sm font-medium"

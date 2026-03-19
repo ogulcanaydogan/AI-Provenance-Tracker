@@ -22,7 +22,7 @@ interface DetectionResult {
   processing_time_ms: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8000").replace(/\/+$/, "");
 
 export default function ImageDetector() {
   const [file, setFile] = useState<File | null>(null);

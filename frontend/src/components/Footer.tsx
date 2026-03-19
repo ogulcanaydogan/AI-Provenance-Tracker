@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Shield, Github } from "lucide-react";
 
 export default function Footer() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.whoisfake.com";
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://api.whoisfake.com").replace(
+    /\/+$/,
+    ""
+  );
 
   return (
     <footer className="border-t border-[#262626] py-10 mt-16">
