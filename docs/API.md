@@ -180,6 +180,8 @@ Supported URL modes:
 - Platform page URLs (Instagram/TikTok/X/Facebook/Threads HTML pages) -> resolves `og:video` /
   `og:image` when publicly available, then runs media detection.
 
+UI entrypoint for URL analysis: `https://whoisfake.com/detect/url`.
+
 If a platform page is public but does not expose direct media in OG metadata (or requires auth/private
 access), the API returns a deterministic error:
 

@@ -3,12 +3,8 @@
 import { useState } from "react";
 import TextDetector from "@/components/TextDetector";
 import ImageDetector from "@/components/ImageDetector";
-import { URLDetector } from "@/components/detection/URLDetector";
-import { ResultCard } from "@/components/detection/ResultCard";
-import { AnalysisLoader } from "@/components/detection/AnalysisLoader";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useUrlDetection } from "@/hooks/useUrlDetection";
 import Link from "next/link";
 import {
   FileText,
@@ -104,7 +100,6 @@ const MODALITIES = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("text");
-  const { status, result, error, analyze, reset } = useUrlDetection();
   const apiDocsBase = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://api.whoisfake.com").replace(
     /\/+$/,
     ""
@@ -226,29 +221,23 @@ export default function Home() {
             {activeTab === "text" && <TextDetector />}
             {activeTab === "image" && <ImageDetector />}
             {activeTab === "url" && (
-              <div className="space-y-6">
-                <URLDetector
-                  onAnalyze={analyze}
-                  isLoading={status === "loading"}
-                  error={error}
-                  examples={[
-                    "https://example.com/news/article",
-                    "https://www.instagram.com/reel/ABC123/",
-                    "https://cdn.example.com/media/clip.mp4",
-                  ]}
-                />
-                {status === "loading" && <AnalysisLoader />}
-                {status === "success" && result && (
-                  <div className="space-y-3">
-                    <ResultCard result={result} />
-                    <button
-                      onClick={reset}
-                      className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
-                    >
-                      Analyze another URL
-                    </button>
-                  </div>
-                )}
+              <div className="space-y-4">
+                <p className="text-sm text-gray-300">
+                  URL analysis has a dedicated workspace for text, image, and video links.
+                </p>
+                <p className="text-sm text-gray-400">
+                  For Instagram/TikTok/X, use a public post link. Private/auth-required pages return
+                  a deterministic unsupported message.
+                </p>
+                <div>
+                  <Link
+                    href="/detect/url"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+                  >
+                    Go to URL Detection
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
             )}
           </div>

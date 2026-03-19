@@ -876,6 +876,46 @@ async def test_url_detection_social_page_with_og_video_success(client: AsyncClie
 
 
 @pytest.mark.asyncio
+async def test_url_detection_social_page_with_twitter_player_fallback_success(
+    client: AsyncClient,
+):
+    """Social page URL resolves twitter:player fallback and runs video detection."""
+
+    async def instagram_twitter_player_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        if url == "https://www.instagram.com/reel/ABC123/":
+            return httpx.Response(
+                status_code=200,
+                headers={"content-type": "text/html"},
+                text=(
+                    '<html><head><meta property="twitter:player" '
+                    'content="https://cdn.example.com/media/reel-player.mp4" /></head></html>'
+                ),
+                request=request,
+            )
+        if url == "https://cdn.example.com/media/reel-player.mp4":
+            return httpx.Response(
+                status_code=200,
+                headers={"content-type": "video/mp4"},
+                content=_create_test_mp4(),
+                request=request,
+            )
+        return httpx.Response(status_code=404, request=request)
+
+    with patch.object(httpx.AsyncClient, "get", new=instagram_twitter_player_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://www.instagram.com/reel/ABC123/"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["content_type"] == "video"
+    assert payload["analysis_id"]
+    assert payload["url"] == "https://cdn.example.com/media/reel-player.mp4"
+
+
+@pytest.mark.asyncio
 async def test_url_detection_social_page_without_public_media_returns_deterministic_error(
     client: AsyncClient,
 ):

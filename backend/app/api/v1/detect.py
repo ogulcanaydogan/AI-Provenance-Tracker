@@ -51,7 +51,32 @@ SOCIAL_MEDIA_HOST_SUFFIXES = (
 )
 OG_VIDEO_PROPERTIES = ("og:video", "og:video:url", "og:video:secure_url")
 OG_IMAGE_PROPERTIES = ("og:image", "og:image:url", "og:image:secure_url")
+OG_PLAYER_PROPERTIES = ("twitter:player", "twitter:player:stream")
 PLATFORM_MEDIA_MISSING_DETAIL = "Platform page detected but no public direct media found"
+URL_FETCH_MAX_REDIRECTS = 5
+URL_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+}
+SOCIAL_ACCESS_BARRIER_PATTERNS = (
+    "this account is private",
+    "private account",
+    "challenge_required",
+    "checkpoint",
+    "log in",
+    "login",
+    "sign in",
+    "create account",
+)
 
 
 class UrlDetectionRequest(BaseModel):
@@ -100,6 +125,7 @@ def _extract_meta_tag_attributes(tag: str) -> dict[str, str]:
 def _resolve_social_og_media_url(page_html: str, page_url: str) -> str | None:
     video_url: str | None = None
     image_url: str | None = None
+    player_url: str | None = None
     for meta_tag in re.findall(r"(?is)<meta\b[^>]*>", page_html):
         attrs = _extract_meta_tag_attributes(meta_tag)
         prop = (attrs.get("property") or attrs.get("name") or "").strip().lower()
@@ -110,7 +136,21 @@ def _resolve_social_og_media_url(page_html: str, page_url: str) -> str | None:
             video_url = urljoin(page_url, content)
         if prop in OG_IMAGE_PROPERTIES and not image_url:
             image_url = urljoin(page_url, content)
-    return video_url or image_url
+        if prop in OG_PLAYER_PROPERTIES and not player_url:
+            player_url = urljoin(page_url, content)
+    return video_url or image_url or player_url
+
+
+def _is_social_access_barrier_page(page_html: str) -> bool:
+    normalized_html = re.sub(r"\s+", " ", page_html).lower()
+    return any(pattern in normalized_html for pattern in SOCIAL_ACCESS_BARRIER_PATTERNS)
+
+
+def _build_url_fetch_headers(*, accept: str | None = None) -> dict[str, str]:
+    headers = dict(URL_FETCH_HEADERS)
+    if accept:
+        headers["Accept"] = accept
+    return headers
 
 
 def _infer_content_flags(content_type: str, resolved_url: str) -> tuple[bool, bool, bool]:
@@ -681,10 +721,11 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(20.0, connect=5.0),
             follow_redirects=True,
+            max_redirects=URL_FETCH_MAX_REDIRECTS,
         ) as client:
             response = await client.get(
                 source_url,
-                headers={"User-Agent": "AIProvenanceTracker/0.1"},
+                headers=_build_url_fetch_headers(),
             )
             if response.status_code >= 400:
                 raise HTTPException(
@@ -716,12 +757,16 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                 if _is_social_media_host(resolved_url) and "html" in content_type_lower:
                     media_url = _resolve_social_og_media_url(raw_text, resolved_url)
                     if not media_url:
+                        if _is_social_access_barrier_page(raw_text):
+                            raise HTTPException(
+                                status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL
+                            )
                         raise HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
 
                     try:
                         media_response = await client.get(
                             media_url,
-                            headers={"User-Agent": "AIProvenanceTracker/0.1"},
+                            headers=_build_url_fetch_headers(accept="*/*"),
                         )
                     except httpx.HTTPError as exc:
                         raise HTTPException(

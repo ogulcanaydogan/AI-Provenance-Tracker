@@ -241,7 +241,11 @@ describe("VideoDetectionPage", () => {
 
   it("renders description", () => {
     render(<VideoDetectionPage />);
-    expect(screen.getByText(/Upload a short video clip or provide a direct\/public video URL/)).toBeDefined();
+    expect(
+      screen.getByText(
+        /Upload a short video clip for analysis\. For URL-based analysis, use the dedicated URL Detection flow\./
+      )
+    ).toBeDefined();
   });
 
   it("renders VideoUpload dropzone in idle state", () => {
@@ -249,9 +253,11 @@ describe("VideoDetectionPage", () => {
     expect(screen.getByText(/Drag & drop a video/)).toBeDefined();
   });
 
-  it("renders URL detector as alternative path", () => {
+  it("renders URL detection CTA instead of inline URL form", () => {
     render(<VideoDetectionPage />);
-    expect(screen.getByLabelText("URL to analyze")).toBeDefined();
+    const cta = screen.getByRole("link", { name: "Analyze by URL" });
+    expect(cta.getAttribute("href")).toBe("/detect/url");
+    expect(screen.queryByLabelText("URL to analyze")).toBeNull();
   });
 
   it("shows AnalysisLoader when loading", () => {

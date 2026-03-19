@@ -97,6 +97,7 @@ make up
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
+- URL analysis UI: `http://localhost:3000/detect/url`
 
 ## API Snapshot
 
