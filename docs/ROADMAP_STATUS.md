@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-19 (v1.9 monetization + runner-heartbeat guard implemented in code; pending live deploy validation)
+Last updated: 2026-03-19 (v1.8.4 release executed in code; publish passed; deploy parity blocked by spark runner availability)
 
 ## Overall
 
@@ -30,6 +30,32 @@ Last updated: 2026-03-19 (v1.9 monetization + runner-heartbeat guard implemented
   - Frontend newsroom one-pager route:
     - `/for-newsrooms` (plan cards + evidence payload sample + docs CTA)
 - Conservative quality stance remains active (high-disagreement -> `uncertain`, short-text guard, calibration gates).
+
+## v1.8.4 Deterministic Release + Live URL Parity — PARTIAL (Code Released, Deploy Blocked by Infra)
+
+- v1.8.4 implementation commit on `main`: `7b082e1`
+  - Backend URL resolver hardening (browser-like fetch headers, OG resolution fallback with `twitter:player`).
+  - URL UX dedup completed in frontend:
+    - video page now routes URL flow to `/detect/url` via CTA
+    - inline URL form removed from video page
+- Additional deploy workflow hotfix on `main`: `f2ce050`
+  - `Deploy Spark Runtime` permissions now include `actions:read` to unblock runner-heartbeat API access.
+- Deterministic publish evidence:
+  - `Publish Service Images` success (real build/push, not skipped): [23311666714](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23311666714)
+  - Published image tag used for deploy attempts: `7b082e1939f3885cb7b86b1f46d616c80ddb9d1f`
+- Deploy attempts:
+  - Self-hosted manual deploy failed pre-deploy at runner heartbeat: [23312106399](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312106399)
+    - error: `Failed to query runners: HTTP 403 Resource not accessible by integration`
+  - GitHub-hosted fallback run completed but remote deploy was skipped due Spark host unreachable from runner: [23312221178](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312221178)
+    - log: `Host key scan failed. Spark host is not reachable from this runner; remote deploy will be skipped.`
+- Current infra blocker state:
+  - `spark-self-hosted` runner = `offline`
+  - local tailscale status: `spark-5fc3` last seen offline (~23h)
+  - single-thread blocker tracking: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
+- Live parity snapshot after release attempt:
+  - `GET https://api.whoisfake.com/health` => `200`
+  - `POST https://api.whoisfake.com/api/v1/detect/url` => `500 Internal Server Error`
+  - production smoke queue remains backlogged; tracking issue open: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
 
 ## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
 
