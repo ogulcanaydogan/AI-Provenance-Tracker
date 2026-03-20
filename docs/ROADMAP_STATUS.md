@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-19 (v1.8.4 deterministic publish refreshed; self-hosted deploy still blocked by spark runner offline state)
+Last updated: 2026-03-20 (v1.8.4 recovery retried; spark runner remains offline and live /detect/url still 500)
 
 ## Overall
 
@@ -49,10 +49,14 @@ Last updated: 2026-03-19 (v1.8.4 deterministic publish refreshed; self-hosted de
   - GitHub-hosted fallback run completed but remote deploy was skipped due Spark host unreachable from runner: [23312221178](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312221178)
     - log: `Host key scan failed. Spark host is not reachable from this runner; remote deploy will be skipped.`
   - No new self-hosted deploy run was started after publish refresh because runner gate remained red (`offline` in 2 consecutive checks), per failure policy.
+  - 2026-03-20 recovery retry:
+    - spark access re-attempted directly and via jump hosts (`a100`, `v100`) -> `100.80.116.20:22` timeout
+    - no self-hosted acceptance run started while runner gate remained red
 - Current infra blocker state:
   - `spark-self-hosted` runner = `offline`
-  - local tailscale status: `spark-5fc3` last seen offline (~24h)
+  - local tailscale status: `spark-5fc3` last seen offline (~1d)
   - direct host access check from control host fails: `ssh spark` -> `connect to host 100.80.116.20 port 22: Operation timed out`
+  - jump-host checks also fail: `ssh a100 -> ssh 100.80.116.20` timeout, `ssh v100 -> ssh 100.80.116.20` timeout
   - single-thread blocker tracking: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
 - Live parity snapshot after release attempt:
   - `GET https://api.whoisfake.com/health` => `200`
