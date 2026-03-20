@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-20 (v1.8.4 recovery retried; spark runner remains offline and live /detect/url still 500)
+Last updated: 2026-03-20 (v1.8.4 live URL parity restored; spark runner still offline blocks self-hosted deploy/smoke closure)
 
 ## Overall
 
@@ -58,13 +58,17 @@ Last updated: 2026-03-20 (v1.8.4 recovery retried; spark runner remains offline 
   - direct host access check from control host fails: `ssh spark` -> `connect to host 100.80.116.20 port 22: Operation timed out`
   - jump-host checks also fail: `ssh a100 -> ssh 100.80.116.20` timeout, `ssh v100 -> ssh 100.80.116.20` timeout
   - single-thread blocker tracking: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
-- Live parity snapshot after release attempt:
+- Live parity snapshot after latest recovery checks (2026-03-20):
   - `GET https://api.whoisfake.com/health` => `200`
-  - `POST https://api.whoisfake.com/api/v1/detect/url` => `500 Internal Server Error` (text/image/video/social parity probes all failing)
+  - `POST https://api.whoisfake.com/api/v1/detect/url` parity results (stable URLs):
+    - text URL => `200` (`content_type=text`)
+    - image URL => `200` (`content_type=image`)
+    - direct video URL => `200` (`content_type=video`)
+    - social page without public media => `400` with `Platform page detected but no public direct media found`
   - frontend URL UX remains aligned with v1.8.4:
     - `https://whoisfake.com/detect/url` => `200`
     - `https://whoisfake.com/detect/video` keeps `/detect/url` CTA and no inline URL-form copy
-  - production smoke queue remains backlogged; tracking issue open: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
+  - production smoke queue remains backlogged due runner offline; tracking issue open: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
 
 ## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
 
