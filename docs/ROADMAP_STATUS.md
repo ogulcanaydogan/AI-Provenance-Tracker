@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-20 (v1.8.4 live URL parity restored; spark runner still offline blocks self-hosted deploy/smoke closure)
+Last updated: 2026-03-20 (v1.8.4 publish refreshed + live URL parity confirmed; deploy closure still blocked by heartbeat API 403 and kube preflight refusal)
 
 ## Overall
 
@@ -41,22 +41,18 @@ Last updated: 2026-03-20 (v1.8.4 live URL parity restored; spark runner still of
 - Additional deploy workflow hotfix on `main`: `f2ce050`
   - `Deploy Spark Runtime` permissions now include `actions:read` to unblock runner-heartbeat API access.
 - Deterministic publish evidence:
-  - `Publish Service Images` success (real build/push, not skipped): [23313421611](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23313421611)
-  - Published image tag prepared for deploy acceptance: `0ffa60941ba939152c29449fc956d5ed4d2b2db0`
+  - `Publish Service Images` success (real build/push, not skipped): [23366072834](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23366072834)
+  - Published image tag prepared for deploy acceptance: `1f2d9c4a25bef9810e261848de8bedee56af34a1`
 - Deploy attempts:
-  - Self-hosted manual deploy failed pre-deploy at runner heartbeat: [23312106399](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312106399)
+  - Self-hosted manual deploy failed pre-deploy at runner heartbeat: [23366283439](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23366283439)
     - error: `Failed to query runners: HTTP 403 Resource not accessible by integration`
-  - GitHub-hosted fallback run completed but remote deploy was skipped due Spark host unreachable from runner: [23312221178](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23312221178)
-    - log: `Host key scan failed. Spark host is not reachable from this runner; remote deploy will be skipped.`
-  - No new self-hosted deploy run was started after publish refresh because runner gate remained red (`offline` in 2 consecutive checks), per failure policy.
-  - 2026-03-20 recovery retry:
-    - spark access re-attempted directly and via jump hosts (`a100`, `v100`) -> `100.80.116.20:22` timeout
-    - no self-hosted acceptance run started while runner gate remained red
+  - Legacy self-hosted deploy path reached Helm preflight but failed on kube API reachability: [23366319707](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23366319707)
+    - error: `Kubernetes cluster unreachable: Get "https://100.80.116.20:6443/version": dial tcp 100.80.116.20:6443: connect: connection refused`
 - Current infra blocker state:
-  - `spark-self-hosted` runner = `offline`
-  - local tailscale status: `spark-5fc3` last seen offline (~1d)
-  - direct host access check from control host fails: `ssh spark` -> `connect to host 100.80.116.20 port 22: Operation timed out`
-  - jump-host checks also fail: `ssh a100 -> ssh 100.80.116.20` timeout, `ssh v100 -> ssh 100.80.116.20` timeout
+  - `spark-self-hosted` runner recovered and remained online in 2 consecutive checks (`2026-03-20T23:20:08Z`, `2026-03-20T23:20:16Z`).
+  - Active blockers are now:
+    - `Deploy Spark Runtime` heartbeat API permission (`403` on runner listing endpoint).
+    - Helm cluster preflight connection refusal to `https://100.80.116.20:6443`.
   - single-thread blocker tracking: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
 - Live parity snapshot after latest recovery checks (2026-03-20):
   - `GET https://api.whoisfake.com/health` => `200`
@@ -68,7 +64,7 @@ Last updated: 2026-03-20 (v1.8.4 live URL parity restored; spark runner still of
   - frontend URL UX remains aligned with v1.8.4:
     - `https://whoisfake.com/detect/url` => `200`
     - `https://whoisfake.com/detect/video` keeps `/detect/url` CTA and no inline URL-form copy
-  - production smoke queue remains backlogged due runner offline; tracking issue open: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
+  - production smoke recovered (latest scheduled runs successful); tracking issue [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58) is closed.
 
 ## v1.8.2 Conservative FP Stabilization — IMPLEMENTED (Code), DEPLOY BLOCKED (Infra)
 
