@@ -348,6 +348,14 @@ jobs:
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
         uses: sigstore/cosign-installer@v4.0.0
 
+      - name: Authenticate to GHCR for signature verification
+        if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Verify pinned image signatures (cosign keyless)
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
         env:
