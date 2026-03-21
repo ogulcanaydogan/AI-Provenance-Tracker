@@ -58,7 +58,13 @@ def _fetch_runners(repo: str, token: str) -> list[dict]:
             return []
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore")
-        raise SystemExit(f"Failed to query runners: HTTP {exc.code} {detail}") from exc
+        remediation = ""
+        if exc.code == 403:
+            remediation = (
+                " - runner API requires a token with repository Actions read access "
+                "(set RUNNER_HEARTBEAT_TOKEN and expose it as GH_TOKEN)."
+            )
+        raise SystemExit(f"Failed to query runners: HTTP {exc.code} {detail}{remediation}") from exc
     except urllib.error.URLError as exc:
         raise SystemExit(f"Failed to query runners: {exc}") from exc
 
@@ -69,6 +75,7 @@ def _normalize_labels(labels: Iterable[str]) -> set[str]:
 
 def main() -> int:
     args = parse_args()
+    # GH_TOKEN is intentionally preferred so workflows can supply a privileged heartbeat token.
     token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
     if not token:
         raise SystemExit("GH_TOKEN or GITHUB_TOKEN is required.")
@@ -111,4 +118,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

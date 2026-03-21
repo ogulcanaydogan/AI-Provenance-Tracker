@@ -184,7 +184,8 @@ jobs:
       - name: Verify self-hosted runner heartbeat
         if: ${{ steps.resolve_runner.outputs.runner_type == 'self-hosted' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RUNNER_HEARTBEAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/check_runner_heartbeat.py \
             --repo "${GITHUB_REPOSITORY}" \
