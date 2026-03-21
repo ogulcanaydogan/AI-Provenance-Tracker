@@ -36,7 +36,9 @@ def test_prefers_gh_token_over_github_token(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(module, "_fetch_runners", _fake_fetch)
     monkeypatch.setenv("GH_TOKEN", "preferred-token")
     monkeypatch.setenv("GITHUB_TOKEN", "fallback-token")
-    monkeypatch.setattr(sys, "argv", ["check_runner_heartbeat.py", "--repo", "owner/repo", "--checks", "1"])
+    monkeypatch.setattr(
+        sys, "argv", ["check_runner_heartbeat.py", "--repo", "owner/repo", "--checks", "1"]
+    )
 
     assert module.main() == 0
     assert tokens_seen == ["preferred-token"]
