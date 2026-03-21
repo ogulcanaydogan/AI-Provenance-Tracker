@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-20 (v1.8.4 publish refreshed + live URL parity confirmed; deploy closure still blocked by heartbeat API 403 and kube preflight refusal)
+Last updated: 2026-03-21 (v1.8.5 strict heartbeat fix merged; acceptance chain reached green once; runner flapping still tracked in #46)
 
 ## Overall
 
@@ -30,6 +30,37 @@ Last updated: 2026-03-20 (v1.8.4 publish refreshed + live URL parity confirmed; 
   - Frontend newsroom one-pager route:
     - `/for-newsrooms` (plan cards + evidence payload sample + docs CTA)
 - Conservative quality stance remains active (high-disagreement -> `uncertain`, short-text guard, calibration gates).
+
+## v1.8.5 Deploy Chain Closure (Strict Heartbeat + Infra-only Kube Fix) — PARTIAL (Green Acceptance Achieved, Runner Flapping Persists)
+
+- Scope delivered on `main`:
+  - `dd59407` (`fix(v1.8.5): enforce strict heartbeat token path`)
+  - `5ca4d12` (`chore(v1.8.5): format runner heartbeat tests`)
+  - `d2396a8` (`fix(deploy): authenticate GHCR before cosign verification`)
+  - `94f84ef` (`chore(deploy): use cosign login for GHCR auth`)
+- Heartbeat hardening:
+  - `scripts/check_runner_heartbeat.py` now enforces token priority (`GH_TOKEN` > `GITHUB_TOKEN`) and emits deterministic remediation on `403`.
+  - `deploy-spark.yml` + `deploy-spark-after-publish.yml` pass both env tokens to heartbeat step.
+  - Repo secret provisioned: `RUNNER_HEARTBEAT_TOKEN` (set at `2026-03-21T07:15:47Z`).
+- Deterministic publish evidence:
+  - Manual publish with cost override (real build/push, not skipped): [23374498359](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23374498359)
+  - Published tag used for acceptance deploy: `5ca4d12a4553169bbb171ef85eba22046f715399`
+- Acceptance evidence:
+  - Manual deploy success: [23374686966](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23374686966)
+  - Critical chain passed in same run:
+    - `cost-precheck` pass
+    - `runner-heartbeat` pass
+    - `Verify pinned image signatures (cosign keyless)` pass
+    - `Verify SBOM attestations (spdxjson)` pass
+    - `Deploy to Spark` pass
+    - `Run Spark smoke test` pass
+    - `Enforce smoke gate` pass
+- Failure history resolved during rollout:
+  - [23374653551](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23374653551) failed at GHCR auth (`DENIED`) during cosign verification; fixed by GHCR auth step before verification.
+- Current residual blocker:
+  - `spark-self-hosted` intermittently returns to `offline`, causing subsequent reruns to queue/cancel (e.g. [23374736834](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23374736834)).
+  - Infra thread remains open for stabilization: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
+  - Production smoke thread remains closed: [#58](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/58)
 
 ## v1.8.4 Deterministic Release + Live URL Parity — PARTIAL (Code Released, Deploy Blocked by Infra)
 
