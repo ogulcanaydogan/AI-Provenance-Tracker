@@ -29,8 +29,8 @@ jobs:
         run: |
           python3 scripts/check_runner_heartbeat.py \
             --repo "${GITHUB_REPOSITORY}" \
-            --runner-name "spark-self-hosted" \
-            --required-labels "self-hosted,linux,spark" \
+            --runner-name "spark-runtime-01" \
+            --required-labels "self-hosted,linux,spark-runtime" \
             --checks 2 \
             --interval-seconds 10
       - name: Trigger pinned Spark deploy for published SHA

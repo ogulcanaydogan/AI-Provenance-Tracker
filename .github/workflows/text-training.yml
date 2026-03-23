@@ -42,7 +42,7 @@ permissions:
 jobs:
   train-a100:
     if: ${{ github.event.inputs.training_mode == 'a100_single' }}
-    runs-on: [self-hosted, linux, x64, spark, a100]
+    runs-on: [self-hosted, linux, x64, a100]
     timeout-minutes: 360
     env:
       CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
@@ -183,7 +183,7 @@ jobs:
 
   train-v100-sweep:
     if: ${{ github.event.inputs.training_mode == 'v100_sweep' }}
-    runs-on: [self-hosted, linux, x64, spark, v100]
+    runs-on: [self-hosted, linux, x64, v100]
     timeout-minutes: 360
     env:
       CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}

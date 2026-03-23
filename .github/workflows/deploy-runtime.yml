@@ -142,7 +142,7 @@ jobs:
     name: Deploy Helm Runtime
     needs: prepare
     if: ${{ needs.prepare.outputs.deploy_helm == 'true' }}
-    runs-on: [self-hosted, linux, x64, spark]
+    runs-on: [self-hosted, linux, x64, spark-runtime]
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
@@ -438,7 +438,7 @@ jobs:
     name: Post-Deploy Smoke Gate (Helm)
     needs: [prepare, deploy_helm]
     if: ${{ always() && vars.ENABLE_DEPLOY_SMOKE_GATE == 'true' && needs['deploy_helm'].result == 'success' }}
-    runs-on: [self-hosted, linux, x64, spark]
+    runs-on: [self-hosted, linux, x64, spark-runtime]
     timeout-minutes: 15
     env:
       SPARK_PUBLIC_API_URL: ${{ vars.SPARK_PUBLIC_API_URL }}
@@ -548,7 +548,7 @@ jobs:
     name: Rollback Helm Runtime
     needs: [prepare, deploy_helm, smoke_gate_helm]
     if: ${{ always() && vars.ENABLE_AUTO_ROLLBACK == 'true' && needs['deploy_helm'].result == 'success' && needs['smoke_gate_helm'].result == 'failure' && needs.prepare.outputs.rollback_tag != '' }}
-    runs-on: [self-hosted, linux, x64, spark]
+    runs-on: [self-hosted, linux, x64, spark-runtime]
     timeout-minutes: 20
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}

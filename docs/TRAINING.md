@@ -17,8 +17,8 @@ This runbook covers targeted text detector fine-tuning for v1.1 false-positive s
 
 Configure self-hosted GPU runners with explicit labels so the workflow routes correctly:
 
-- A100 host: `self-hosted,linux,x64,spark,a100`
-- Each V100 host: `self-hosted,linux,x64,spark,v100`
+- A100 host: `self-hosted,linux,x64,a100`
+- Each V100 host: `self-hosted,linux,x64,v100`
 
 ## Data Preparation
 

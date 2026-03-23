@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-21 (v1.8.5 strict heartbeat fix merged; acceptance chain reached green once; runner flapping still tracked in #46)
+Last updated: 2026-03-23 (v1.8.6 runner pool separation routing merged; infra provisioning for dedicated pools pending)
 
 ## Overall
 
@@ -11,11 +11,25 @@ Last updated: 2026-03-21 (v1.8.5 strict heartbeat fix merged; acceptance chain r
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
 
+## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — IN PROGRESS (Routing Landed, Infra Gate Pending)
+
+- Workflow routing updated to dedicated pools:
+  - Runtime deploy/smoke paths now target `self-hosted,linux,x64,spark-runtime`.
+  - Training paths now target dedicated GPU pools:
+    - A100: `self-hosted,linux,x64,a100`
+    - V100: `self-hosted,linux,x64,v100`
+- Heartbeat guard defaults switched to runtime pool:
+  - Default runner name: `spark-runtime-01`
+  - Default required labels: `self-hosted,linux,spark-runtime`
+- Current infra gate (blocking acceptance evidence):
+  - GitHub runner inventory still shows legacy mixed runner only (`spark-self-hosted`) and `offline`.
+  - Dedicated runner registration (`spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01`) must complete before isolation acceptance runs can be recorded.
+
 ## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
 
 - Delivery stabilization hardening:
   - Added self-hosted runner heartbeat guard script: `scripts/check_runner_heartbeat.py`
-  - `Deploy Spark After Image Publish` now blocks dispatch when `spark-self-hosted` is not online for 2 consecutive checks.
+  - `Deploy Spark After Image Publish` now blocks dispatch when `spark-runtime-01` is not online for 2 consecutive checks.
   - `Deploy Spark Runtime` now has a pre-deploy `runner-heartbeat` gate job before any self-hosted execution.
 - Monetization MVP foundations:
   - Plan-aware API key controls (`starter|pro|enterprise`) with plan-specific burst, daily spend caps, and monthly request caps.

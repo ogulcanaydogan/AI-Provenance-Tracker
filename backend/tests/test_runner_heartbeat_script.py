@@ -27,9 +27,13 @@ def test_prefers_gh_token_over_github_token(monkeypatch: pytest.MonkeyPatch) -> 
         tokens_seen.append(token)
         return [
             {
-                "name": "spark-self-hosted",
+                "name": "spark-runtime-01",
                 "status": "online",
-                "labels": [{"name": "self-hosted"}, {"name": "linux"}, {"name": "spark"}],
+                "labels": [
+                    {"name": "self-hosted"},
+                    {"name": "linux"},
+                    {"name": "spark-runtime"},
+                ],
             }
         ]
 
@@ -69,9 +73,13 @@ def test_runner_label_and_status_gate_passes(monkeypatch: pytest.MonkeyPatch) ->
     def _fake_fetch(_repo: str, _token: str) -> list[dict]:
         return [
             {
-                "name": "spark-self-hosted",
+                "name": "spark-runtime-01",
                 "status": "online",
-                "labels": [{"name": "Self-Hosted"}, {"name": "LINUX"}, {"name": "spark"}],
+                "labels": [
+                    {"name": "Self-Hosted"},
+                    {"name": "LINUX"},
+                    {"name": "spark-runtime"},
+                ],
             }
         ]
 
@@ -88,7 +96,7 @@ def test_runner_label_and_status_gate_passes(monkeypatch: pytest.MonkeyPatch) ->
             "--checks",
             "1",
             "--required-labels",
-            "self-hosted,linux,spark",
+            "self-hosted,linux,spark-runtime",
         ],
     )
 

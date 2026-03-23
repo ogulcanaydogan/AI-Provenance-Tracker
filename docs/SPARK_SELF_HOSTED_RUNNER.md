@@ -1,24 +1,28 @@
-# Spark Self-Hosted Runner Runbook
+# Spark Runner Pool Runbook
 
-This runbook documents the production self-hosted GitHub Actions runner used for Spark deploys.
+This runbook documents the self-hosted runner pool split used by production CI/CD and GPU training.
 
-## Target
+## Runner Pools
 
 - Repo: `ogulcanaydogan/AI-Provenance-Tracker`
-- Runner name: `spark-self-hosted`
-- Labels: `self-hosted`, `Linux`, `ARM64`, `spark`
+- Runtime runner name: `spark-runtime-01`
+- Runtime labels: `self-hosted`, `linux`, `x64`, `spark-runtime`
+- A100 runner name: `gpu-a100-01`
+- A100 labels: `self-hosted`, `linux`, `x64`, `a100`
+- V100 runner name: `gpu-v100-01`
+- V100 labels: `self-hosted`, `linux`, `x64`, `v100`
 
-## 1) Install runner on Spark host (ARM64)
+## 1) Install each runner service
 
 ```bash
-mkdir -p ~/actions-runner-spark
-cd ~/actions-runner-spark
-curl -L -o actions-runner-linux-arm64-2.331.0.tar.gz \
-  https://github.com/actions/runner/releases/download/v2.331.0/actions-runner-linux-arm64-2.331.0.tar.gz
-tar xzf actions-runner-linux-arm64-2.331.0.tar.gz
+mkdir -p ~/actions-runner-runtime
+cd ~/actions-runner-runtime
+curl -L -o actions-runner-linux-x64-2.331.0.tar.gz \
+  https://github.com/actions/runner/releases/download/v2.331.0/actions-runner-linux-x64-2.331.0.tar.gz
+tar xzf actions-runner-linux-x64-2.331.0.tar.gz
 ```
 
-## 2) Register runner
+## 2) Register runtime runner
 
 Generate a fresh registration token in GitHub:
 
@@ -27,15 +31,20 @@ Generate a fresh registration token in GitHub:
 Then configure:
 
 ```bash
-cd ~/actions-runner-spark
+cd ~/actions-runner-runtime
 ./config.sh \
   --url https://github.com/ogulcanaydogan/AI-Provenance-Tracker \
   --token <REGISTRATION_TOKEN> \
-  --name spark-self-hosted \
-  --labels spark,arm64 \
+  --name spark-runtime-01 \
+  --labels spark-runtime,x64 \
   --unattended \
   --replace
 ```
+
+Register GPU runners with the same pattern using dedicated service directories:
+
+- `gpu-a100-01` labels: `a100,x64`
+- `gpu-v100-01` labels: `v100,x64`
 
 ## 3) Persist with systemd (user service)
 
@@ -55,8 +64,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/actions-runner-spark
-ExecStart=%h/actions-runner-spark/run.sh
+WorkingDirectory=%h/actions-runner-runtime
+ExecStart=%h/actions-runner-runtime/run.sh
 Restart=always
 RestartSec=5
 KillMode=process
@@ -83,8 +92,9 @@ gh api repos/ogulcanaydogan/AI-Provenance-Tracker/actions/runners \
 
 Expected:
 
-- `name`: `spark-self-hosted`
-- `status`: `online`
+- `spark-runtime-01`: `online`, labels include `spark-runtime`
+- `gpu-a100-01`: `online`, labels include `a100`
+- `gpu-v100-01`: `online`, labels include `v100`
 
 ## 5) Trigger real pinned deploy
 
@@ -104,6 +114,6 @@ gh workflow run deploy-spark.yml \
 - Rotate runner registration tokens on reconfiguration.
 - Keep `SPARK_SSH_KEY` permissions strict (`600`) and `known_hosts` pinned.
 - Keep `RAILWAY_*` secrets out of this path; Spark deploy uses SSH + GHCR.
-- For ARM64 Spark hosts, publish multi-arch images (`linux/amd64,linux/arm64`) before pinned deploys.
+- For ARM64 runtime hosts, publish multi-arch images (`linux/amd64,linux/arm64`) before pinned deploys.
 - Keep signature verification enabled for pinned deploys (`verify_signatures=true`).
 - Keep SBOM attestation checks enabled for pinned deploys (automatic when verification is enabled).

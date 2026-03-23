@@ -31,7 +31,7 @@ Behavior:
 
 Use workflow: `Deploy Spark Runtime` (`.github/workflows/deploy-spark.yml`).
 Automatic chain is also available: `Publish Service Images` success on `main` auto-dispatches pinned Spark deploy (`.github/workflows/deploy-spark-after-publish.yml`).
-Both paths now run a runner-heartbeat guard first; if `spark-self-hosted` is offline,
+Both paths now run a runner-heartbeat guard first; if `spark-runtime-01` is offline,
 deploy dispatch is blocked with a deterministic error instead of staying queued.
 
 Self-hosted runner runbook:
@@ -42,6 +42,12 @@ Self-hosted runner runbook:
 - `docs/SLO_OBSERVABILITY.md`
 - `deploy/monitoring/grafana/runtime-observability-dashboard.json`
 - `deploy/monitoring/prometheus/provenance-alert-rules.yml`
+
+Runner pool routing:
+
+- Runtime deploy/smoke workflows: `self-hosted,linux,x64,spark-runtime`
+- A100 training workflows: `self-hosted,linux,x64,a100`
+- V100 training workflows: `self-hosted,linux,x64,v100`
 
 Required repository secrets:
 

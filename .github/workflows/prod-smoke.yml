@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   detect-smoke:
-    runs-on: [self-hosted, linux, x64, spark]
+    runs-on: [self-hosted, linux, x64, spark-runtime]
     timeout-minutes: 15
     env:
       SPARK_PUBLIC_API_URL: ${{ vars.SPARK_PUBLIC_API_URL }}

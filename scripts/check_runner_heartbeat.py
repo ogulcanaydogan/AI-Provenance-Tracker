@@ -15,10 +15,10 @@ from collections.abc import Iterable
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Check GitHub self-hosted runner heartbeat.")
     parser.add_argument("--repo", required=True, help="owner/repo")
-    parser.add_argument("--runner-name", default="spark-self-hosted")
+    parser.add_argument("--runner-name", default="spark-runtime-01")
     parser.add_argument(
         "--required-labels",
-        default="self-hosted,linux,spark",
+        default="self-hosted,linux,spark-runtime",
         help="Comma-separated labels that runner must have",
     )
     parser.add_argument(
