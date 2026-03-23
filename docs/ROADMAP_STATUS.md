@@ -34,6 +34,8 @@ Last updated: 2026-03-23 (v1.8.6 routing pushed on main; A100/V100 pools online;
       - `train-v100-sweep` labels=`self-hosted,linux,x64,v100`, `runner_name=gpu-v100-01` (run cancelled after routing verification).
   - Remaining blocker:
     - `spark-runtime-01` is not registered yet because Spark host (`100.80.116.20`) is unreachable (SSH timeout), so runtime deploy/smoke acceptance cannot be completed yet.
+    - Runtime acceptance attempt confirms blocker: [23425941426](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425941426)
+      - `runner-heartbeat` failed with `Runner 'spark-runtime-01' not found`.
 
 ## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
 
