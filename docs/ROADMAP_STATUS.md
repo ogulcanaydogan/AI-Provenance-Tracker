@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-23 (v1.8.6 runner pool separation routing merged; infra provisioning for dedicated pools pending)
+Last updated: 2026-03-23 (v1.8.6 routing pushed on main; A100/V100 pools online; spark-runtime provisioning still blocked by Spark host reachability)
 
 ## Overall
 
@@ -22,8 +22,18 @@ Last updated: 2026-03-23 (v1.8.6 runner pool separation routing merged; infra pr
   - Default runner name: `spark-runtime-01`
   - Default required labels: `self-hosted,linux,spark-runtime`
 - Current infra gate (blocking acceptance evidence):
-  - GitHub runner inventory still shows legacy mixed runner only (`spark-self-hosted`) and `offline`.
-  - Dedicated runner registration (`spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01`) must complete before isolation acceptance runs can be recorded.
+  - v1.8.6 commit pushed: `31669a8` (`chore(v1.8.6): separate runtime and gpu runner pools`)
+  - Dedicated GPU runners registered and online:
+    - `gpu-a100-01` (`self-hosted,linux,x64,a100`)
+    - `gpu-v100-01` (`self-hosted,linux,x64,v100`)
+  - Legacy mixed runner decommissioned from repo (`spark-self-hosted` removed) to eliminate cross-label confusion.
+  - Routing proof runs:
+    - A100 dispatch: [23425866540](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425866540)
+      - `train-a100` labels=`self-hosted,linux,x64,a100`, `runner_name=gpu-a100-01` (run cancelled after routing verification).
+    - V100 dispatch: [23425881568](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425881568)
+      - `train-v100-sweep` labels=`self-hosted,linux,x64,v100`, `runner_name=gpu-v100-01` (run cancelled after routing verification).
+  - Remaining blocker:
+    - `spark-runtime-01` is not registered yet because Spark host (`100.80.116.20`) is unreachable (SSH timeout), so runtime deploy/smoke acceptance cannot be completed yet.
 
 ## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
 
