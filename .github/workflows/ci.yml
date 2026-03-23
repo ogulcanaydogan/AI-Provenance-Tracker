@@ -11,7 +11,7 @@ jobs:
   backend-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -41,7 +41,7 @@ jobs:
         ports: ["6379:6379"]
         options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -76,7 +76,7 @@ jobs:
   frontend-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-build]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -134,7 +134,7 @@ jobs:
           npx playwright test --reporter=github
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: playwright-report
           path: frontend/test-results/
@@ -143,7 +143,7 @@ jobs:
   helm-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Install Helm
         uses: ./.github/actions/setup-helm-pinned
         with:
@@ -156,7 +156,7 @@ jobs:
   public-benchmark:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -236,7 +236,7 @@ jobs:
             kill "$(cat benchmark/results/ci/backend.pid)" || true
           fi
       - name: Upload benchmark artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: public-benchmark-artifacts
           path: benchmark/results/ci
@@ -245,7 +245,7 @@ jobs:
   committed-benchmark-evidence-guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v6
@@ -308,7 +308,7 @@ jobs:
 
       - name: Upload committed evidence guard artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: committed-benchmark-evidence-guard
           path: benchmark/results/ci/committed_evidence_regression_check.*

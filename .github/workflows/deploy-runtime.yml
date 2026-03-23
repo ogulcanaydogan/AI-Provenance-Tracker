@@ -159,7 +159,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Set up Helm
         uses: ./.github/actions/setup-helm-pinned
         with:
@@ -228,7 +228,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.0
 
       - name: Verify image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -291,7 +291,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
@@ -396,7 +396,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ steps.railway_link.outputs.link_failed != 'true' && env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.0
 
       - name: Verify image signatures
         if: ${{ steps.railway_link.outputs.link_failed != 'true' && env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -446,7 +446,7 @@ jobs:
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -483,7 +483,7 @@ jobs:
 
       - name: Upload smoke artifact (Helm)
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: deploy-smoke-artifact-helm
           path: backend/evidence/smoke/prod_detect_smoke_helm.json
@@ -501,7 +501,7 @@ jobs:
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -538,7 +538,7 @@ jobs:
 
       - name: Upload smoke artifact (Railway)
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: deploy-smoke-artifact-railway
           path: backend/evidence/smoke/prod_detect_smoke_railway.json
@@ -560,7 +560,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Set up Helm
         uses: ./.github/actions/setup-helm-pinned
         with:
@@ -624,7 +624,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.0
 
       - name: Verify rollback image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -678,7 +678,7 @@ jobs:
       ENABLE_COSIGN_VERIFY: ${{ vars.ENABLE_COSIGN_VERIFY || 'false' }}
       COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
@@ -764,7 +764,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.0
 
       - name: Verify rollback image signatures
         if: ${{ env.ENABLE_COSIGN_VERIFY == 'true' }}
@@ -884,7 +884,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload deployment summary artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: deploy-runtime-summary
           path: artifacts/deploy_runtime_summary.json

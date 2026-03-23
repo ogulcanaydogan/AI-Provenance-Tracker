@@ -107,7 +107,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Evaluate cost policy gate
         id: gate
         run: |
@@ -151,7 +151,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: deploy-spark-cost-gate
           path: ops/reports/deploy_cost_gate.*
@@ -164,7 +164,7 @@ jobs:
     outputs:
       resolved_runner_type: ${{ steps.resolve_runner.outputs.runner_type }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -220,7 +220,7 @@ jobs:
       SPARK_SMOKE_API_KEY_HEADER: ${{ vars.SPARK_SMOKE_API_KEY_HEADER || 'X-API-Key' }}
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -346,7 +346,7 @@ jobs:
 
       - name: Install cosign for signature verification
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.0
 
       - name: Authenticate to GHCR for signature verification
         if: ${{ steps.image_refs.outputs.use_pinned_images == 'true' && steps.resolve.outputs.verify_signatures == 'true' }}
@@ -534,7 +534,7 @@ jobs:
 
       - name: Upload Spark smoke artifacts
         if: ${{ always() && steps.resolve.outputs.run_smoke == 'true' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: spark-deploy-smoke
           path: backend/evidence/smoke
