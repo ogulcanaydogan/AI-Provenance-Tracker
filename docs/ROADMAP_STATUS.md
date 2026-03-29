@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-29 (v1.8.6 runtime pool closure completed; runtime deploy + smoke acceptance green)
+Last updated: 2026-03-29 (v1.8.6 acceptance achieved, then same-day Spark runtime regression reopened #46)
 
 ## Overall
 
@@ -50,6 +50,10 @@ Last updated: 2026-03-29 (v1.8.6 runtime pool closure completed; runtime deploy 
   - Isolation result:
     - Runtime/deploy/smoke routes restored on `spark-runtime-01`.
     - GPU pools remained online and isolated (`gpu-a100-01`, `gpu-v100-01`) with no cross-role labels.
+  - Post-closure regression (same day):
+    - `spark-runtime-01` later returned to `offline` and Spark SSH became unreachable from control host (timeout to `100.80.116.20:22`).
+    - Queued smoke symptom reappeared: [23715791650](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23715791650)
+    - Infra tracking thread reopened for single-thread handling: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
 
 ## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
 
