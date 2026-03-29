@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-24 (v1.8.6 runtime acceptance re-check executed; spark-runtime provisioning still blocked by Spark host reachability)
+Last updated: 2026-03-29 (v1.8.6 runtime pool closure completed; runtime deploy + smoke acceptance green)
 
 ## Overall
 
@@ -11,7 +11,7 @@ Last updated: 2026-03-24 (v1.8.6 runtime acceptance re-check executed; spark-run
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
 
-## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — IN PROGRESS (Routing Landed, Infra Gate Pending)
+## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — COMPLETED
 
 - Workflow routing updated to dedicated pools:
   - Runtime deploy/smoke paths now target `self-hosted,linux,x64,spark-runtime`.
@@ -21,23 +21,35 @@ Last updated: 2026-03-24 (v1.8.6 runtime acceptance re-check executed; spark-run
 - Heartbeat guard defaults switched to runtime pool:
   - Default runner name: `spark-runtime-01`
   - Default required labels: `self-hosted,linux,spark-runtime`
-- Current infra gate (blocking acceptance evidence):
+- Runtime closure evidence:
   - v1.8.6 commit pushed: `31669a8` (`chore(v1.8.6): separate runtime and gpu runner pools`)
-  - Dedicated GPU runners registered and online:
+  - Dedicated GPU runners online:
     - `gpu-a100-01` (`self-hosted,linux,x64,a100`)
     - `gpu-v100-01` (`self-hosted,linux,x64,v100`)
-  - Legacy mixed runner decommissioned from repo (`spark-self-hosted` removed) to eliminate cross-label confusion.
+  - Runtime runner online:
+    - `spark-runtime-01` (`self-hosted,linux,spark-runtime,x64,ARM64`)
+  - Legacy mixed runner service on Spark host was stopped/disabled (`github-actions-runner.service`) and replaced with dedicated runtime service (`github-runner-runtime-apt.service` in `~/actions-runner-runtime`).
   - Routing proof runs:
     - A100 dispatch: [23425866540](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425866540)
       - `train-a100` labels=`self-hosted,linux,x64,a100`, `runner_name=gpu-a100-01` (run cancelled after routing verification).
     - V100 dispatch: [23425881568](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425881568)
       - `train-v100-sweep` labels=`self-hosted,linux,x64,v100`, `runner_name=gpu-v100-01` (run cancelled after routing verification).
-  - Remaining blocker:
-    - `spark-runtime-01` is not registered yet because Spark host (`100.80.116.20`) is unreachable (SSH timeout), so runtime deploy/smoke acceptance cannot be completed yet.
-    - Runtime acceptance attempt confirms blocker: [23425941426](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23425941426)
-      - `runner-heartbeat` failed with `Runner 'spark-runtime-01' not found`.
-    - Re-check attempt (2026-03-24) confirms same blocker: [23489019522](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23489019522)
-      - `runner-heartbeat` failed with `Runner 'spark-runtime-01' not found`.
+  - Runtime acceptance runs:
+    - Failed attempt with missing GHCR tag: [23713319122](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23713319122)
+      - `Verify pinned image signatures` failed with `MANIFEST_UNKNOWN` for tag `31669a8...`.
+    - Successful deterministic acceptance: [23713357656](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23713357656)
+      - `runner-heartbeat` pass
+      - `Verify pinned image signatures (cosign keyless)` pass
+      - `Verify SBOM attestations (spdxjson)` pass
+      - `Deploy to Spark` pass
+      - `Run Spark smoke test` pass
+      - `Enforce smoke gate` pass
+  - Production smoke backlog recovery:
+    - Stale queued runs cancelled: `23708896144`, `23703278502`, `23698090111`, `23691340429`
+    - Fresh smoke run success: [23713413947](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23713413947)
+  - Isolation result:
+    - Runtime/deploy/smoke routes restored on `spark-runtime-01`.
+    - GPU pools remained online and isolated (`gpu-a100-01`, `gpu-v100-01`) with no cross-role labels.
 
 ## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
 
