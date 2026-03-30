@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-30 (v1.8.7 hotfix shipped + deterministic publish/deploy evidence added; #46 remains open during 24h monitoring)
+Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity still pending, runner monitoring window still open)
 
 ## Overall
 
@@ -37,11 +37,17 @@ Last updated: 2026-03-30 (v1.8.7 hotfix shipped + deterministic publish/deploy e
 - Live behavior check:
   - Spark-local runtime (`http://localhost:8010`) returns deterministic TLS detail for `https://example.com` as expected.
   - Public edge endpoint (`https://api.whoisfake.com`) still returns legacy generic SSL detail (`Failed to fetch URL ... _ssl.c:1077`), indicating edge/origin routing mismatch outside code scope.
+- Current closure checkpoint (2026-03-30):
+  - `main` latest: `cb63148` (`docs(v1.8.7): add publish/deploy evidence and edge routing status`)
+  - Latest CI success: [23741448722](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23741448722)
+  - Latest CodeQL success: [23741448750](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23741448750)
+  - Latest Production Smoke success: [23744798654](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23744798654)
 - Ops tracking policy for runtime stability:
   - `#46` remains open during 24h monitoring window.
+  - Window status: monitoring active; final close pending completion of full 24h stability window.
   - Current snapshot:
     - Runner inventory: `spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01` online.
-    - Latest successful smoke: [23731750519](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23731750519)
+    - Smoke history recovered with consecutive successes since 2026-03-29 16:18 UTC.
   - Close criteria unchanged: 24h stable runtime + smoke continuity without queue buildup.
 
 ## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — COMPLETED
