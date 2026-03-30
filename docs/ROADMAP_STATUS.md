@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-30 (v1.8.7 HTTPS URL fetch hotfix landed; 24h runtime monitoring window started with #46 kept open)
+Last updated: 2026-03-30 (v1.8.7 hotfix shipped + deterministic publish/deploy evidence added; #46 remains open during 24h monitoring)
 
 ## Overall
 
@@ -18,11 +18,25 @@ Last updated: 2026-03-30 (v1.8.7 HTTPS URL fetch hotfix landed; 24h runtime moni
   - SSL verification remains enabled (no insecure fallback path).
   - Certificate verification failures now return deterministic 400 detail:
     - `TLS certificate validation failed while fetching URL. Ensure the target URL exposes a valid public certificate chain.`
+- Release evidence:
+  - Hotfix commit on `main`: `5471537` (`fix(url-detect): use certifi CA bundle for HTTPS fetch and deterministic TLS errors`)
+  - `CI` success: [23740636410](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23740636410)
+  - `CodeQL Security Analysis` success: [23740636397](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23740636397)
+  - Manual publish (real build/push, `cost_override=true`) success: [23740771975](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23740771975)
+  - Manual self-hosted deploy acceptance success: [23741103027](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23741103027)
+    - `runner-heartbeat` pass
+    - cosign signature verification pass
+    - SBOM attestation verification pass
+    - `Deploy to Spark` pass
+    - `Run Spark smoke test` + `Enforce smoke gate` pass
 - Regression tests:
   - URL detection suite passed locally (12/12 selected URL tests):
     - `uv run --project backend pytest backend/tests/test_api_endpoints.py -k "url_detection" --no-cov`
   - Static checks passed:
     - `uv run --project backend ruff check backend/app/api/v1/detect.py backend/app/core/config.py backend/tests/test_api_endpoints.py`
+- Live behavior check:
+  - Spark-local runtime (`http://localhost:8010`) returns deterministic TLS detail for `https://example.com` as expected.
+  - Public edge endpoint (`https://api.whoisfake.com`) still returns legacy generic SSL detail (`Failed to fetch URL ... _ssl.c:1077`), indicating edge/origin routing mismatch outside code scope.
 - Ops tracking policy for runtime stability:
   - `#46` remains open during 24h monitoring window.
   - Current snapshot:
