@@ -6,8 +6,10 @@ import asyncio
 import html
 import json
 import re
+import ssl
 from urllib.parse import urljoin, urlparse
 
+import certifi
 import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -53,6 +55,10 @@ OG_VIDEO_PROPERTIES = ("og:video", "og:video:url", "og:video:secure_url")
 OG_IMAGE_PROPERTIES = ("og:image", "og:image:url", "og:image:secure_url")
 OG_PLAYER_PROPERTIES = ("twitter:player", "twitter:player:stream")
 PLATFORM_MEDIA_MISSING_DETAIL = "Platform page detected but no public direct media found"
+URL_TLS_CERTIFICATE_VERIFY_DETAIL = (
+    "TLS certificate validation failed while fetching URL. "
+    "Ensure the target URL exposes a valid public certificate chain."
+)
 URL_FETCH_MAX_REDIRECTS = 5
 URL_FETCH_HEADERS = {
     "User-Agent": (
@@ -165,6 +171,23 @@ def _infer_content_flags(content_type: str, resolved_url: str) -> tuple[bool, bo
         is_video = url_path.endswith(VIDEO_URL_EXTENSIONS)
         is_text = not is_image and not is_video
     return is_image, is_video, is_text
+
+
+def _build_url_fetch_ssl_context() -> ssl.SSLContext:
+    ca_bundle_path = (settings.url_fetch_tls_ca_bundle or "").strip() or certifi.where()
+    return ssl.create_default_context(cafile=ca_bundle_path)
+
+
+def _is_tls_certificate_verification_error(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    while current is not None:
+        if isinstance(current, ssl.SSLCertVerificationError):
+            return True
+        message = str(current).upper()
+        if "CERTIFICATE_VERIFY_FAILED" in message:
+            return True
+        current = current.__cause__ or current.__context__
+    return False
 
 
 async def _analyze_image_from_url(
@@ -718,10 +741,19 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
     source_url = str(request.url)
 
     try:
+        ssl_context = _build_url_fetch_ssl_context()
+    except (FileNotFoundError, ssl.SSLError, OSError) as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="URL fetch TLS configuration is invalid. Check URL_FETCH_TLS_CA_BUNDLE.",
+        ) from exc
+
+    try:
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(20.0, connect=5.0),
             follow_redirects=True,
             max_redirects=URL_FETCH_MAX_REDIRECTS,
+            verify=ssl_context,
         ) as client:
             response = await client.get(
                 source_url,
@@ -846,4 +878,6 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                 status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}"
             )
     except httpx.HTTPError as exc:
+        if _is_tls_certificate_verification_error(exc):
+            raise HTTPException(status_code=400, detail=URL_TLS_CERTIFICATE_VERIFY_DETAIL) from exc
         raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {exc}") from exc

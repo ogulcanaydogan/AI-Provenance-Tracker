@@ -3,6 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
+import certifi
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     max_image_size_mb: int = 10
     max_audio_size_mb: int = 25
     max_video_size_mb: int = 150
+    url_fetch_tls_ca_bundle: str = certifi.where()
     max_batch_items: int = 50
 
     # Rate limiting

@@ -721,6 +721,32 @@ async def test_url_detection_fetch_failure(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_url_detection_tls_certificate_failure_returns_deterministic_error(
+    client: AsyncClient,
+):
+    """HTTPS certificate verification failures return deterministic 400 detail."""
+
+    async def tls_fail_get(self, url, **kwargs):  # noqa: ARG001
+        request = httpx.Request("GET", url)
+        raise httpx.ConnectError(
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed",
+            request=request,
+        )
+
+    with patch.object(httpx.AsyncClient, "get", new=tls_fail_get):
+        response = await client.post(
+            "/api/v1/detect/url",
+            json={"url": "https://example.com/page"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "TLS certificate validation failed while fetching URL. "
+        "Ensure the target URL exposes a valid public certificate chain."
+    )
+
+
+@pytest.mark.asyncio
 async def test_url_detection_remote_error_status(client: AsyncClient):
     """Remote server returning 404 is surfaced as 400."""
 

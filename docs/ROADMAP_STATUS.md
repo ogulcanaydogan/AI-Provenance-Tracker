@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-29 (v1.8.6 acceptance achieved, then same-day Spark runtime regression reopened #46)
+Last updated: 2026-03-30 (v1.8.7 HTTPS URL fetch hotfix landed; 24h runtime monitoring window started with #46 kept open)
 
 ## Overall
 
@@ -10,6 +10,25 @@ Last updated: 2026-03-29 (v1.8.6 acceptance achieved, then same-day Spark runtim
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## v1.8.7 HTTPS URL Fetch Hotfix + 24h Runtime Monitoring — IN PROGRESS
+
+- Backend hotfix landed in code:
+  - `/api/v1/detect/url` now uses explicit TLS CA bundle configuration (`url_fetch_tls_ca_bundle`, defaulting to certifi bundle).
+  - SSL verification remains enabled (no insecure fallback path).
+  - Certificate verification failures now return deterministic 400 detail:
+    - `TLS certificate validation failed while fetching URL. Ensure the target URL exposes a valid public certificate chain.`
+- Regression tests:
+  - URL detection suite passed locally (12/12 selected URL tests):
+    - `uv run --project backend pytest backend/tests/test_api_endpoints.py -k "url_detection" --no-cov`
+  - Static checks passed:
+    - `uv run --project backend ruff check backend/app/api/v1/detect.py backend/app/core/config.py backend/tests/test_api_endpoints.py`
+- Ops tracking policy for runtime stability:
+  - `#46` remains open during 24h monitoring window.
+  - Current snapshot:
+    - Runner inventory: `spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01` online.
+    - Latest successful smoke: [23731750519](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23731750519)
+  - Close criteria unchanged: 24h stable runtime + smoke continuity without queue buildup.
 
 ## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — COMPLETED
 
