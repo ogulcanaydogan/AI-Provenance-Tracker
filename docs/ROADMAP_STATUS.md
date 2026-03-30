@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity still pending, runner monitoring window still open)
+Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity fixed, 24h runner monitoring window still open)
 
 ## Overall
 
@@ -34,14 +34,21 @@ Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity still pending,
     - `uv run --project backend pytest backend/tests/test_api_endpoints.py -k "url_detection" --no-cov`
   - Static checks passed:
     - `uv run --project backend ruff check backend/app/api/v1/detect.py backend/app/core/config.py backend/tests/test_api_endpoints.py`
-- Live behavior check:
-  - Spark-local runtime (`http://localhost:8010`) returns deterministic TLS detail for `https://example.com` as expected.
-  - Public edge endpoint (`https://api.whoisfake.com`) still returns legacy generic SSL detail (`Failed to fetch URL ... _ssl.c:1077`), indicating edge/origin routing mismatch outside code scope.
+- Live behavior check (edge/origin parity fixed on 2026-03-30):
+  - Root cause was Cloudflare tunnel ingress pointing `api.whoisfake.com` to local Mac `localhost:8010` (legacy runtime).
+  - Tunnel ingress was remediated to Spark runtime origin (`100.80.116.20:8010`) and tunnel restarted (`com.provenance.tunnel`).
+  - Public edge endpoint now matches Spark-local deterministic TLS behavior for `https://example.com`:
+    - `TLS certificate validation failed while fetching URL. Ensure the target URL exposes a valid public certificate chain.`
+  - Public 4-scenario parity probe now passes:
+    - `http://example.com` -> `200`, `content_type=text`
+    - direct image URL -> `200`, `content_type=image`
+    - direct video URL -> `200`, `content_type=video`
+    - Instagram reel (no public direct media) -> `400`, `Platform page detected but no public direct media found`
 - Current closure checkpoint (2026-03-30):
-  - `main` latest: `cb63148` (`docs(v1.8.7): add publish/deploy evidence and edge routing status`)
-  - Latest CI success: [23741448722](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23741448722)
-  - Latest CodeQL success: [23741448750](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23741448750)
-  - Latest Production Smoke success: [23744798654](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23744798654)
+  - `main` latest: `e02ae9e` (`docs(v1.8.7): record runner monitoring checkpoint and edge parity blocker`)
+  - Latest CI success: [23746177096](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23746177096)
+  - Latest CodeQL success: [23746177070](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23746177070)
+  - Latest Production Smoke success: [23748005753](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23748005753)
 - Ops tracking policy for runtime stability:
   - `#46` remains open during 24h monitoring window.
   - Window status: monitoring active; final close pending completion of full 24h stability window.
