@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity fixed, 24h runner monitoring window still open)
+Last updated: 2026-04-02 (v1.8.7 closure complete: edge parity fixed + 24h runtime monitoring passed)
 
 ## Overall
 
@@ -11,7 +11,7 @@ Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity fixed, 24h run
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
 
-## v1.8.7 HTTPS URL Fetch Hotfix + 24h Runtime Monitoring — IN PROGRESS
+## v1.8.7 HTTPS URL Fetch Hotfix + 24h Runtime Monitoring — COMPLETED
 
 - Backend hotfix landed in code:
   - `/api/v1/detect/url` now uses explicit TLS CA bundle configuration (`url_fetch_tls_ca_bundle`, defaulting to certifi bundle).
@@ -44,18 +44,17 @@ Last updated: 2026-03-30 (v1.8.7 closure in progress: edge parity fixed, 24h run
     - direct image URL -> `200`, `content_type=image`
     - direct video URL -> `200`, `content_type=video`
     - Instagram reel (no public direct media) -> `400`, `Platform page detected but no public direct media found`
-- Current closure checkpoint (2026-03-30):
-  - `main` latest: `e02ae9e` (`docs(v1.8.7): record runner monitoring checkpoint and edge parity blocker`)
-  - Latest CI success: [23746177096](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23746177096)
-  - Latest CodeQL success: [23746177070](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23746177070)
-  - Latest Production Smoke success: [23748005753](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23748005753)
-- Ops tracking policy for runtime stability:
-  - `#46` remains open during 24h monitoring window.
-  - Window status: monitoring active; final close pending completion of full 24h stability window.
-  - Current snapshot:
-    - Runner inventory: `spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01` online.
-    - Smoke history recovered with consecutive successes since 2026-03-29 16:18 UTC.
-  - Close criteria unchanged: 24h stable runtime + smoke continuity without queue buildup.
+- Final closure checkpoint (2026-04-02):
+  - `main` latest (before closure docs update): `c80d44a`
+  - Latest CI success: [23748145241](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23748145241)
+  - Latest CodeQL success: [23748145299](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23748145299)
+  - Latest scheduled Production Smoke success: [23887563461](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23887563461)
+  - 24h+ smoke continuity confirmed with no queue buildup:
+    - [23887563461](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23887563461)
+    - [23878142862](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23878142862)
+    - [23864352307](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23864352307)
+  - Runner inventory snapshot: `spark-runtime-01`, `gpu-a100-01`, `gpu-v100-01` online.
+  - Infra single-thread issue closed with recovery evidence: [#46 comment](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46#issuecomment-4175911212)
 
 ## v1.8.6 Runner Pool Separation (Runtime vs A100 vs V100) — COMPLETED
 
