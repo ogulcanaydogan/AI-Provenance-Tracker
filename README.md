@@ -9,7 +9,7 @@ Built for fact-checking, newsroom workflows, trust-and-safety teams, and investi
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
 
-[Live Demo](https://whoisfake.com) | [API Docs](https://api.whoisfake.com/docs) | [Benchmark & Status](docs/ROADMAP_STATUS.md)
+[Live Demo](https://whoisfake.com) | [API Docs](https://api.whoisfake.com/docs) | [Benchmark & Status](docs/ROADMAP_STATUS.md) | [Open-Core Model](docs/OPEN_CORE.md)
 
 ## Start In 3 Steps
 
@@ -34,6 +34,7 @@ Built for fact-checking, newsroom workflows, trust-and-safety teams, and investi
 
 - Methodology limits: [docs/METHODOLOGY_LIMITATIONS.md](docs/METHODOLOGY_LIMITATIONS.md)
 - Known operational status: [docs/ROADMAP_STATUS.md](docs/ROADMAP_STATUS.md)
+- Public/private repo split: [docs/OPEN_CORE.md](docs/OPEN_CORE.md)
 
 ## System Flow
 
@@ -122,6 +123,7 @@ curl -X POST "https://api.whoisfake.com/api/v1/detect/text" \
 - API reference: [docs/API.md](docs/API.md)
 - Deployment: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Roadmap and run evidence: [docs/ROADMAP_STATUS.md](docs/ROADMAP_STATUS.md)
+- Open-core boundary: [docs/OPEN_CORE.md](docs/OPEN_CORE.md)
 - Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Suggested GitHub About / Topics
