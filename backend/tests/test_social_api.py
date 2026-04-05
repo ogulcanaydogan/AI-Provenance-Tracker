@@ -192,7 +192,9 @@ async def test_social_process_falls_back_when_public_media_missing(client: Async
         patch.object(
             social_intake_service,
             "_analyze_source_url",
-            AsyncMock(side_effect=HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)),
+            AsyncMock(
+                side_effect=HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
+            ),
         ),
         patch.object(
             instagram_client,

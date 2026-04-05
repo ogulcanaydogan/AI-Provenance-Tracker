@@ -221,7 +221,7 @@ class SocialIntakeService:
             entry_id = str(entry.get("id") or "unknown")
             entry_time = str(entry.get("time") or "0")
 
-            for change in (entry.get("changes") or []):
+            for change in entry.get("changes") or []:
                 if not isinstance(change, dict):
                     continue
                 field = str(change.get("field") or "").strip().lower()
@@ -268,14 +268,16 @@ class SocialIntakeService:
                     )
                 )
 
-            for message_event in (entry.get("messaging") or []):
+            for message_event in entry.get("messaging") or []:
                 if not isinstance(message_event, dict):
                     continue
                 message = message_event.get("message")
                 if not isinstance(message, dict):
                     continue
                 actor_id = self._nested_str(message_event, "sender", "id")
-                message_id = self._first_non_empty(message.get("mid"), message_event.get("timestamp"))
+                message_id = self._first_non_empty(
+                    message.get("mid"), message_event.get("timestamp")
+                )
                 attachment_url = self._extract_message_attachment_url(message)
                 source_url = self._first_non_empty(
                     attachment_url,
@@ -293,7 +295,11 @@ class SocialIntakeService:
                         actor_platform_id=actor_id,
                         platform_media_id=None,
                         platform_comment_id=None,
-                        payload={"entry_id": entry_id, "entry_time": entry_time, "message": message_event},
+                        payload={
+                            "entry_id": entry_id,
+                            "entry_time": entry_time,
+                            "message": message_event,
+                        },
                     )
                 )
         return events
@@ -307,7 +313,10 @@ class SocialIntakeService:
             reply_channel = record.reply_channel
             source_url = (record.source_url or "").strip()
 
-        if reply_channel == "public_comment" and not settings.instagram_reply_public_comments_enabled:
+        if (
+            reply_channel == "public_comment"
+            and not settings.instagram_reply_public_comments_enabled
+        ):
             return {
                 "status": "skipped",
                 "response_status": "public_comment_disabled",
