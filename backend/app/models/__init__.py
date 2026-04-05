@@ -8,8 +8,8 @@ from app.models.detection import (
 )
 
 __all__ = [
-      "TextDetectionRequest",
-      "TextDetectionResponse",
-      "ImageDetectionResponse",
-      "DetectionAnalysis",
+    "TextDetectionRequest",
+    "TextDetectionResponse",
+    "ImageDetectionResponse",
+    "DetectionAnalysis",
 ]
