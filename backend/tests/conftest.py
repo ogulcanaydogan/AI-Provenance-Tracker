@@ -9,6 +9,7 @@ from app.middleware.rate_limiter import rate_limiter
 from app.services.analysis_store import analysis_store
 from app.services.api_key_plan_store import api_key_plan_store
 from app.services.audit_events import audit_event_store
+from app.services.social_intake import social_intake_service
 
 
 @pytest.fixture
@@ -32,6 +33,7 @@ async def _reset_runtime_state():
     await init_database()
     await analysis_store.reset()
     await audit_event_store.reset()
+    await social_intake_service.reset()
     rate_limiter._hits.clear()
     rate_limiter._daily_points.clear()
     rate_limiter._monthly_usage.clear()
@@ -46,6 +48,7 @@ async def _reset_runtime_state():
         settings.rate_limit_window_seconds = old_window
         await analysis_store.reset()
         await audit_event_store.reset()
+        await social_intake_service.reset()
         rate_limiter._hits.clear()
         rate_limiter._daily_points.clear()
         rate_limiter._monthly_usage.clear()

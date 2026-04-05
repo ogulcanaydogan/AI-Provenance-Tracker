@@ -56,6 +56,22 @@ Required repository secrets:
 - `SPARK_SSH_KEY`
 - `SPARK_SSH_PORT` (optional, default `22`)
 
+Required runtime application env for Instagram mention intake beta:
+
+- `INSTAGRAM_ENABLED=true`
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID`
+- `INSTAGRAM_ACCESS_TOKEN`
+- `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`
+- `INSTAGRAM_WEBHOOK_APP_SECRET`
+- `SOCIAL_ADMIN_SECRET`
+- `PUBLIC_FRONTEND_BASE_URL=https://whoisfake.com`
+- `PUBLIC_API_BASE_URL=https://api.whoisfake.com`
+- `WORKER_PROCESS_SOCIAL_QUEUE=true`
+
+These values belong to the backend/worker runtime environment on Spark, not to
+frontend-only Vercel config. Keep reply language English-only for v1 rollout and
+use the API admin endpoints for queue inspection until an internal dashboard exists.
+
 Optional repository variables:
 
 - `SPARK_REMOTE_DIR`
@@ -183,6 +199,10 @@ terraform apply
 - `POST /api/v1/detect/text`
 - `POST /api/v1/detect/image`
 - Optional smoke: `backend/scripts/smoke_detect_prod.py`
+- Instagram beta smoke:
+  - `GET /api/v1/social/instagram/webhook` verification challenge
+  - signed `POST /api/v1/social/instagram/webhook`
+  - worker drains queue and sends DM/public reply according to policy
 
 ## Notes
 

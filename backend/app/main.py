@@ -56,6 +56,10 @@ openapi_tags = [
         "name": "billing",
         "description": "API key plan sync, usage metering, and billing webhook integration.",
     },
+    {
+        "name": "social",
+        "description": "Instagram-first webhook intake, queue processing, and social verification automation.",
+    },
 ]
 
 app = FastAPI(

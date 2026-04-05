@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { VERDICT_LABELS, VERDICT_BG_COLORS } from "@/lib/constants";
 import { ConfidenceGauge } from "./ConfidenceGauge";
 import { SignalBreakdown } from "./SignalBreakdown";
-import { Clock, Copy, Check } from "lucide-react";
+import { Clock, Copy, Check, ExternalLink } from "lucide-react";
 
 interface ResultCardProps {
   result: DetectionResult;
@@ -14,6 +14,11 @@ interface ResultCardProps {
 
 export function ResultCard({ result }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://api.whoisfake.com").replace(
+    /\/+$/,
+    ""
+  );
+  const evidenceUrl = `${apiBase}/api/v1/analyze/evidence/${result.id}`;
 
   async function copyEvidenceSummary() {
     const summary = [
@@ -22,6 +27,7 @@ export function ResultCard({ result }: ResultCardProps) {
       `timestamp: ${result.analyzed_at}`,
       `analysis_id: ${result.id}`,
       `content_type: ${result.content_type}`,
+      `evidence_url: ${evidenceUrl}`,
     ].join("\n");
 
     try {
@@ -60,7 +66,16 @@ export function ResultCard({ result }: ResultCardProps) {
         <p className="text-sm text-gray-300 leading-relaxed">{result.summary}</p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <a
+          href={evidenceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#333] text-gray-200 hover:text-white hover:border-[#4a4a4a] transition-colors text-xs"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Open Evidence JSON
+        </a>
         <button
           type="button"
           onClick={copyEvidenceSummary}

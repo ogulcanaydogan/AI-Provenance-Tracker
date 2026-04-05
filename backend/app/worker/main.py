@@ -9,6 +9,7 @@ import structlog
 from app.core.config import settings
 from app.db import close_database, init_database
 from app.services.job_scheduler import x_pipeline_scheduler
+from app.services.social_intake import social_intake_service
 from app.services.webhook_dispatcher import webhook_dispatcher
 
 logger = structlog.get_logger()
@@ -22,6 +23,7 @@ async def run_worker() -> None:
         tick_seconds=tick_seconds,
         enable_scheduler=settings.worker_enable_scheduler,
         drain_webhook_queue=settings.worker_drain_webhook_queue,
+        process_social_queue=settings.worker_process_social_queue,
     )
 
     await init_database()
@@ -34,6 +36,10 @@ async def run_worker() -> None:
                 drained = await webhook_dispatcher.drain_retry_queue()
                 if drained.get("processed") or drained.get("dead_lettered"):
                     logger.info("worker_webhook_drain", **drained)
+            if settings.worker_process_social_queue:
+                processed = await social_intake_service.process_pending_events()
+                if processed.get("processed"):
+                    logger.info("worker_social_queue_drain", **processed)
             await asyncio.sleep(tick_seconds)
     finally:
         if settings.worker_enable_scheduler:

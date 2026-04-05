@@ -102,6 +102,12 @@ describe("ResultCard", () => {
     render(<ResultCard result={result} />);
     expect(screen.getByText("Copy Shareable Evidence")).toBeDefined();
   });
+
+  it("renders evidence json link", () => {
+    render(<ResultCard result={result} />);
+    const link = screen.getByRole("link", { name: "Open Evidence JSON" });
+    expect(link.getAttribute("href")).toContain("/api/v1/analyze/evidence/test-1");
+  });
 });
 
 describe("TextInput", () => {

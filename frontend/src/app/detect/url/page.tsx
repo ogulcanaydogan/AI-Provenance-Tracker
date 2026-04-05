@@ -19,7 +19,8 @@ export default function UrlDetectionPage() {
         </h1>
         <p className="text-gray-400 mt-2">
           Analyze text, image, or video from a public URL. For social platforms, use a public post
-          link so OG media can be resolved.
+          link so OG media can be resolved. On Instagram, you can also tag or DM
+          <span className="text-blue-300"> @whoisfake</span> for assisted intake.
         </p>
       </div>
 

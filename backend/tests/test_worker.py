@@ -18,11 +18,13 @@ async def test_run_worker_starts_and_stops() -> None:
         patch("app.worker.main.close_database", new_callable=AsyncMock),
         patch("app.worker.main.x_pipeline_scheduler"),
         patch("app.worker.main.webhook_dispatcher"),
+        patch("app.worker.main.social_intake_service"),
         patch("app.worker.main.settings") as mock_settings,
     ):
         mock_settings.worker_tick_seconds = 1
         mock_settings.worker_enable_scheduler = False
         mock_settings.worker_drain_webhook_queue = False
+        mock_settings.worker_process_social_queue = False
 
         task = asyncio.create_task(run_worker())
         await asyncio.sleep(0.05)
@@ -41,11 +43,13 @@ async def test_run_worker_drains_webhook_queue() -> None:
         patch("app.worker.main.close_database", new_callable=AsyncMock),
         patch("app.worker.main.x_pipeline_scheduler"),
         patch("app.worker.main.webhook_dispatcher") as mock_dispatcher,
+        patch("app.worker.main.social_intake_service"),
         patch("app.worker.main.settings") as mock_settings,
     ):
         mock_settings.worker_tick_seconds = 1
         mock_settings.worker_enable_scheduler = False
         mock_settings.worker_drain_webhook_queue = True
+        mock_settings.worker_process_social_queue = False
         mock_dispatcher.drain_retry_queue = AsyncMock(
             return_value={"processed": 0, "dead_lettered": 0}
         )
@@ -67,11 +71,13 @@ async def test_run_worker_starts_scheduler() -> None:
         patch("app.worker.main.close_database", new_callable=AsyncMock),
         patch("app.worker.main.x_pipeline_scheduler") as mock_scheduler,
         patch("app.worker.main.webhook_dispatcher"),
+        patch("app.worker.main.social_intake_service"),
         patch("app.worker.main.settings") as mock_settings,
     ):
         mock_settings.worker_tick_seconds = 1
         mock_settings.worker_enable_scheduler = True
         mock_settings.worker_drain_webhook_queue = False
+        mock_settings.worker_process_social_queue = False
         mock_scheduler.start = AsyncMock()
         mock_scheduler.stop = AsyncMock()
 
@@ -82,6 +88,34 @@ async def test_run_worker_starts_scheduler() -> None:
             await task
 
         mock_scheduler.start.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_worker_processes_social_queue() -> None:
+    """Worker should drain social queue when enabled."""
+    with (
+        patch("app.worker.main.init_database", new_callable=AsyncMock),
+        patch("app.worker.main.close_database", new_callable=AsyncMock),
+        patch("app.worker.main.x_pipeline_scheduler"),
+        patch("app.worker.main.webhook_dispatcher"),
+        patch("app.worker.main.social_intake_service") as mock_social,
+        patch("app.worker.main.settings") as mock_settings,
+    ):
+        mock_settings.worker_tick_seconds = 1
+        mock_settings.worker_enable_scheduler = False
+        mock_settings.worker_drain_webhook_queue = False
+        mock_settings.worker_process_social_queue = True
+        mock_social.process_pending_events = AsyncMock(
+            return_value={"processed": 1, "completed": 1, "failed": 0, "skipped": 0, "scanned": 1}
+        )
+
+        task = asyncio.create_task(run_worker())
+        await asyncio.sleep(0.05)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        mock_social.process_pending_events.assert_awaited()
 
 
 def test_main_returns_zero_on_keyboard_interrupt() -> None:

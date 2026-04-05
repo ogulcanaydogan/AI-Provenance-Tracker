@@ -191,7 +191,7 @@ def _is_tls_certificate_verification_error(exc: BaseException) -> bool:
 
 
 async def _analyze_image_from_url(
-    *, image_data: bytes, resolved_url: str, max_image_size_bytes: int
+    *, image_data: bytes, resolved_url: str, max_image_size_bytes: int, source: str
 ) -> dict:
     if len(image_data) > max_image_size_bytes:
         raise HTTPException(
@@ -213,17 +213,17 @@ async def _analyze_image_from_url(
         image_data=image_data,
         filename=filename,
         result=image_result,
-        source="url",
+        source=source,
         source_url=resolved_url,
     )
     image_result.analysis_id = analysis_id
     await audit_event_store.safe_log_event(
         event_type="detection.completed",
-        source="url",
+        source=source,
         payload={
             "content_type": "image",
             "analysis_id": analysis_id,
-            "source": "url",
+            "source": source,
             "source_url": resolved_url,
             "filename": filename,
             "is_ai_generated": image_result.is_ai_generated,
@@ -240,7 +240,7 @@ async def _analyze_image_from_url(
 
 
 async def _analyze_video_from_url(
-    *, video_data: bytes, resolved_url: str, max_video_size_bytes: int
+    *, video_data: bytes, resolved_url: str, max_video_size_bytes: int, source: str
 ) -> dict:
     if len(video_data) > max_video_size_bytes:
         raise HTTPException(
@@ -262,17 +262,17 @@ async def _analyze_video_from_url(
         video_data=video_data,
         filename=filename,
         result=video_result,
-        source="url",
+        source=source,
         source_url=resolved_url,
     )
     video_result.analysis_id = analysis_id
     await audit_event_store.safe_log_event(
         event_type="detection.completed",
-        source="url",
+        source=source,
         payload={
             "content_type": "video",
             "analysis_id": analysis_id,
-            "source": "url",
+            "source": source,
             "source_url": resolved_url,
             "filename": filename,
             "is_ai_generated": video_result.is_ai_generated,
@@ -730,15 +730,15 @@ async def detect_video(file: UploadFile = File(...)) -> VideoDetectionResponse:
 
 @router.post("/url")
 async def detect_from_url(request: UrlDetectionRequest) -> dict:
-    """
-    Detect AI-generated content from a URL.
+    return await analyze_url_content(str(request.url), source="url")
 
-    Fetches content from the URL and analyzes it.
-    Supports text articles, images, and direct media video links.
+
+async def analyze_url_content(source_url: str, *, source: str = "url") -> dict:
+    """
+    Detect AI-generated content from a URL and persist analysis under the given source label.
     """
     max_image_size_bytes = settings.max_image_size_mb * 1024 * 1024
     max_video_size_bytes = settings.max_video_size_mb * 1024 * 1024
-    source_url = str(request.url)
 
     try:
         ssl_context = _build_url_fetch_ssl_context()
@@ -775,6 +775,7 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                     image_data=response.content,
                     resolved_url=resolved_url,
                     max_image_size_bytes=max_image_size_bytes,
+                    source=source,
                 )
 
             if is_video:
@@ -782,6 +783,7 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                     video_data=response.content,
                     resolved_url=resolved_url,
                     max_video_size_bytes=max_video_size_bytes,
+                    source=source,
                 )
 
             if is_text:
@@ -819,12 +821,14 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                             image_data=media_response.content,
                             resolved_url=resolved_media_url,
                             max_image_size_bytes=max_image_size_bytes,
+                            source=source,
                         )
                     if media_is_video:
                         return await _analyze_video_from_url(
                             video_data=media_response.content,
                             resolved_url=resolved_media_url,
                             max_video_size_bytes=max_video_size_bytes,
+                            source=source,
                         )
                     raise HTTPException(status_code=400, detail=PLATFORM_MEDIA_MISSING_DETAIL)
 
@@ -848,17 +852,17 @@ async def detect_from_url(request: UrlDetectionRequest) -> dict:
                 analysis_id = await analysis_store.save_text_result(
                     text=extracted_text,
                     result=text_result,
-                    source="url",
+                    source=source,
                     source_url=resolved_url,
                 )
                 text_result.analysis_id = analysis_id
                 await audit_event_store.safe_log_event(
                     event_type="detection.completed",
-                    source="url",
+                    source=source,
                     payload={
                         "content_type": "text",
                         "analysis_id": analysis_id,
-                        "source": "url",
+                        "source": source,
                         "source_url": resolved_url,
                         "is_ai_generated": text_result.is_ai_generated,
                         "confidence": text_result.confidence,

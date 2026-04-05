@@ -126,6 +126,10 @@ export default function Home() {
                 Upload, paste, or analyze URL and generate an explainable report fast.
                 Built for fact-checkers and newsroom verification workflows.
               </p>
+              <p className="text-sm md:text-base text-blue-300/90 max-w-2xl mx-auto mt-4">
+                Tag <span className="font-semibold">@whoisfake</span> or DM a public Instagram link,
+                then fall back to URL detection when a platform post does not expose public media.
+              </p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
@@ -226,8 +230,9 @@ export default function Home() {
                   URL analysis has a dedicated workspace for text, image, and video links.
                 </p>
                 <p className="text-sm text-gray-400">
-                  For Instagram/TikTok/X, use a public post link. Private/auth-required pages return
-                  a deterministic unsupported message.
+                  For Instagram/TikTok/X, use a public post link. You can also tag
+                  <span className="text-blue-300"> @whoisfake</span> or DM a public link on Instagram.
+                  Private/auth-required pages return a deterministic unsupported message.
                 </p>
                 <div>
                   <Link
@@ -244,7 +249,8 @@ export default function Home() {
           <p className="mt-4 text-xs text-gray-500">
             Methodology limits: results are probabilistic and should be treated as evidence support,
             not a final verdict. Experimental modalities: social URL resolution depends on public OG
-            metadata and may not work for private/auth-required pages.
+            metadata and may not work for private/auth-required pages. Instagram public auto-replies
+            are limited to our own media comments; third-party mentions fall back to DM or manual URL analysis.
           </p>
         </section>
 

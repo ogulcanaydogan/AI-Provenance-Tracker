@@ -91,7 +91,8 @@ export function URLDetector({
         <p className="font-medium text-gray-200">URL Analyze flow</p>
         <p className="text-gray-400">
           Upload/Paste/URL -&gt; Explainable report. For Instagram/TikTok/X, use a public post link.
-          Private pages are unsupported.
+          Tag or DM <span className="text-blue-300">@whoisfake</span> on Instagram, or paste the
+          same public link here. Private pages are unsupported.
         </p>
       </div>
 

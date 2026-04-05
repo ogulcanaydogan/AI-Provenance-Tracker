@@ -37,7 +37,8 @@ export default function NewsroomPricingPage() {
         </h1>
         <p className="text-gray-400 max-w-3xl">
           Evidence-first AI provenance detection for editorial verification pipelines.
-          Conservative false-positive profile, explainable results, and API key quota control.
+          Conservative false-positive profile, explainable results, API key quota control,
+          and Instagram mention triage for social verification desks.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
@@ -101,6 +102,19 @@ export default function NewsroomPricingPage() {
         </pre>
       </section>
 
+      <section className="rounded-2xl border border-[#262626] bg-[#111] p-6 space-y-3">
+        <h2 className="text-lg font-semibold text-white">Social Verification Desk</h2>
+        <p className="text-sm text-gray-400">
+          Tag <span className="text-blue-300 font-medium">@whoisfake</span> or DM a public
+          Instagram link to trigger automated intake. Owned-media comments can receive a public
+          reply; third-party mentions fall back to DM plus an evidence link.
+        </p>
+        <p className="text-sm text-gray-500">
+          This keeps the public workflow visible while preserving deterministic behavior for
+          private or no-public-media posts.
+        </p>
+      </section>
+
       <section className="rounded-2xl border border-[#262626] bg-[#111] p-6">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Gauge className="h-4 w-4 text-amber-400" />
@@ -114,4 +128,3 @@ export default function NewsroomPricingPage() {
     </main>
   );
 }
-

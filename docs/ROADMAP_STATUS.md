@@ -100,7 +100,7 @@ Last updated: 2026-04-02 (v1.8.7 closure complete: edge parity fixed + 24h runti
     - Queued smoke symptom reappeared: [23715791650](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23715791650)
     - Infra tracking thread reopened for single-thread handling: [#46](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/46)
 
-## v1.9 Newsroom Monetization + Conservative Accuracy Uplift — IMPLEMENTED (Code), LIVE VALIDATION PENDING
+## v1.9.1 Instagram Mention Assistant Foundation — RELEASED ON MAIN, LIVE BETA PREP READY
 
 - Delivery stabilization hardening:
   - Added self-hosted runner heartbeat guard script: `scripts/check_runner_heartbeat.py`
@@ -118,6 +118,47 @@ Last updated: 2026-04-02 (v1.8.7 closure complete: edge parity fixed + 24h runti
     - `GET /api/v1/analyze/evidence/{analysis_id}`
   - Frontend newsroom one-pager route:
     - `/for-newsrooms` (plan cards + evidence payload sample + docs CTA)
+- Instagram-first social verification assistant foundations:
+  - New webhook verify + ingest endpoints:
+    - `GET /api/v1/social/instagram/webhook`
+    - `POST /api/v1/social/instagram/webhook`
+  - New admin/process endpoints:
+    - `GET /api/v1/social/events`
+    - `POST /api/v1/social/events/process`
+  - Idempotent DB-backed social queue with audit trail:
+    - platform event id dedupe
+    - reply channel (`dm` vs `public_comment`)
+    - analysis id / response status persistence
+  - Hybrid reply policy implemented in code:
+    - own-media comments -> public auto-reply
+    - third-party mentions/tags/messages -> DM + evidence link
+    - no-public-media/private posts -> deterministic fallback to `/detect/url`
+  - Frontend growth copy updated:
+    - landing CTA now mentions `@whoisfake` / DM public link flow
+    - `/detect/url` positioned as manual fallback
+    - result card now exposes `Open Evidence JSON` + richer shareable evidence copy
+- v1.9.1 rollout contract locked:
+  - Instagram-first
+  - English-only automated replies
+  - API-only admin surface
+  - Conservative verdict language: `AI likely` / `human likely` / `uncertain`
+- Runtime env required before live beta:
+  - `INSTAGRAM_ENABLED=true`
+  - `INSTAGRAM_BUSINESS_ACCOUNT_ID`
+  - `INSTAGRAM_ACCESS_TOKEN`
+  - `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`
+  - `INSTAGRAM_WEBHOOK_APP_SECRET`
+  - `SOCIAL_ADMIN_SECRET`
+  - `PUBLIC_FRONTEND_BASE_URL=https://whoisfake.com`
+  - `PUBLIC_API_BASE_URL=https://api.whoisfake.com`
+  - `WORKER_PROCESS_SOCIAL_QUEUE=true`
+- Live beta acceptance checklist locked:
+  - webhook verify pass
+  - duplicate event dedupe pass
+  - own-post comment public reply pass
+  - third-party mention/tag/story/message DM pass
+  - public video permalink analysis pass
+  - unsupported/private fallback pass
 - Conservative quality stance remains active (high-disagreement -> `uncertain`, short-text guard, calibration gates).
 
 ## v1.8.5 Deploy Chain Closure (Strict Heartbeat + Infra-only Kube Fix) — PARTIAL (Green Acceptance Achieved, Runner Flapping Persists)

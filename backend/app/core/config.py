@@ -170,6 +170,27 @@ class Settings(BaseSettings):
     # Calibration/evaluation tracking
     calibration_reports_dir: str = "evidence/calibration"
 
+    # Public-facing URLs
+    public_frontend_base_url: str = "https://whoisfake.com"
+    public_api_base_url: str = "https://api.whoisfake.com"
+
+    # Social / Instagram automation
+    instagram_enabled: bool = False
+    instagram_graph_api_base_url: str = "https://graph.instagram.com/v25.0"
+    instagram_business_account_id: str = ""
+    instagram_access_token: str = ""
+    instagram_webhook_verify_token: str = ""
+    instagram_webhook_app_secret: str = ""
+    instagram_reply_timeout_seconds: float = 10.0
+    instagram_reply_public_comments_enabled: bool = True
+    instagram_reply_dm_enabled: bool = True
+    social_admin_secret: str = ""
+    social_queue_batch_size: int = 20
+    social_reply_max_length: int = 280
+
+    # Social worker queue
+    worker_process_social_queue: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

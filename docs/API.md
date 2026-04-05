@@ -214,6 +214,64 @@ Returns a shareable machine-readable evidence payload:
 
 ---
 
+### Instagram Social Intake
+
+```
+GET /api/v1/social/instagram/webhook
+POST /api/v1/social/instagram/webhook
+GET /api/v1/social/events
+POST /api/v1/social/events/process
+```
+
+Instagram-first social automation uses the existing URL detection pipeline and evidence export.
+
+- `GET /social/instagram/webhook` handles the Meta verification challenge (`hub.mode`, `hub.verify_token`, `hub.challenge`).
+- `POST /social/instagram/webhook` accepts mention, tag, own-post comment, story mention, and message notifications and enqueues unique events.
+- `GET /social/events` lists queue state for admin inspection.
+- `POST /social/events/process` drains pending events immediately (worker uses the same processor in production).
+
+Behavior policy:
+
+- Own-media comments -> public reply under the comment.
+- Third-party mentions/tags/story mentions/messages -> DM with verdict + evidence link.
+- Private/auth-required/no-public-media posts -> deterministic fallback asking for a public link or `/detect/url`.
+- Reply templates are English-only in v1 and use conservative verdict language:
+  - `AI likely`
+  - `human likely`
+  - `uncertain`
+
+Production rollout contract:
+
+- `INSTAGRAM_ENABLED=true`
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID=<professional account id>`
+- `INSTAGRAM_ACCESS_TOKEN=<graph api token>`
+- `INSTAGRAM_WEBHOOK_VERIFY_TOKEN=<meta verify token>`
+- `INSTAGRAM_WEBHOOK_APP_SECRET=<meta app secret>`
+- `SOCIAL_ADMIN_SECRET=<admin secret for queue inspection/process>`
+- `PUBLIC_FRONTEND_BASE_URL=https://whoisfake.com`
+- `PUBLIC_API_BASE_URL=https://api.whoisfake.com`
+- `WORKER_PROCESS_SOCIAL_QUEUE=true`
+
+If `SOCIAL_ADMIN_SECRET` is configured, admin endpoints require:
+
+```
+X-Social-Admin-Secret: your-admin-secret
+```
+
+If `INSTAGRAM_WEBHOOK_APP_SECRET` is configured, the webhook expects a valid
+`X-Hub-Signature-256` signature.
+
+Live beta acceptance checklist:
+
+- webhook verification challenge succeeds
+- duplicate delivery dedupe works
+- own-post comment gets public reply
+- third-party mention/tag/story/message gets DM reply
+- public direct or OG-resolved media reaches analysis
+- unsupported/private/no-public-media falls back deterministically
+
+---
+
 ### Usage Metering
 
 ```
