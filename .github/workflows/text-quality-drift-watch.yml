@@ -35,7 +35,7 @@ jobs:
       DRIFT_MAX_ECE: "0.02"
       DRIFT_MAX_DOMAIN_FP: "0.05"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Resolve benchmark profile
         id: profile
@@ -301,7 +301,7 @@ jobs:
 
       - name: Upload drift watch artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: text-quality-drift-artifacts
           path: benchmark/results/drift/current

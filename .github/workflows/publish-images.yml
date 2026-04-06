@@ -39,7 +39,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Evaluate cost policy gate
         id: gate
         run: |
@@ -83,7 +83,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: publish-images-cost-gate
           path: ops/reports/publish_cost_gate.*
@@ -94,7 +94,7 @@ jobs:
     if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Enforce package policy allow/deny rules
         run: |
           set -euo pipefail
@@ -108,7 +108,7 @@ jobs:
         run: |
           cat ops/reports/package_policy_report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload package policy artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: package-policy-report
           path: ops/reports/package_policy_report.*
@@ -128,7 +128,7 @@ jobs:
       matrix:
         component: [api, worker]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
@@ -151,7 +151,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:latest
             ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v4.1.1
       - name: Sign GHCR images (keyless)
         env:
           IMAGE_SHA_TAG: ghcr.io/${{ github.repository_owner }}/provenance-${{ matrix.component }}:${{ github.sha }}
@@ -257,19 +257,19 @@ jobs:
         run: |
           cat "release-provenance-${{ matrix.component }}-${{ github.sha }}.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: sbom-${{ matrix.component }}-${{ github.sha }}
           path: sbom-${{ matrix.component }}-${{ github.sha }}.spdx.json
           retention-days: 30
       - name: Upload vulnerability report artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: trivy-${{ matrix.component }}-${{ github.sha }}
           path: trivy-${{ matrix.component }}-${{ github.sha }}.json
           retention-days: 30
       - name: Upload release provenance artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: release-provenance-${{ matrix.component }}-${{ github.sha }}
           path: |
