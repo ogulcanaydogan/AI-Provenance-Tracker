@@ -7,7 +7,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import router as api_router
+from app.api.v1 import build_router
 from app.core.config import settings
 from app.db import close_database, init_database
 from app.middleware.audit import audit_http_request
@@ -168,4 +168,4 @@ async def root() -> dict[str, str]:
 
 
 # Include API router
-app.include_router(api_router, prefix=settings.api_prefix)
+app.include_router(build_router(), prefix=settings.api_prefix)
