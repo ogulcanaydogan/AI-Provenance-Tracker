@@ -218,6 +218,85 @@ async def test_social_process_falls_back_when_public_media_missing(client: Async
 
 
 @pytest.mark.asyncio
+async def test_social_event_detail_returns_single_item(client: AsyncClient):
+    enqueue_response = await client.post(
+        "/api/v1/social/instagram/webhook", json=_comment_webhook_payload()
+    )
+    assert enqueue_response.status_code == 200
+
+    list_response = await client.get("/api/v1/social/events")
+    event_id = list_response.json()["items"][0]["id"]
+
+    detail_response = await client.get(f"/api/v1/social/events/{event_id}")
+
+    assert detail_response.status_code == 200
+    payload = detail_response.json()
+    assert payload["id"] == event_id
+    assert payload["event_type"] == "comments"
+    assert payload["reply_channel"] == "public_comment"
+
+
+@pytest.mark.asyncio
+async def test_social_process_specific_event_supports_reprocess(client: AsyncClient):
+    enqueue_response = await client.post(
+        "/api/v1/social/instagram/webhook", json=_comment_webhook_payload()
+    )
+    assert enqueue_response.status_code == 200
+
+    event_id = (await client.get("/api/v1/social/events")).json()["items"][0]["id"]
+
+    with (
+        patch.object(
+            social_intake_service,
+            "_analyze_source_url",
+            AsyncMock(
+                return_value={
+                    "analysis_id": "analysis-first-pass",
+                    "content_type": "video",
+                    "result": {"confidence": 0.88, "is_ai_generated": True},
+                }
+            ),
+        ),
+        patch.object(
+            instagram_client,
+            "reply_to_comment",
+            AsyncMock(return_value={"id": "reply-first"}),
+        ),
+    ):
+        first_response = await client.post(f"/api/v1/social/events/{event_id}/process")
+
+    assert first_response.status_code == 200
+    assert first_response.json()["analysis_id"] == "analysis-first-pass"
+    assert first_response.json()["attempt_count"] == 1
+
+    with (
+        patch.object(
+            social_intake_service,
+            "_analyze_source_url",
+            AsyncMock(
+                return_value={
+                    "analysis_id": "analysis-second-pass",
+                    "content_type": "video",
+                    "result": {"confidence": 0.92, "is_ai_generated": True},
+                }
+            ),
+        ),
+        patch.object(
+            instagram_client,
+            "reply_to_comment",
+            AsyncMock(return_value={"id": "reply-second"}),
+        ),
+    ):
+        second_response = await client.post(f"/api/v1/social/events/{event_id}/process")
+
+    assert second_response.status_code == 200
+    payload = second_response.json()
+    assert payload["analysis_id"] == "analysis-second-pass"
+    assert payload["response_id"] == "reply-second"
+    assert payload["attempt_count"] == 2
+
+
+@pytest.mark.asyncio
 async def test_instagram_webhook_rejects_invalid_signature_when_secret_configured(
     client: AsyncClient,
 ):

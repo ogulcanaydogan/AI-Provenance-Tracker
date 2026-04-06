@@ -5,7 +5,7 @@
 WhoisFake now follows an open-core structure:
 
 - `AI-Provenance-Tracker` stays public and MIT-licensed
-- commercial differentiation moves into private repositories
+- commercial differentiation lives in private repositories under `WhoIsFake/*`
 - integration happens through API, artifact, and environment contracts
 - git submodules are intentionally not used
 
@@ -25,21 +25,21 @@ This keeps the trust layer auditable while protecting the datasets, workflows, a
 
 ### Private repositories
 
-- `whoisfake-enterprise`
+- `WhoIsFake/whoisfake-enterprise`
   - newsroom and team workflows
   - social inbox dashboard and orchestration
   - customer auth and admin
   - billing and quota UX
   - premium managed integrations
 
-- `whoisfake-assets`
+- `WhoIsFake/whoisfake-assets`
   - proprietary datasets
   - hard-negative corpora
   - calibration bundles
   - model bundles and private artifacts
   - provider prompt and config maps
 
-- `whoisfake-ops`
+- `WhoIsFake/whoisfake-ops`
   - environment contracts
   - deployment runbooks
   - monitoring references
@@ -79,6 +79,15 @@ The private repositories serve the commercial job:
 1. protect the data and artifacts that improve accuracy
 2. protect enterprise workflow IP
 3. protect operational knowledge and customer rollout details
+
+## Current Org State
+
+The personal-account bootstrap phase is complete.
+
+- the public trust and funnel repo remains at `ogulcanaydogan/AI-Provenance-Tracker`
+- the private commercial layer now lives under the `WhoIsFake` GitHub organization
+- local development still uses sibling repositories rather than submodules
+- integration boundaries remain API, artifact, and environment contracts
 
 ## Local Workspace Standard
 

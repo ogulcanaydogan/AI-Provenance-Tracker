@@ -206,6 +206,62 @@ class SocialIntakeService:
 
         return [self._to_item(row) for row in rows], total
 
+    async def get_event(self, social_event_id: int) -> dict[str, Any] | None:
+        """Return one social queue row for admin detail views."""
+        await self._ensure_initialized()
+        async with get_db_session() as session:
+            record = await session.get(SocialEventRecord, social_event_id)
+        if record is None:
+            return None
+        return self._to_item(record)
+
+    async def process_event(self, social_event_id: int) -> dict[str, Any]:
+        """Process or reprocess a specific social queue row."""
+        await self._ensure_initialized()
+        async with get_db_session() as session:
+            record = await session.get(SocialEventRecord, social_event_id)
+            if record is None:
+                raise HTTPException(status_code=404, detail="Social event not found")
+            if record.status == "processing":
+                raise HTTPException(status_code=409, detail="Social event is already processing")
+
+            record.status = "processing"
+            record.attempt_count = int(record.attempt_count or 0) + 1
+            record.updated_at = datetime.now(UTC)
+            await session.commit()
+
+        try:
+            outcome = await self._process_record(social_event_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("social_event_processing_failed", id=social_event_id, error=str(exc))
+            outcome = {
+                "status": "failed",
+                "analysis_id": None,
+                "response_status": None,
+                "response_id": None,
+                "last_error": str(exc)[:1024],
+            }
+            await audit_event_store.safe_log_event(
+                event_type="social.event_failed",
+                severity="warning",
+                source="instagram_worker",
+                payload={"social_event_id": social_event_id, "error": str(exc)},
+            )
+
+        async with get_db_session() as session:
+            record = await session.get(SocialEventRecord, social_event_id)
+            if record is None:
+                raise HTTPException(status_code=404, detail="Social event not found")
+            record.status = outcome["status"]
+            record.analysis_id = outcome.get("analysis_id")
+            record.response_status = outcome.get("response_status")
+            record.response_id = outcome.get("response_id")
+            record.last_error = outcome.get("last_error")
+            record.updated_at = datetime.now(UTC)
+            await session.commit()
+            await session.refresh(record)
+            return self._to_item(record)
+
     async def reset(self) -> None:
         """Clear stored social events for tests."""
         await self._ensure_initialized()

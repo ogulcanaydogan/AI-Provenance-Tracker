@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 
 from app.core.config import settings
 from app.models.social import (
+    SocialEventItem,
     SocialEventListResponse,
     SocialQueueProcessResponse,
     SocialWebhookIngestResponse,
@@ -94,6 +95,19 @@ async def list_social_events(
     )
 
 
+@router.get("/events/{event_id}", response_model=SocialEventItem)
+async def get_social_event(
+    event_id: int,
+    x_social_admin_secret: str | None = Header(default=None),
+) -> SocialEventItem:
+    """Return one social queue row for detail inspection."""
+    _authorize_social_admin(x_social_admin_secret)
+    item = await social_intake_service.get_event(event_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Social event not found")
+    return SocialEventItem(**item)
+
+
 @router.post("/events/process", response_model=SocialQueueProcessResponse)
 async def process_social_events(
     limit: int = Query(default=0, ge=0, le=200),
@@ -103,3 +117,14 @@ async def process_social_events(
     _authorize_social_admin(x_social_admin_secret)
     result = await social_intake_service.process_pending_events(limit=limit or None)
     return SocialQueueProcessResponse(**result)
+
+
+@router.post("/events/{event_id}/process", response_model=SocialEventItem)
+async def process_social_event(
+    event_id: int,
+    x_social_admin_secret: str | None = Header(default=None),
+) -> SocialEventItem:
+    """Process or reprocess a specific social queue row immediately."""
+    _authorize_social_admin(x_social_admin_secret)
+    item = await social_intake_service.process_event(event_id)
+    return SocialEventItem(**item)
