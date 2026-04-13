@@ -35,7 +35,7 @@ jobs:
       DRIFT_MAX_ECE: "0.02"
       DRIFT_MAX_DOMAIN_FP: "0.05"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Resolve benchmark profile
         id: profile
@@ -301,7 +301,7 @@ jobs:
 
       - name: Upload drift watch artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: text-quality-drift-artifacts
           path: benchmark/results/drift/current
@@ -309,7 +309,7 @@ jobs:
 
       - name: Upsert tracking issue on drift failure
         if: ${{ always() && steps.regression.outcome == 'failure' }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           DRIFT_MODE: ${{ steps.drift.outputs.drift_mode }}
         with:
@@ -411,7 +411,7 @@ jobs:
 
       - name: Close tracking issue on drift recovery
         if: ${{ always() && steps.regression.outcome == 'success' }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           DRIFT_MODE: ${{ steps.drift.outputs.drift_mode }}
         with:
