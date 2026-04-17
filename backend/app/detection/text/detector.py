@@ -886,6 +886,11 @@ class TextDetector:
             "uncertainty_margin": 0.08,
             "short_text_min_words": 120,
             "short_text_min_sentences": 4,
+            "calibration_map": {
+                "type": "platt",
+                "coef": 22.0,
+                "intercept": -9.9,
+            },
             "ml_weight": 0.38,
             "weights": {
                 "perplexity": 0.18,
