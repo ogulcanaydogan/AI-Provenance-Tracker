@@ -90,13 +90,13 @@ Open `benchmark/leaderboard/index.html` to view leaderboard results.
 - `scored_samples.jsonl` is uploaded as a build artifact for reproducibility.
 
 ## Dataset growth gate
-- PR/push smoke gate enforces `smoke_v2` targets:
+- PR/push smoke gate enforces `smoke_ci` targets (sanity-only profile, no quality hard-fail):
   - detection: 120
   - attribution: 50
   - tamper: 60
   - audio (experimental): 15
   - video (experimental): 15
-- Nightly full gate enforces `full_v3` targets:
+- Nightly full gate enforces `full_v3` targets with quality hard-fail:
   - detection: 1350
   - attribution: 600
   - tamper: 750

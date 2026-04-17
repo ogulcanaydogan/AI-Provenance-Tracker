@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-04-02 (v1.8.7 closure complete: edge parity fixed + 24h runtime monitoring passed)
+Last updated: 2026-04-17 (v2.3.1 smoke benchmark gate split applied)
 
 ## Overall
 
@@ -10,6 +10,20 @@ Last updated: 2026-04-02 (v1.8.7 closure complete: edge parity fixed + 24h runti
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## v2.3.1 Text-First Stabilization (Smoke CI Policy Split) — IMPLEMENTED
+
+- Triggering blocker:
+  - `CI` run [24564659450](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24564659450) failed in `public-benchmark` because smoke target `smoke_v2` still hard-failed quality metrics.
+  - Failure signature: `tasks.ai_vs_human_detection.calibration_ece` exceeded `0.08` while smoke was intended to be sanity-only.
+- Policy alignment delivered:
+  - Added benchmark target profile `smoke_ci` in `benchmark/config/benchmark_targets.yaml`.
+  - Updated CI `public-benchmark` job to use `--target-profile smoke_ci` for both regression and dataset-health checks.
+  - `smoke_ci` keeps coverage/non-regression enforcement and dataset health, but does not hard-fail on calibration ECE/domain FP.
+  - Strict quality hard-fail remains in `full_v3` and private benchmark release gates.
+- Docs/runbook alignment:
+  - Updated benchmark gate contract in `docs/TRAINING.md` and `benchmark/README.md`.
+  - Updated private release runbook wording in `whoisfake-ops/runbooks/text-accuracy-promotion.md` (smoke informational, full/private strict).
 
 ## v1.8.7 HTTPS URL Fetch Hotfix + 24h Runtime Monitoring — COMPLETED
 

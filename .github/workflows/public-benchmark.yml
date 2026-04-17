@@ -111,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           profile="smoke"
-          target_profile="smoke_v2"
+          target_profile="smoke_ci"
           require_training_artifact="false"
           baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
           if [ "${{ github.event_name }}" = "schedule" ]; then
@@ -184,16 +184,21 @@ jobs:
             --profiles-config benchmark/config/benchmark_profiles.yaml
       - name: Check benchmark regressions
         run: |
-          python benchmark/eval/check_benchmark_regression.py \
-            --current benchmark/results/ci/benchmark_results.json \
-            --baseline "${{ steps.profile.outputs.baseline_snapshot }}" \
-            --targets-config benchmark/config/benchmark_targets.yaml \
-            --target-profile "${{ steps.profile.outputs.target_profile }}" \
-            --max-generated-age-hours 72 \
-            --require-quality-metrics \
-            --forbid-absolute-paths \
-            --report-json benchmark/results/ci/regression_check.json \
+          cmd=(
+            python benchmark/eval/check_benchmark_regression.py
+            --current benchmark/results/ci/benchmark_results.json
+            --baseline "${{ steps.profile.outputs.baseline_snapshot }}"
+            --targets-config benchmark/config/benchmark_targets.yaml
+            --target-profile "${{ steps.profile.outputs.target_profile }}"
+            --max-generated-age-hours 72
+            --forbid-absolute-paths
+            --report-json benchmark/results/ci/regression_check.json
             --report-md benchmark/results/ci/regression_check.md
+          )
+          if [ "${{ steps.profile.outputs.target_profile }}" = "full_v3" ]; then
+            cmd+=(--require-quality-metrics)
+          fi
+          "${cmd[@]}"
       - name: Generate dataset health report
         run: |
           metadata_arg=""

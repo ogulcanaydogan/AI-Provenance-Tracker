@@ -9,6 +9,14 @@ This runbook covers targeted text detector fine-tuning for v1.1 false-positive s
 - Produce auditable artifacts for release gating.
 - Treat the public benchmark as a non-regression sanity set, not the final release gate.
 
+## Benchmark Gate Split (v2.3.1)
+
+- CI smoke benchmark uses `smoke_ci` targets for sanity/non-regression only.
+- `smoke_ci` enforces coverage/freshness/shape checks but does not hard-fail on calibration ECE or domain FP.
+- Release-grade quality hard-fail remains in:
+  - scheduled/manual full benchmark (`full_v3`)
+  - private benchmark gate in the assets/ops promotion flow
+
 ## Hardware Allocation
 
 - **A100 (single run):** primary fine-tune candidate.
