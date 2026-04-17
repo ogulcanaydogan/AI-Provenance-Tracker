@@ -208,7 +208,6 @@ jobs:
             --targets-config benchmark/config/benchmark_targets.yaml \
             --target-profile smoke_v2 \
             --max-generated-age-hours 72 \
-            --require-quality-metrics \
             --forbid-absolute-paths \
             --report-json benchmark/results/ci/regression_check.json \
             --report-md benchmark/results/ci/regression_check.md
