@@ -131,8 +131,8 @@ async def test_score_text_samples_by_domain_normalizes_labels(
     )
 
     assert skipped == 0
-    assert set(domain_scores.keys()) == {"academic", "code-doc"}
-    assert domain_scores["academic"] == [(0.22, False)]
+    assert set(domain_scores.keys()) == {"science-academic", "code-doc"}
+    assert domain_scores["science-academic"] == [(0.22, False)]
     assert domain_scores["code-doc"] == [(0.22, True)]
 
 
@@ -230,3 +230,69 @@ async def test_run_writes_calibration_map_and_versions(
     assert report["calibration_version"] == "cal:test"
     assert report["calibration_map"]["type"] == "platt"
     assert profile["calibration_map"]["type"] == "platt"
+
+
+@pytest.mark.asyncio
+async def test_run_writes_length_band_profiles(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script_module()
+
+    input_path = tmp_path / "samples.jsonl"
+    input_path.write_text(
+        "\n".join(
+            [
+                json.dumps({"modality": "text", "label_is_ai": False}),
+                json.dumps({"modality": "text", "label_is_ai": True}),
+                json.dumps({"modality": "text", "label_is_ai": False}),
+                json.dumps({"modality": "text", "label_is_ai": True}),
+                json.dumps({"modality": "text", "label_is_ai": False}),
+                json.dumps({"modality": "text", "label_is_ai": True}),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "report.json"
+    profile_path = tmp_path / "profile.json"
+
+    async def _fake_scores(_samples: list[dict[str, object]], _content_type: str):
+        return (
+            [(0.30, False), (0.35, False), (0.58, True), (0.62, True), (0.78, True), (0.18, False)],
+            0,
+            {
+                "model_version": "text-detector:test",
+                "calibration_version": "cal:test",
+                "scored_word_counts": [80, 95, 210, 260, 520, 610],
+                "scored_domains": ["news"] * 6,
+            },
+        )
+
+    monkeypatch.setattr(module, "_score_samples_with_metadata", _fake_scores)
+
+    original_argv = sys.argv
+    sys.argv = [
+        "evaluate_detection_calibration.py",
+        "--input",
+        str(input_path),
+        "--content-type",
+        "text",
+        "--output",
+        str(output_path),
+        "--write-profile",
+        "--profile-output",
+        str(profile_path),
+        "--min-samples",
+        "6",
+        "--min-domain-samples",
+        "2",
+    ]
+    try:
+        rc = await module.run()
+    finally:
+        sys.argv = original_argv
+
+    assert rc == 0
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    assert set(report["length_band_profiles"].keys()) == {"long-form", "short-form", "standard"}
+    assert set(profile["length_band_profiles"].keys()) == {"long-form", "short-form", "standard"}

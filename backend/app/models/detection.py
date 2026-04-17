@@ -44,6 +44,14 @@ class TextAnalysis(BaseModel):
     stopword_ratio: float = Field(..., description="Stopword ratio over total words")
     sentence_length_variance: float = Field(..., description="Variance of sentence lengths")
     sentence_length_kurtosis: float = Field(..., description="Kurtosis of sentence lengths")
+    rewrite_sensitivity: float = Field(
+        default=0.0,
+        description="Likelihood that the text is paraphrased, translated, or rewritten",
+    )
+    hard_negative_similarity: float = Field(
+        default=0.0,
+        description="Similarity to known human-written hard-negative patterns",
+    )
 
 
 class ImageAnalysis(BaseModel):
@@ -130,11 +138,26 @@ class TextDetectionRequest(BaseModel):
     language: Optional[str] = Field(
         None, description="Language code (auto-detected if not provided)"
     )
-    domain: Optional[Literal["news", "social", "marketing", "academic", "code-doc", "general"]] = (
-        Field(
-            None,
-            description="Optional domain hint used for domain-aware calibration profile selection",
-        )
+    domain: Optional[
+        Literal[
+            "news",
+            "social",
+            "social-short",
+            "marketing",
+            "finance",
+            "finance-business",
+            "academic",
+            "science",
+            "science-academic",
+            "legal",
+            "legal-policy",
+            "code",
+            "code-doc",
+            "general",
+        ]
+    ] = Field(
+        None,
+        description="Optional domain hint used for domain-aware calibration profile selection",
     )
 
     model_config = {
@@ -185,6 +208,18 @@ class TextDetectionResponse(BaseModel):
         None,
         description="Calibration profile version used for thresholding",
     )
+    domain_profile: Optional[str] = Field(
+        None,
+        description="Resolved routing profile used for domain-aware scoring",
+    )
+    uncertainty_flags: list[str] = Field(
+        default_factory=list,
+        description="Machine-readable conservative guardrails that affected the decision",
+    )
+    chunk_consistency: Optional["ChunkConsistencySummary"] = Field(
+        None,
+        description="Chunk-level agreement summary for longer texts",
+    )
     provider_evidence: list[ProviderEvidence] = Field(
         default_factory=list,
         description="Flattened provider evidence list derived from consensus providers",
@@ -192,6 +227,34 @@ class TextDetectionResponse(BaseModel):
     consensus: Optional[ConsensusSummary] = Field(
         None, description="Multi-provider consensus details"
     )
+
+
+class TextChunkSummary(BaseModel):
+    """Chunk-level score summary for long-form text routing."""
+
+    index: int = Field(..., ge=0)
+    word_count: int = Field(..., ge=0)
+    sentence_count: int = Field(..., ge=0)
+    confidence: float = Field(..., ge=0, le=1)
+    decision_band: Literal["human", "uncertain", "ai"] = Field(default="uncertain")
+    distance_to_threshold: float = Field(..., ge=0, le=1)
+    domain_profile: str = Field(..., description="Domain route inferred for this chunk")
+
+
+class ChunkConsistencySummary(BaseModel):
+    """Aggregate consistency metrics across long-form text chunks."""
+
+    chunk_count: int = Field(..., ge=1)
+    aggregate_confidence: float = Field(..., ge=0, le=1)
+    mean_confidence: float = Field(..., ge=0, le=1)
+    confidence_spread: float = Field(..., ge=0, le=1)
+    disagreement_ratio: float = Field(..., ge=0, le=1)
+    dominant_domain: str = Field(..., description="Most common routed domain across chunks")
+    route_mismatch: bool = Field(
+        default=False,
+        description="Whether chunk routing materially disagrees with the case-level route",
+    )
+    chunks: list[TextChunkSummary] = Field(default_factory=list)
 
 
 class ImageDetectionResponse(BaseModel):
@@ -301,3 +364,6 @@ class BatchTextDetectionResponse(BaseModel):
     failed: int
     processed_at: datetime
     items: list[BatchTextResultItem]
+
+
+TextDetectionResponse.model_rebuild()

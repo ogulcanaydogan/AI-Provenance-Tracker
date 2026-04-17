@@ -48,6 +48,16 @@ class Settings(BaseSettings):
     text_detection_model_path: str = ""
     image_detection_model: str = "resnet50"
     text_calibration_profile_path: str = "app/detection/text/calibration_profile.json"
+    text_expert_bundle_path: str = ""
+    text_chunk_target_words: int = 180
+    text_chunk_min_words: int = 80
+    text_chunk_max_count: int = 6
+    text_chunk_disagreement_uncertain_threshold: float = 0.28
+    text_domain_confidence_uncertain_threshold: float = 0.55
+    text_hard_negative_gate_margin: float = 0.12
+    text_model_bundle_version: str = ""
+    text_calibration_bundle_version: str = ""
+    text_private_benchmark_manifest: str = ""
     max_text_length: int = 50000
     max_image_size_mb: int = 10
     max_audio_size_mb: int = 25

@@ -27,6 +27,8 @@ class TestTextDetector:
         assert 0 <= result.confidence <= 1
         assert result.decision_band in {"human", "uncertain", "ai"}
         assert result.distance_to_threshold >= 0
+        assert result.domain_profile is not None
+        assert isinstance(result.uncertainty_flags, list)
         assert result.explanation is not None
         assert result.processing_time_ms > 0
 
@@ -39,6 +41,7 @@ class TestTextDetector:
         assert result is not None
         assert result.decision_band == "uncertain"
         assert result.uncertainty_reason is not None
+        assert "short_text" in result.uncertainty_flags
 
     @pytest.mark.asyncio
     async def test_detect_analysis_metrics(self, detector):
@@ -160,13 +163,19 @@ class TestTextPreprocessing:
             "general": {"decision_threshold": 0.48, "uncertainty_margin": 0.05},
         }
 
-        news_profile, news_domain = detector._resolve_calibration_profile("news")
-        general_profile, general_domain = detector._resolve_calibration_profile("general")
+        news_profile, news_domain, news_band = detector._resolve_calibration_profile(
+            "news", word_count=180
+        )
+        general_profile, general_domain, general_band = detector._resolve_calibration_profile(
+            "general", word_count=90
+        )
 
         assert news_domain == "news"
         assert general_domain == "general"
+        assert news_band == "standard"
+        assert general_band == "short-form"
         assert news_profile["decision_threshold"] == 0.22
-        assert general_profile["decision_threshold"] == 0.48
+        assert general_profile["decision_threshold"] != 0.22
 
     def test_resolve_model_id_prefers_existing_local_path(self, tmp_path: Path):
         detector = TextDetector()
@@ -224,3 +233,35 @@ class TestTextPreprocessing:
         assert confidence < 0.5
         assert decision_band == "human"
         assert is_ai is False
+
+    @pytest.mark.asyncio
+    async def test_detect_long_text_returns_chunk_consistency(self, detector):
+        text = "\n\n".join(
+            [
+                "According to the official statement, the newsroom prepared a detailed report with source notes and timeline context. "
+                * 6,
+                "Witnesses described the sequence of events and the editor added supporting context for each section. "
+                * 6,
+                "The article keeps a factual tone while preserving uncertainty where evidence remains incomplete. "
+                * 6,
+            ]
+        )
+
+        result = await detector.detect(text, domain="news")
+
+        assert result.chunk_consistency is not None
+        assert result.chunk_consistency.chunk_count >= 2
+        assert result.domain_profile == "news"
+
+    @pytest.mark.asyncio
+    async def test_route_domain_mismatch_forces_uncertain(self, detector):
+        text = (
+            "def parse_response(data): return data.get('items', [])\n"
+            "class Parser: pass\n"
+            "The API endpoint returns a stack trace and exception details for each request.\n"
+        ) * 10
+
+        result = await detector.detect(text, domain="news")
+
+        assert result.decision_band == "uncertain"
+        assert "route_domain_mismatch" in result.uncertainty_flags

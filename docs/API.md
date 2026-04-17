@@ -129,7 +129,8 @@ Content-Type: application/json
 }
 ```
 
-- `domain` is optional and can be one of: `news`, `social`, `marketing`, `academic`, `code-doc`, `general`.
+- `domain` is optional. Stable hints remain accepted (`news`, `social`, `marketing`, `academic`, `code-doc`, `general`).
+- The runtime may internally route to richer profiles such as `social-short`, `finance-business`, `legal-policy`, and `science-academic`.
 - If omitted, backend applies automatic domain inference and fallback calibration.
 
 **Response (200):**
@@ -142,6 +143,9 @@ Content-Type: application/json
   "decision_band": "ai",
   "distance_to_threshold": 0.17,
   "uncertainty_reason": null,
+  "domain_profile": "news",
+  "uncertainty_flags": [],
+  "chunk_consistency": null,
   "model_version": "text-detector:roberta-base",
   "calibration_version": "calibrated-20260312:news",
   "provider_evidence": [],
@@ -208,6 +212,17 @@ Returns a shareable machine-readable evidence payload:
   "detector_versions": {
     "model_version": "text-detector:distilroberta-v1",
     "calibration_version": "calibrated-20260312:news"
+  },
+  "trace": {
+    "route_profile": "news",
+    "uncertainty_flags": [],
+    "chunk_summary": null,
+    "disagreement_reasons": [],
+    "artifact_lineage": {
+      "model_bundle_version": "text-classifier-release-v1",
+      "calibration_bundle_version": "text-domain-routing-calibration-v1",
+      "private_benchmark_manifest": "text-private-benchmark-2026-04-17"
+    }
   }
 }
 ```

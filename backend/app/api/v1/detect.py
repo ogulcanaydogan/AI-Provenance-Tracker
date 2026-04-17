@@ -362,12 +362,17 @@ async def _apply_consensus(
                 max(0.0, settings.text_consensus_disagreement_uncertain_threshold),
             )
         )
+        uncertainty_flags = list(result.uncertainty_flags)
+        if uncertainty_flags:
+            decision_band = "uncertain"
         if consensus.disagreement >= disagreement_limit:
             disagreement_reason = (
                 f"High provider disagreement ({consensus.disagreement:.3f}) exceeds "
                 f"uncertainty threshold ({disagreement_limit:.3f})."
             )
             decision_band = "uncertain"
+            if "provider_disagreement" not in uncertainty_flags:
+                uncertainty_flags.append("provider_disagreement")
             if reason:
                 reason = f"{reason} {disagreement_reason}"
             else:
@@ -375,6 +380,7 @@ async def _apply_consensus(
         result.decision_band = decision_band
         result.distance_to_threshold = distance
         result.uncertainty_reason = reason
+        result.uncertainty_flags = uncertainty_flags
         result.is_ai_generated = decision_band == "ai"
         if decision_band != "ai":
             result.model_prediction = None

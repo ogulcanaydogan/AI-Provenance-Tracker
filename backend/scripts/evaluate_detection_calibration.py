@@ -291,20 +291,32 @@ def _normalize_domain(value: Any) -> str:
     normalized = value.strip().lower().replace("_", "-")
     aliases = {
         "news": "news",
-        "social": "social",
-        "marketing": "marketing",
-        "finance": "marketing",
+        "social": "social-short",
+        "social-short": "social-short",
+        "marketing": "finance-business",
+        "finance": "finance-business",
+        "finance-business": "finance-business",
         "code": "code-doc",
         "code-doc": "code-doc",
         "codedoc": "code-doc",
-        "academic": "academic",
-        "education": "academic",
-        "science": "academic",
-        "legal": "academic",
+        "academic": "science-academic",
+        "education": "science-academic",
+        "science": "science-academic",
+        "science-academic": "science-academic",
+        "legal": "legal-policy",
+        "legal-policy": "legal-policy",
         "health": "general",
         "general": "general",
     }
     return aliases.get(normalized, "general")
+
+
+def _length_band(word_count: int) -> str:
+    if word_count < 120:
+        return "short-form"
+    if word_count >= 400:
+        return "long-form"
+    return "standard"
 
 
 async def _score_samples(
@@ -322,6 +334,7 @@ async def _score_samples_with_metadata(
         "model_version": None,
         "calibration_version": None,
         "scored_domains": [],
+        "scored_word_counts": [],
     }
     if content_type == "text":
         detector = TextDetector(apply_runtime_calibration=False)
@@ -336,6 +349,7 @@ async def _score_samples_with_metadata(
             result = await detector.detect(text, domain=domain_hint)
             scores.append((float(result.confidence), bool(sample.get("label_is_ai"))))
             metadata["scored_domains"].append(_normalize_raw_domain(sample.get("domain")))
+            metadata["scored_word_counts"].append(len(text.split()))
             metadata["model_version"] = metadata["model_version"] or result.model_version
             metadata["calibration_version"] = (
                 metadata["calibration_version"] or result.calibration_version
@@ -477,6 +491,38 @@ async def run() -> int:
             report["false_positive_rate_by_domain"] = domain_fp_rates
             report["domain_sample_count_by_domain"] = domain_sample_counts
             report["domain_human_sample_count_by_domain"] = domain_human_counts
+        scored_word_counts = version_meta.get("scored_word_counts", [])
+        if isinstance(scored_word_counts, list) and len(scored_word_counts) == len(evaluated_scores):
+            length_bands: dict[str, list[tuple[float, bool]]] = {}
+            for score_row, raw_count in zip(evaluated_scores, scored_word_counts):
+                try:
+                    band = _length_band(int(raw_count))
+                except (TypeError, ValueError):
+                    band = "standard"
+                length_bands.setdefault(band, []).append(score_row)
+            length_band_profiles: dict[str, dict[str, Any]] = {}
+            for band, band_scores in sorted(length_bands.items()):
+                if len(band_scores) < args.min_domain_samples:
+                    continue
+                band_metrics = [_threshold_metrics(band_scores, threshold) for threshold in thresholds]
+                band_best = max(
+                    band_metrics,
+                    key=lambda item: (
+                        item["f1"] - (item["fp_rate"] * 0.35),
+                        item["accuracy"],
+                        -item["fp_rate"],
+                    ),
+                )
+                length_band_profiles[band] = {
+                    "sample_count": len(band_scores),
+                    "recommended_threshold": band_best["threshold"],
+                    "recommended_uncertainty_margin": _estimate_uncertainty_margin(
+                        band_scores, band_best["threshold"]
+                    ),
+                    **_calibration_error_metrics(band_scores),
+                    "best_metrics": band_best,
+                }
+            report["length_band_profiles"] = length_band_profiles
 
     if args.content_type == "text" and args.include_domain_profiles:
         domain_scores, _domain_skipped = await _score_text_samples_by_domain(samples)
@@ -533,6 +579,15 @@ async def run() -> int:
                     "sample_count": details["sample_count"],
                 }
                 for domain, details in report["domain_profiles"].items()
+            }
+        if isinstance(report.get("length_band_profiles"), dict):
+            profile_payload["length_band_profiles"] = {
+                band: {
+                    "decision_threshold": details["recommended_threshold"],
+                    "uncertainty_margin": details["recommended_uncertainty_margin"],
+                    "sample_count": details["sample_count"],
+                }
+                for band, details in report["length_band_profiles"].items()
             }
         profile_path = Path(args.profile_output).expanduser()
         if not profile_path.is_absolute():

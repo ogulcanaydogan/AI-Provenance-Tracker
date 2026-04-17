@@ -6,7 +6,7 @@ import re
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -21,7 +21,14 @@ except ImportError:
     torch = None
 
 from app.core.config import settings
-from app.models.detection import AIModel, TextAnalysis, TextDetectionResponse
+from app.detection.text.expert_bundle import load_text_expert_bundle
+from app.models.detection import (
+    AIModel,
+    ChunkConsistencySummary,
+    TextAnalysis,
+    TextChunkSummary,
+    TextDetectionResponse,
+)
 
 
 STOPWORDS = {
@@ -99,6 +106,7 @@ class TextDetector:
         self._apply_runtime_calibration = bool(apply_runtime_calibration)
         self._loaded_model_id = settings.text_detection_model
         self._calibration_profile = self._load_calibration_profile()
+        self._expert_bundle = load_text_expert_bundle()
         if not lazy_load and ML_AVAILABLE:
             self._load_model()
 
@@ -154,13 +162,170 @@ class TextDetector:
             self._load_model()
 
         start_time = time.time()
-
         cleaned_text = self._preprocess_text(text)
-        inferred_domain = self._normalize_domain(domain) or self._infer_domain(cleaned_text)
-        calibration_profile, calibration_key = self._resolve_calibration_profile(inferred_domain)
+        routing = self._profile_input(text, cleaned_text, requested_domain=domain)
+        calibration_profile, calibration_key, length_band = self._resolve_calibration_profile(
+            routing["resolved_domain"],
+            word_count=routing["word_count"],
+        )
+        case_score = self._score_text_unit(
+            text=text,
+            cleaned_text=cleaned_text,
+            resolved_domain=calibration_key,
+            calibration_profile=calibration_profile,
+        )
+        chunk_consistency = self._build_chunk_consistency(
+            raw_text=text,
+            base_confidence=case_score["confidence"],
+            resolved_domain=calibration_key,
+            base_threshold=float(calibration_profile["decision_threshold"]),
+        )
+        confidence = self._aggregate_case_confidence(case_score["confidence"], chunk_consistency)
+        (
+            decision_band,
+            distance_to_threshold,
+            uncertainty_reason,
+            uncertainty_flags,
+        ) = self._finalize_text_decision(
+            confidence=confidence,
+            threshold=float(calibration_profile["decision_threshold"]),
+            word_count=routing["word_count"],
+            sentence_count=routing["sentence_count"],
+            routing=routing,
+            rewrite_sensitivity=case_score["rewrite_sensitivity"],
+            hard_negative_similarity=case_score["hard_negative_similarity"],
+            chunk_consistency=chunk_consistency,
+            calibration_profile=calibration_profile,
+        )
+        is_ai = decision_band == "ai"
+        model_pred = case_score["model_prediction"] if is_ai else None
+        explanation = self._generate_explanation(
+            decision_band=decision_band,
+            confidence=confidence,
+            perplexity=case_score["perplexity"],
+            burstiness=case_score["burstiness"],
+            distance_to_threshold=distance_to_threshold,
+            uncertainty_reason=uncertainty_reason,
+            ml_score=case_score["ml_score"],
+            calibration_domain=calibration_key,
+            uncertainty_flags=uncertainty_flags,
+            length_band=length_band,
+        )
+
+        processing_time = (time.time() - start_time) * 1000
+
+        return TextDetectionResponse(
+            is_ai_generated=is_ai,
+            confidence=confidence,
+            decision_band=decision_band,
+            distance_to_threshold=distance_to_threshold,
+            uncertainty_reason=uncertainty_reason,
+            model_prediction=model_pred,
+            analysis=TextAnalysis(
+                perplexity=case_score["perplexity"],
+                burstiness=case_score["burstiness"],
+                vocabulary_richness=case_score["vocab_richness"],
+                average_sentence_length=case_score["avg_sentence_length"],
+                repetition_score=case_score["repetition"],
+                punctuation_diversity=case_score["punctuation_diversity"],
+                stopword_ratio=case_score["stopword_ratio"],
+                sentence_length_variance=case_score["sentence_variance"],
+                sentence_length_kurtosis=case_score["sentence_kurtosis"],
+                rewrite_sensitivity=case_score["rewrite_sensitivity"],
+                hard_negative_similarity=case_score["hard_negative_similarity"],
+            ),
+            explanation=explanation,
+            processing_time_ms=processing_time,
+            model_version=f"text-detector:{self._loaded_model_id}",
+            calibration_version=self._profile_version_label(calibration_profile, calibration_key),
+            domain_profile=calibration_key,
+            uncertainty_flags=uncertainty_flags,
+            chunk_consistency=chunk_consistency,
+        )
+
+    def _profile_input(
+        self,
+        raw_text: str,
+        cleaned_text: str,
+        *,
+        requested_domain: Optional[str],
+    ) -> dict[str, Any]:
+        words = self._tokenize(cleaned_text)
+        sentences = self._split_sentences(cleaned_text)
+        inferred_domain, inferred_confidence, input_type = self._infer_domain_with_confidence(
+            raw_text, cleaned_text, words, sentences
+        )
+        requested = self._normalize_domain(requested_domain)
+        resolved = requested or inferred_domain
+        route_mismatch = bool(
+            requested
+            and requested != inferred_domain
+            and inferred_confidence >= float(settings.text_domain_confidence_uncertain_threshold)
+        )
+        return {
+            "requested_domain": requested,
+            "resolved_domain": resolved,
+            "inferred_domain": inferred_domain,
+            "domain_confidence": inferred_confidence,
+            "input_type": input_type,
+            "route_mismatch": route_mismatch,
+            "word_count": len(words),
+            "sentence_count": len(sentences),
+        }
+
+    def _infer_domain_with_confidence(
+        self,
+        raw_text: str,
+        cleaned_text: str,
+        words: list[str],
+        sentences: list[str],
+    ) -> tuple[str, float, str]:
+        lowered = cleaned_text.lower()
+        keyword_hits: dict[str, float] = {}
+        domain_keywords = self._expert_bundle.get("domain_keywords", {})
+        if isinstance(domain_keywords, dict):
+            for domain, markers in domain_keywords.items():
+                score = 0.0
+                if not isinstance(markers, list):
+                    continue
+                for marker in markers:
+                    candidate = str(marker).strip().lower()
+                    if candidate and candidate in lowered:
+                        score += 1.0
+                if score > 0:
+                    keyword_hits[str(domain)] = score
+
+        if raw_text.count("\n") >= 2 and len(words) >= 220:
+            keyword_hits["news"] = keyword_hits.get("news", 0.0) + 0.6
+        if any(token.startswith("#") or token.startswith("@") for token in raw_text.split()):
+            keyword_hits["social-short"] = keyword_hits.get("social-short", 0.0) + 1.0
+        if len(words) <= 120:
+            keyword_hits["social-short"] = keyword_hits.get("social-short", 0.0) + 0.3
+
+        if not keyword_hits:
+            return "general", 0.0, "generic-text"
+
+        sorted_hits = sorted(keyword_hits.items(), key=lambda item: item[1], reverse=True)
+        best_domain, best_score = sorted_hits[0]
+        second_score = sorted_hits[1][1] if len(sorted_hits) > 1 else 0.0
+        confidence = best_score / max(best_score + second_score, 1.0)
+        input_type = "article" if len(words) >= 180 else "short-form"
+        if best_domain == "code-doc":
+            input_type = "code-doc"
+        elif best_domain == "social-short":
+            input_type = "social-short"
+        return best_domain, round(float(np.clip(confidence, 0.0, 1.0)), 3), input_type
+
+    def _score_text_unit(
+        self,
+        *,
+        text: str,
+        cleaned_text: str,
+        resolved_domain: str,
+        calibration_profile: dict[str, object],
+    ) -> dict[str, Any]:
         sentences = self._split_sentences(cleaned_text)
         words = self._tokenize(cleaned_text)
-
         perplexity = self._calculate_perplexity(cleaned_text, words)
         burstiness = self._calculate_burstiness(sentences)
         vocab_richness = self._calculate_vocabulary_richness(words)
@@ -169,16 +334,17 @@ class TextDetector:
         punctuation_diversity = self._calculate_punctuation_diversity(cleaned_text)
         stopword_ratio = self._calculate_stopword_ratio(words)
         sentence_variance, sentence_kurtosis = self._calculate_sentence_length_moments(sentences)
-
+        rewrite_sensitivity = self._calculate_rewrite_sensitivity(cleaned_text, sentences)
+        hard_negative_similarity = self._calculate_hard_negative_similarity(cleaned_text)
         ml_score = self._get_ml_prediction(text) if self.model_loaded else None
 
         (
-            is_ai,
+            _is_ai,
             confidence,
             model_pred,
-            decision_band,
-            distance_to_threshold,
-            uncertainty_reason,
+            _decision_band,
+            _distance_to_threshold,
+            _uncertainty_reason,
         ) = self._make_prediction(
             perplexity=perplexity,
             burstiness=burstiness,
@@ -193,44 +359,204 @@ class TextDetector:
             sentence_count=len(sentences),
             ml_score=ml_score,
             calibration_profile=calibration_profile,
+            rewrite_sensitivity=rewrite_sensitivity,
+            hard_negative_similarity=hard_negative_similarity,
+        )
+        return {
+            "resolved_domain": resolved_domain,
+            "word_count": len(words),
+            "sentence_count": len(sentences),
+            "perplexity": perplexity,
+            "burstiness": burstiness,
+            "vocab_richness": vocab_richness,
+            "avg_sentence_length": avg_sentence_length,
+            "repetition": repetition,
+            "punctuation_diversity": punctuation_diversity,
+            "stopword_ratio": stopword_ratio,
+            "sentence_variance": sentence_variance,
+            "sentence_kurtosis": sentence_kurtosis,
+            "rewrite_sensitivity": rewrite_sensitivity,
+            "hard_negative_similarity": hard_negative_similarity,
+            "ml_score": ml_score,
+            "confidence": confidence,
+            "model_prediction": model_pred,
+        }
+
+    def _segment_text(self, raw_text: str) -> list[str]:
+        target_words = max(60, int(settings.text_chunk_target_words))
+        min_words = max(40, int(settings.text_chunk_min_words))
+        max_chunks = max(1, int(settings.text_chunk_max_count))
+
+        paragraphs = [segment.strip() for segment in re.split(r"\n{2,}", raw_text) if segment.strip()]
+        if len(paragraphs) <= 1:
+            paragraphs = self._split_sentences(raw_text)
+        chunks: list[str] = []
+        current_parts: list[str] = []
+        current_words = 0
+        for part in paragraphs:
+            part_words = len(self._tokenize(part))
+            if current_parts and current_words >= target_words:
+                chunks.append(" ".join(current_parts).strip())
+                current_parts = [part]
+                current_words = part_words
+            else:
+                current_parts.append(part)
+                current_words += part_words
+            if len(chunks) >= max_chunks:
+                break
+
+        if current_parts and len(chunks) < max_chunks:
+            chunks.append(" ".join(current_parts).strip())
+
+        if len(chunks) > 2 and len(self._tokenize(chunks[-1])) < min_words:
+            chunks[-2] = f"{chunks[-2]} {chunks[-1]}".strip()
+            chunks.pop()
+        return [chunk for chunk in chunks if chunk]
+
+    def _build_chunk_consistency(
+        self,
+        *,
+        raw_text: str,
+        base_confidence: float,
+        resolved_domain: str,
+        base_threshold: float,
+    ) -> ChunkConsistencySummary | None:
+        chunks = self._segment_text(raw_text)
+        if len(chunks) <= 1:
+            return None
+
+        summaries: list[TextChunkSummary] = []
+        routed_domains: list[str] = []
+        confidences: list[float] = []
+        bands: list[str] = []
+        for index, chunk in enumerate(chunks):
+            cleaned_chunk = self._preprocess_text(chunk)
+            routing = self._profile_input(chunk, cleaned_chunk, requested_domain=resolved_domain)
+            profile, chunk_domain, _length_band = self._resolve_calibration_profile(
+                routing["resolved_domain"],
+                word_count=routing["word_count"],
+            )
+            score = self._score_text_unit(
+                text=chunk,
+                cleaned_text=cleaned_chunk,
+                resolved_domain=chunk_domain,
+                calibration_profile=profile,
+            )
+            band, distance, _reason = self.apply_decision_band(
+                confidence=score["confidence"],
+                threshold=float(profile["decision_threshold"]),
+                word_count=score["word_count"],
+                sentence_count=score["sentence_count"],
+                calibration_profile=profile,
+            )
+            summaries.append(
+                TextChunkSummary(
+                    index=index,
+                    word_count=score["word_count"],
+                    sentence_count=score["sentence_count"],
+                    confidence=score["confidence"],
+                    decision_band=band,
+                    distance_to_threshold=distance,
+                    domain_profile=chunk_domain,
+                )
+            )
+            routed_domains.append(chunk_domain)
+            confidences.append(score["confidence"])
+            bands.append(band)
+
+        mean_confidence = sum(confidences) / len(confidences)
+        confidence_spread = max(confidences) - min(confidences)
+        majority_band = max(set(bands), key=bands.count)
+        disagreement_ratio = sum(1 for band in bands if band != majority_band) / len(bands)
+        dominant_domain = max(set(routed_domains), key=routed_domains.count)
+        route_mismatch = dominant_domain != resolved_domain
+        disagreement_penalty = min(0.18, (confidence_spread * 0.35) + (disagreement_ratio * 0.25))
+        aggregate_confidence = float(
+            np.clip((0.65 * base_confidence) + (0.35 * mean_confidence) - disagreement_penalty, 0.0, 1.0)
         )
 
-        explanation = self._generate_explanation(
-            decision_band=decision_band,
+        return ChunkConsistencySummary(
+            chunk_count=len(summaries),
+            aggregate_confidence=round(aggregate_confidence, 3),
+            mean_confidence=round(mean_confidence, 3),
+            confidence_spread=round(confidence_spread, 3),
+            disagreement_ratio=round(disagreement_ratio, 3),
+            dominant_domain=dominant_domain,
+            route_mismatch=route_mismatch,
+            chunks=summaries,
+        )
+
+    def _aggregate_case_confidence(
+        self,
+        base_confidence: float,
+        chunk_consistency: ChunkConsistencySummary | None,
+    ) -> float:
+        if chunk_consistency is None:
+            return round(float(np.clip(base_confidence, 0.0, 1.0)), 3)
+        aggregated = (0.55 * base_confidence) + (0.45 * chunk_consistency.aggregate_confidence)
+        return round(float(np.clip(aggregated, 0.0, 1.0)), 3)
+
+    def _finalize_text_decision(
+        self,
+        *,
+        confidence: float,
+        threshold: float,
+        word_count: int,
+        sentence_count: int,
+        routing: dict[str, Any],
+        rewrite_sensitivity: float,
+        hard_negative_similarity: float,
+        chunk_consistency: ChunkConsistencySummary | None,
+        calibration_profile: dict[str, object],
+    ) -> tuple[str, float, str | None, list[str]]:
+        decision_band, distance_to_threshold, uncertainty_reason = self.apply_decision_band(
             confidence=confidence,
-            perplexity=perplexity,
-            burstiness=burstiness,
-            distance_to_threshold=distance_to_threshold,
-            uncertainty_reason=uncertainty_reason,
-            ml_score=ml_score,
-            calibration_domain=calibration_key,
+            threshold=threshold,
+            word_count=word_count,
+            sentence_count=sentence_count,
+            calibration_profile=calibration_profile,
         )
 
-        processing_time = (time.time() - start_time) * 1000
+        uncertainty_flags: list[str] = []
+        if word_count < int(calibration_profile["short_text_min_words"]) or sentence_count < int(
+            calibration_profile["short_text_min_sentences"]
+        ):
+            uncertainty_flags.append("short_text")
+        if float(routing["domain_confidence"]) < float(
+            settings.text_domain_confidence_uncertain_threshold
+        ):
+            uncertainty_flags.append("weak_domain_signal")
+        if bool(routing["route_mismatch"]):
+            uncertainty_flags.append("route_domain_mismatch")
+        if chunk_consistency and (
+            chunk_consistency.disagreement_ratio
+            >= float(settings.text_chunk_disagreement_uncertain_threshold)
+            or chunk_consistency.route_mismatch
+        ):
+            uncertainty_flags.append("chunk_disagreement")
+        if rewrite_sensitivity >= 0.55:
+            uncertainty_flags.append("paraphrase_style_transfer")
+        if hard_negative_similarity >= 0.5 and distance_to_threshold <= float(
+            settings.text_hard_negative_gate_margin
+        ):
+            uncertainty_flags.append("human_hard_negative_overlap")
 
-        return TextDetectionResponse(
-            is_ai_generated=is_ai,
-            confidence=confidence,
-            decision_band=decision_band,
-            distance_to_threshold=distance_to_threshold,
-            uncertainty_reason=uncertainty_reason,
-            model_prediction=model_pred,
-            analysis=TextAnalysis(
-                perplexity=perplexity,
-                burstiness=burstiness,
-                vocabulary_richness=vocab_richness,
-                average_sentence_length=avg_sentence_length,
-                repetition_score=repetition,
-                punctuation_diversity=punctuation_diversity,
-                stopword_ratio=stopword_ratio,
-                sentence_length_variance=sentence_variance,
-                sentence_length_kurtosis=sentence_kurtosis,
-            ),
-            explanation=explanation,
-            processing_time_ms=processing_time,
-            model_version=f"text-detector:{self._loaded_model_id}",
-            calibration_version=self._profile_version_label(calibration_profile, calibration_key),
-        )
+        if uncertainty_flags:
+            decision_band = "uncertain"
+            reasons = {
+                "short_text": "Insufficient text signal for a stable decision.",
+                "weak_domain_signal": "Domain routing confidence is weak.",
+                "route_domain_mismatch": "Requested route conflicts with inferred domain profile.",
+                "chunk_disagreement": "Long-form chunks do not agree on one stable verdict.",
+                "paraphrase_style_transfer": "Rewrite or style-transfer markers make attribution ambiguous.",
+                "human_hard_negative_overlap": "Text overlaps with known human hard-negative patterns.",
+            }
+            reason_parts = [reasons[flag] for flag in uncertainty_flags if flag in reasons]
+            if uncertainty_reason:
+                reason_parts.insert(0, uncertainty_reason)
+            uncertainty_reason = " ".join(dict.fromkeys(reason_parts))
+
+        return decision_band, distance_to_threshold, uncertainty_reason, uncertainty_flags
 
     def apply_decision_band(
         self,
@@ -430,6 +756,8 @@ class TextDetector:
         sentence_count: int,
         ml_score: Optional[float] = None,
         calibration_profile: Optional[dict[str, object]] = None,
+        rewrite_sensitivity: float = 0.0,
+        hard_negative_similarity: float = 0.0,
     ) -> tuple[bool, float, Optional[AIModel], str, float, Optional[str]]:
         """Combine signals using a calibrated profile from expanded labeled samples."""
         profile = calibration_profile or self._calibration_profile
@@ -481,6 +809,16 @@ class TextDetector:
             low=float(ranges["sentence_kurtosis_low"]),
             high=float(ranges["sentence_kurtosis_high"]),
         )
+        rewrite_signal = self._normalize_direct(
+            rewrite_sensitivity,
+            low=0.1,
+            high=0.75,
+        )
+        hard_negative_signal = self._normalize_direct(
+            hard_negative_similarity,
+            low=0.1,
+            high=0.7,
+        )
 
         heuristic_score = (
             perplexity_signal * float(weights["perplexity"])
@@ -492,7 +830,9 @@ class TextDetector:
             + stopword_signal * float(weights["stopword_ratio"])
             + sentence_variance_signal * float(weights["sentence_length_variance"])
             + sentence_kurtosis_signal * float(weights["sentence_length_kurtosis"])
+            + (rewrite_signal * 0.05)
         )
+        heuristic_score -= hard_negative_signal * 0.08
 
         if ml_score is not None:
             ml_weight = float(profile["ml_weight"])
@@ -538,17 +878,17 @@ class TextDetector:
         """Load detector calibration profile generated from larger labeled corpora."""
         default_profile: dict[str, object] = {
             "version": "default-v2-tristate",
-            "decision_threshold": 0.5,
+            "decision_threshold": 0.45,
             "uncertainty_margin": 0.08,
             "short_text_min_words": 120,
             "short_text_min_sentences": 4,
-            "ml_weight": 0.32,
+            "ml_weight": 0.38,
             "weights": {
-                "perplexity": 0.2,
-                "burstiness": 0.18,
-                "vocabulary_richness": 0.12,
-                "repetition": 0.16,
-                "sentence_length": 0.1,
+                "perplexity": 0.18,
+                "burstiness": 0.16,
+                "vocabulary_richness": 0.1,
+                "repetition": 0.14,
+                "sentence_length": 0.08,
                 "punctuation_diversity": 0.08,
                 "stopword_ratio": 0.06,
                 "sentence_length_variance": 0.07,
@@ -575,12 +915,18 @@ class TextDetector:
                 "sentence_kurtosis_high": 4.0,
             },
             "domain_profiles": {
-                "news": {"decision_threshold": 0.45, "uncertainty_margin": 0.05},
-                "social": {"decision_threshold": 0.47, "uncertainty_margin": 0.06},
-                "marketing": {"decision_threshold": 0.49, "uncertainty_margin": 0.06},
-                "academic": {"decision_threshold": 0.43, "uncertainty_margin": 0.05},
+                "news": {"decision_threshold": 0.44, "uncertainty_margin": 0.06},
+                "social-short": {"decision_threshold": 0.49, "uncertainty_margin": 0.09},
+                "finance-business": {"decision_threshold": 0.47, "uncertainty_margin": 0.07},
+                "legal-policy": {"decision_threshold": 0.46, "uncertainty_margin": 0.07},
+                "science-academic": {"decision_threshold": 0.43, "uncertainty_margin": 0.06},
                 "code-doc": {"decision_threshold": 0.46, "uncertainty_margin": 0.05},
                 "general": {"decision_threshold": 0.45, "uncertainty_margin": 0.05},
+            },
+            "length_band_profiles": {
+                "short-form": {"decision_threshold": 0.5, "uncertainty_margin": 0.11},
+                "standard": {"decision_threshold": 0.45, "uncertainty_margin": 0.08},
+                "long-form": {"decision_threshold": 0.43, "uncertainty_margin": 0.06},
             },
         }
 
@@ -626,6 +972,18 @@ class TextDetector:
                     else {}
                 ),
             },
+            "length_band_profiles": {
+                **(
+                    default_profile["length_band_profiles"]  # type: ignore[index]
+                    if isinstance(default_profile.get("length_band_profiles"), dict)
+                    else {}
+                ),
+                **(
+                    payload.get("length_band_profiles")
+                    if isinstance(payload.get("length_band_profiles"), dict)
+                    else {}
+                ),
+            },
         }
         return merged
 
@@ -637,63 +995,47 @@ class TextDetector:
             "code": "code-doc",
             "code-doc": "code-doc",
             "codedoc": "code-doc",
-            "academic": "academic",
-            "education": "academic",
-            "science": "academic",
-            "legal": "academic",
+            "academic": "science-academic",
+            "education": "science-academic",
+            "science": "science-academic",
+            "science-academic": "science-academic",
+            "legal": "legal-policy",
+            "legal-policy": "legal-policy",
             "news": "news",
-            "social": "social",
-            "marketing": "marketing",
+            "social": "social-short",
+            "social-short": "social-short",
+            "marketing": "finance-business",
+            "finance": "finance-business",
+            "finance-business": "finance-business",
             "general": "general",
-            "finance": "general",
             "health": "general",
         }
         return aliases.get(normalized, "general")
 
     def _infer_domain(self, text: str) -> str:
-        lowered = text.lower()
-
-        code_markers = (
-            "```",
-            "def ",
-            "class ",
-            "import ",
-            "const ",
-            "function ",
-            "api endpoint",
+        words = self._tokenize(text)
+        sentences = self._split_sentences(text)
+        inferred_domain, _confidence, _input_type = self._infer_domain_with_confidence(
+            text,
+            text,
+            words,
+            sentences,
         )
-        if any(marker in lowered for marker in code_markers):
-            return "code-doc"
+        return inferred_domain
 
-        social_markers = ("#", "@", "rt ", "dm ", "viral", "followers", "thread")
-        if any(marker in lowered for marker in social_markers):
-            return "social"
+    def _length_band_for_words(self, word_count: int) -> str:
+        if word_count < 120:
+            return "short-form"
+        if word_count >= 400:
+            return "long-form"
+        return "standard"
 
-        marketing_markers = (
-            "cta",
-            "conversion",
-            "campaign",
-            "brand",
-            "funnel",
-            "audience",
-            "roi",
-            "click-through",
-        )
-        if any(marker in lowered for marker in marketing_markers):
-            return "marketing"
-
-        academic_markers = ("hypothesis", "methodology", "citation", "peer-reviewed", "dataset")
-        if any(marker in lowered for marker in academic_markers):
-            return "academic"
-
-        news_markers = ("reported", "breaking", "according to", "official statement")
-        if any(marker in lowered for marker in news_markers):
-            return "news"
-
-        return "general"
-
-    def _resolve_calibration_profile(self, domain: Optional[str]) -> tuple[dict[str, object], str]:
+    def _resolve_calibration_profile(
+        self, domain: Optional[str], *, word_count: Optional[int] = None
+    ) -> tuple[dict[str, object], str, str]:
         normalized_domain = self._normalize_domain(domain) or "general"
+        length_band = self._length_band_for_words(int(word_count or 0))
+        domain_applied = False
         base_profile = {
             **self._calibration_profile,
             "weights": dict(self._calibration_profile.get("weights", {})),  # type: ignore[arg-type]
@@ -724,9 +1066,43 @@ class TextDetector:
                         ),
                     },
                 }
-                return merged, normalized_domain
+                base_profile = merged
+                domain_applied = True
 
-        return base_profile, "general"
+        raw_length_profiles = self._calibration_profile.get("length_band_profiles", {})
+        if isinstance(raw_length_profiles, dict):
+            band_override = raw_length_profiles.get(length_band)
+            if isinstance(band_override, dict):
+                merged = {
+                    **base_profile,
+                    "weights": {
+                        **base_profile["weights"],  # type: ignore[index]
+                        **(
+                            band_override.get("weights")
+                            if isinstance(band_override.get("weights"), dict)
+                            else {}
+                        ),
+                    },
+                    "ranges": {
+                        **base_profile["ranges"],  # type: ignore[index]
+                        **(
+                            band_override.get("ranges")
+                            if isinstance(band_override.get("ranges"), dict)
+                            else {}
+                        ),
+                    },
+                }
+                if not domain_applied or normalized_domain == "general":
+                    merged.update(band_override)
+                else:
+                    if "uncertainty_margin" in band_override:
+                        merged["uncertainty_margin"] = max(
+                            float(base_profile["uncertainty_margin"]),
+                            float(band_override["uncertainty_margin"]),
+                        )
+                base_profile = merged
+
+        return base_profile, normalized_domain, length_band
 
     def _profile_version_label(self, profile: dict[str, object], domain: str) -> str:
         base_version = str(profile.get("version", "default-v2-tristate"))
@@ -762,6 +1138,42 @@ class TextDetector:
         calibrated = 1.0 / (1.0 + math.exp(-logit))
         return float(np.clip(calibrated, 0.0, 1.0))
 
+    def _calculate_rewrite_sensitivity(self, text: str, sentences: list[str]) -> float:
+        lowered = text.lower()
+        markers = self._expert_bundle.get("rewrite_markers", [])
+        marker_hits = 0
+        if isinstance(markers, list):
+            marker_hits = sum(1 for marker in markers if str(marker).strip().lower() in lowered)
+
+        pairwise_overlap: list[float] = []
+        for left, right in zip(sentences, sentences[1:]):
+            left_tokens = set(self._tokenize(left))
+            right_tokens = set(self._tokenize(right))
+            if not left_tokens or not right_tokens:
+                continue
+            overlap = len(left_tokens & right_tokens) / max(len(left_tokens | right_tokens), 1)
+            pairwise_overlap.append(overlap)
+        overlap_score = float(np.mean(pairwise_overlap)) if pairwise_overlap else 0.0
+        raw = min(1.0, (marker_hits * 0.22) + (overlap_score * 0.85))
+        return round(raw, 3)
+
+    def _calculate_hard_negative_similarity(self, text: str) -> float:
+        lowered = text.lower()
+        markers = self._expert_bundle.get("hard_negative_markers", [])
+        if not isinstance(markers, list) or not markers:
+            return 0.0
+        hits = sum(1 for marker in markers if str(marker).strip().lower() in lowered)
+        lexical_markers = (
+            (" i ", 0.08),
+            (" yesterday ", 0.08),
+            (" meeting ", 0.08),
+            (" note ", 0.05),
+            (" rewrote ", 0.12),
+        )
+        lexical_boost = sum(weight for marker, weight in lexical_markers if marker in f" {lowered} ")
+        raw = min(1.0, (hits / max(len(markers), 1)) * 2.4 + lexical_boost)
+        return round(raw, 3)
+
     def _generate_explanation(
         self,
         *,
@@ -773,6 +1185,8 @@ class TextDetector:
         uncertainty_reason: Optional[str],
         ml_score: Optional[float] = None,
         calibration_domain: str = "general",
+        uncertainty_flags: Optional[list[str]] = None,
+        length_band: str = "standard",
     ) -> str:
         """Generate human-readable explanation."""
         if decision_band == "ai":
@@ -802,11 +1216,13 @@ class TextDetector:
             reasons.append("varied and unpredictable text")
         if burstiness > 0.6:
             reasons.append("natural variation in sentence complexity")
+        if uncertainty_flags:
+            reasons.append("conservative safeguards: " + ", ".join(uncertainty_flags))
 
         reason_text = ", ".join(reasons) if reasons else "mixed signals"
         return (
             f"Text appears {verdict} ({conf_level} confidence). "
-            f"Domain profile: {calibration_domain}. "
+            f"Domain profile: {calibration_domain}. Length band: {length_band}. "
             f"Distance to threshold: {distance_to_threshold:.3f}. "
             f"Key indicators: {reason_text}."
         )

@@ -84,6 +84,8 @@ async def test_text_detection_success_returns_analysis_id(client: AsyncClient):
     assert "consensus" in payload
     assert "model_version" in payload
     assert "calibration_version" in payload
+    assert "domain_profile" in payload
+    assert "uncertainty_flags" in payload
     assert "provider_evidence" in payload
     assert payload["consensus"]["providers"][0]["provider"] == "internal"
 
@@ -101,6 +103,7 @@ async def test_text_detection_accepts_domain_hint(client: AsyncClient):
     assert response.status_code == 200
     payload = response.json()
     assert payload["calibration_version"].endswith(":news")
+    assert payload["domain_profile"] == "news"
 
 
 @pytest.mark.asyncio
@@ -152,6 +155,7 @@ async def test_text_detection_forces_uncertain_when_provider_disagreement_is_hig
     payload = response.json()
     assert payload["decision_band"] == "uncertain"
     assert payload["is_ai_generated"] is False
+    assert "provider_disagreement" in payload["uncertainty_flags"]
     assert "high provider disagreement" in payload["uncertainty_reason"].lower()
 
 
@@ -337,6 +341,9 @@ async def test_analysis_evidence_pack_endpoint(client: AsyncClient):
     assert "detector_versions" in payload
     assert "model_version" in payload["detector_versions"]
     assert "calibration_version" in payload["detector_versions"]
+    assert "trace" in payload
+    assert "route_profile" in payload["trace"]
+    assert "artifact_lineage" in payload["trace"]
 
 
 @pytest.mark.asyncio

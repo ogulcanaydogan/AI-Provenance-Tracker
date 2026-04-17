@@ -50,6 +50,25 @@ def _derive_verdict(record_result: dict) -> str:
 
 def _build_evidence_payload(record) -> dict:
     result = record.result if isinstance(record.result, dict) else {}
+    detector_versions = {
+        "model_version": result.get("model_version"),
+        "calibration_version": result.get("calibration_version"),
+    }
+    trace = {
+        "route_profile": result.get("domain_profile"),
+        "uncertainty_flags": result.get("uncertainty_flags", []),
+        "chunk_summary": result.get("chunk_consistency"),
+        "disagreement_reasons": [
+            item
+            for item in [result.get("uncertainty_reason")]
+            if isinstance(item, str) and item.strip()
+        ],
+        "artifact_lineage": {
+            "model_bundle_version": settings.text_model_bundle_version or None,
+            "calibration_bundle_version": settings.text_calibration_bundle_version or None,
+            "private_benchmark_manifest": settings.text_private_benchmark_manifest or None,
+        },
+    }
     return {
         "analysis_id": record.analysis_id,
         "content_type": record.content_type,
@@ -61,10 +80,8 @@ def _build_evidence_payload(record) -> dict:
         "source": record.source,
         "source_url": record.source_url,
         "explanation": result.get("explanation"),
-        "detector_versions": {
-            "model_version": result.get("model_version"),
-            "calibration_version": result.get("calibration_version"),
-        },
+        "detector_versions": detector_versions,
+        "trace": trace,
     }
 
 

@@ -7,6 +7,7 @@ This runbook covers targeted text detector fine-tuning for v1.1 false-positive s
 - Reduce `human -> AI` false positives without dropping F1.
 - Keep calibration and detector versions reproducible.
 - Produce auditable artifacts for release gating.
+- Treat the public benchmark as a non-regression sanity set, not the final release gate.
 
 ## Hardware Allocation
 
@@ -79,6 +80,16 @@ Gate outputs:
 - `backend/evidence/calibration/text/quality_gate.json`
 - `backend/evidence/calibration/text/quality_gate.md`
 
+Runtime profile now supports:
+- domain-aware thresholds
+- length-band thresholds (`short-form`, `standard`, `long-form`)
+- conservative uncertainty margins
+
+The promoted runtime should pin model and calibration together:
+- `TEXT_MODEL_BUNDLE_VERSION`
+- `TEXT_CALIBRATION_BUNDLE_VERSION`
+- `TEXT_PRIVATE_BENCHMARK_MANIFEST`
+
 ## Promote Model
 
 1. Set env var on backend runtime:
@@ -94,3 +105,9 @@ Gate outputs:
 - Overall FP <= 8%
 - ECE < 0.08
 - Golden-pair separation >= 60%
+
+For the private moat stack, final release approval additionally requires:
+- private hard-negative benchmark pass
+- domain FP report
+- adversarial rewrite slice report
+- model/calibration bundle version pinning
