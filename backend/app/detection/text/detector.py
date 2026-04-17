@@ -387,7 +387,9 @@ class TextDetector:
         min_words = max(40, int(settings.text_chunk_min_words))
         max_chunks = max(1, int(settings.text_chunk_max_count))
 
-        paragraphs = [segment.strip() for segment in re.split(r"\n{2,}", raw_text) if segment.strip()]
+        paragraphs = [
+            segment.strip() for segment in re.split(r"\n{2,}", raw_text) if segment.strip()
+        ]
         if len(paragraphs) <= 1:
             paragraphs = self._split_sentences(raw_text)
         chunks: list[str] = []
@@ -472,7 +474,9 @@ class TextDetector:
         route_mismatch = dominant_domain != resolved_domain
         disagreement_penalty = min(0.18, (confidence_spread * 0.35) + (disagreement_ratio * 0.25))
         aggregate_confidence = float(
-            np.clip((0.65 * base_confidence) + (0.35 * mean_confidence) - disagreement_penalty, 0.0, 1.0)
+            np.clip(
+                (0.65 * base_confidence) + (0.35 * mean_confidence) - disagreement_penalty, 0.0, 1.0
+            )
         )
 
         return ChunkConsistencySummary(
@@ -1170,7 +1174,9 @@ class TextDetector:
             (" note ", 0.05),
             (" rewrote ", 0.12),
         )
-        lexical_boost = sum(weight for marker, weight in lexical_markers if marker in f" {lowered} ")
+        lexical_boost = sum(
+            weight for marker, weight in lexical_markers if marker in f" {lowered} "
+        )
         raw = min(1.0, (hits / max(len(markers), 1)) * 2.4 + lexical_boost)
         return round(raw, 3)
 

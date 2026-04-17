@@ -492,7 +492,9 @@ async def run() -> int:
             report["domain_sample_count_by_domain"] = domain_sample_counts
             report["domain_human_sample_count_by_domain"] = domain_human_counts
         scored_word_counts = version_meta.get("scored_word_counts", [])
-        if isinstance(scored_word_counts, list) and len(scored_word_counts) == len(evaluated_scores):
+        if isinstance(scored_word_counts, list) and len(scored_word_counts) == len(
+            evaluated_scores
+        ):
             length_bands: dict[str, list[tuple[float, bool]]] = {}
             for score_row, raw_count in zip(evaluated_scores, scored_word_counts):
                 try:
@@ -504,7 +506,9 @@ async def run() -> int:
             for band, band_scores in sorted(length_bands.items()):
                 if len(band_scores) < args.min_domain_samples:
                     continue
-                band_metrics = [_threshold_metrics(band_scores, threshold) for threshold in thresholds]
+                band_metrics = [
+                    _threshold_metrics(band_scores, threshold) for threshold in thresholds
+                ]
                 band_best = max(
                     band_metrics,
                     key=lambda item: (
