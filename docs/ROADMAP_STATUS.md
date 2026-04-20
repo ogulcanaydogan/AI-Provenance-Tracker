@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-04-17 (v2.3.1 smoke benchmark gate split applied)
+Last updated: 2026-04-20 (v2.3.2 scheduled quality pipeline stabilization)
 
 ## Overall
 
@@ -10,6 +10,23 @@ Last updated: 2026-04-17 (v2.3.1 smoke benchmark gate split applied)
 - Evolution track active: Benchmark 2.0 profile split and 1500-sample corpus are now in repo.
 - Platform T&S best-in-class track started (false-positive stabilization + domain-aware calibration + evidence-rich API responses).
 - Final release: [`v1.0.0`](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/releases/tag/v1.0.0)
+
+## v2.3.2 Scheduled Quality Pipeline Stabilization — IMPLEMENTED
+
+- Triggering scheduled failures on `main`:
+  - Weekly calibration auto-PR permission failure: [24646856381](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24646856381)
+  - Leaderboard publish artifact dependency failure: [24647339793](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24647339793)
+  - Drift watch artifact dependency + summary path failure: [24648309495](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24648309495)
+  - Cost governance summary heredoc bug (`NameError`): [24651113710](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24651113710)
+- Stability fixes delivered:
+  - Added `ALLOW_ARTIFACT_FALLBACK` contract to `scripts/fetch_latest_text_training_artifact.sh` with deterministic warning and `TEXT_TRAINING_ARTIFACT_AVAILABLE` signaling.
+  - Enabled soft fallback only for scheduled full benchmark workflows; manual full runs remain strict.
+  - Weekly calibration auto-PR step is now non-blocking with explicit step-summary outcome notes.
+  - Drift watch summary now creates parent output paths safely and aligns smoke profile to `smoke_ci`.
+  - Cost governance summary heredoc redirection fixed (`python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"`).
+- Policy state:
+  - Scheduled monitoring jobs keep running even when external training artifacts are temporarily unavailable.
+  - Release approval remains strict via manual/full + private benchmark gates.
 
 ## v2.3.1 Text-First Stabilization (Smoke CI Policy Split) — IMPLEMENTED
 

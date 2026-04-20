@@ -31,6 +31,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUIRE_TRAINING_ARTIFACT: "true"
+          ALLOW_ARTIFACT_FALLBACK: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: |
           bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/latest/training_bundle
       - name: Start backend for live benchmark

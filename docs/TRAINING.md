@@ -16,6 +16,10 @@ This runbook covers targeted text detector fine-tuning for v1.1 false-positive s
 - Release-grade quality hard-fail remains in:
   - scheduled/manual full benchmark (`full_v3`)
   - private benchmark gate in the assets/ops promotion flow
+- Scheduled full monitoring runs may fall back to repository-local text model/calibration when external
+  training artifacts are unavailable, so observability does not stop on artifact drift.
+- Manual full release validation remains strict: missing training artifact still fails unless explicitly
+  running a scheduled fallback profile.
 
 ## Hardware Allocation
 

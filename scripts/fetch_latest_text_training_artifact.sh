@@ -8,6 +8,7 @@ ARTIFACT_NAME="${ARTIFACT_NAME:-text-training-artifacts-a100}"
 ARTIFACT_BRANCH="${ARTIFACT_BRANCH:-main}"
 ARTIFACT_SEARCH_LIMIT="${ARTIFACT_SEARCH_LIMIT:-20}"
 REQUIRE_TRAINING_ARTIFACT="${REQUIRE_TRAINING_ARTIFACT:-false}"
+ALLOW_ARTIFACT_FALLBACK="${ALLOW_ARTIFACT_FALLBACK:-false}"
 
 abspath() {
   python3 - <<'PY' "$1"
@@ -32,24 +33,42 @@ if is_true "$REQUIRE_TRAINING_ARTIFACT"; then
   require_fail="true"
 fi
 
+allow_fallback="false"
+if is_true "$ALLOW_ARTIFACT_FALLBACK"; then
+  allow_fallback="true"
+fi
+
+mark_artifact_available() {
+  if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "TEXT_TRAINING_ARTIFACT_AVAILABLE=true" >> "$GITHUB_ENV"
+  fi
+}
+
+handle_artifact_unavailable() {
+  local message="$1"
+  echo "::warning::$message"
+  if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "TEXT_TRAINING_ARTIFACT_AVAILABLE=false" >> "$GITHUB_ENV"
+  fi
+  if [ "$require_fail" = "true" ] && [ "$allow_fallback" != "true" ]; then
+    exit 1
+  fi
+  if [ "$allow_fallback" = "true" ]; then
+    echo "Artifact fallback is enabled; continuing with repository-local model/calibration."
+  fi
+  exit 0
+}
+
 if [ -z "${GH_TOKEN:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
   export GH_TOKEN="$GITHUB_TOKEN"
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
-  echo "GitHub CLI (gh) is required to fetch training artifacts."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "GitHub CLI (gh) is required to fetch training artifacts."
 fi
 
 if [ -z "${GH_TOKEN:-}" ]; then
-  echo "GH_TOKEN/GITHUB_TOKEN is required to fetch training artifacts."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "GH_TOKEN/GITHUB_TOKEN is required to fetch training artifacts."
 fi
 
 rm -rf "$DEST_DIR"
@@ -66,11 +85,7 @@ mapfile -t run_ids < <(
 )
 
 if [ "${#run_ids[@]}" -eq 0 ]; then
-  echo "No successful runs found for workflow '$WORKFLOW_NAME' on branch '$ARTIFACT_BRANCH'."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "No successful runs found for workflow '$WORKFLOW_NAME' on branch '$ARTIFACT_BRANCH'."
 fi
 
 selected_run_id=""
@@ -88,11 +103,7 @@ for run_id in "${run_ids[@]}"; do
 done
 
 if [ -z "$selected_run_id" ]; then
-  echo "Could not download artifact '$ARTIFACT_NAME' from latest successful runs."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "Could not download artifact '$ARTIFACT_NAME' from latest successful runs."
 fi
 
 latest_json="$(find "$DEST_DIR" -type f -path '*/backend/evidence/models/text/latest.json' -print -quit || true)"
@@ -130,11 +141,7 @@ fi
 calibration_profile="$(find "$DEST_DIR" -type f -path '*/backend/app/detection/text/calibration_profile.json' -print -quit || true)"
 
 if [ -z "$model_dir" ] || [ ! -d "$model_dir" ]; then
-  echo "Training artifact downloaded (run=$selected_run_id) but model directory is missing."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "Training artifact downloaded (run=$selected_run_id) but model directory is missing."
 fi
 
 has_model_weights="false"
@@ -142,18 +149,11 @@ if [ -f "$model_dir/model.safetensors" ] || [ -f "$model_dir/pytorch_model.bin" 
   has_model_weights="true"
 fi
 if [ "$has_model_weights" != "true" ]; then
-  echo "Training artifact downloaded (run=$selected_run_id) but no model weights found in $model_dir."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
-  exit 0
+  handle_artifact_unavailable "Training artifact downloaded (run=$selected_run_id) but no model weights found in $model_dir."
 fi
 
 if [ -z "$calibration_profile" ] || [ ! -f "$calibration_profile" ]; then
-  echo "Training artifact downloaded (run=$selected_run_id) but calibration_profile.json is missing."
-  if [ "$require_fail" = "true" ]; then
-    exit 1
-  fi
+  handle_artifact_unavailable "Training artifact downloaded (run=$selected_run_id) but calibration_profile.json is missing."
 fi
 
 model_dir="$(abspath "$model_dir")"
@@ -162,6 +162,7 @@ if [ -n "$calibration_profile" ] && [ -f "$calibration_profile" ]; then
 fi
 
 if [ -n "${GITHUB_ENV:-}" ]; then
+  mark_artifact_available
   {
     echo "TEXT_TRAINING_ARTIFACT_RUN_ID=$selected_run_id"
     echo "TEXT_DETECTION_MODEL_PATH=$model_dir"

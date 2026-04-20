@@ -90,6 +90,8 @@ jobs:
           retention-days: 30
 
       - name: Open calibration refresh PR (manual review required)
+        id: calibration_pr
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
           branch: automation/weekly-text-calibration
@@ -97,3 +99,23 @@ jobs:
           commit-message: "chore(text): weekly calibration refresh"
           title: "chore(text): weekly calibration refresh (threshold/margin)"
           body-path: calibration-summary.md
+
+      - name: Append calibration PR outcome
+        if: ${{ always() }}
+        env:
+          PR_OUTCOME: ${{ steps.calibration_pr.outcome }}
+          PR_URL: ${{ steps.calibration_pr.outputs.pull-request-url }}
+        run: |
+          {
+            echo "## Weekly Calibration PR Outcome"
+            if [ "${PR_OUTCOME}" = "success" ] && [ -n "${PR_URL}" ]; then
+              echo "- Status: opened"
+              echo "- PR: ${PR_URL}"
+            elif [ "${PR_OUTCOME}" = "success" ]; then
+              echo "- Status: no PR created (no diff detected)"
+              echo "- Note: calibration artifacts and summary are still available for manual review."
+            else
+              echo "- Status: auto-PR step failed (non-blocking)"
+              echo "- Note: calibration artifacts and summary are ready; open PR manually if needed."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

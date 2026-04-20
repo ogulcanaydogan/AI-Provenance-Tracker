@@ -46,7 +46,7 @@ jobs:
           baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.benchmark_profile || 'full' }}" = "smoke" ]; then
             profile="smoke"
-            target_profile="smoke_v2"
+            target_profile="smoke_ci"
             baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
           fi
           {
@@ -93,6 +93,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUIRE_TRAINING_ARTIFACT: "true"
+          ALLOW_ARTIFACT_FALLBACK: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: |
           bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/drift/training_bundle
 
@@ -243,6 +244,7 @@ jobs:
 
           report_path = Path("benchmark/results/drift/current/regression_check.json")
           summary_path = Path("benchmark/results/drift/current/drift_watch_summary.md")
+          summary_path.parent.mkdir(parents=True, exist_ok=True)
           if not report_path.exists():
             summary_path.write_text("No regression report found.\n", encoding="utf-8")
             print(summary_path.read_text(encoding="utf-8"))

@@ -41,7 +41,7 @@ jobs:
             --fail-on-alert-level none
       - name: Append policy status to summary
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
           payload = json.loads(open("ops/reports/cost_governance_snapshot.json", encoding="utf-8").read())
           print("## Cost Policy Status")
@@ -49,7 +49,7 @@ jobs:
           print(f"- Status: `{payload.get('status', 'unknown')}`")
           print(f"- Remaining budget: `{payload.get('remaining_budget', 'n/a')}`")
           print(f"- Policy version: `{payload.get('policy_version', 'n/a')}`")
-          PY >> "$GITHUB_STEP_SUMMARY"
+          PY
       - name: Append snapshot to summary
         run: |
           cat ops/reports/cost_governance_snapshot.md >> "$GITHUB_STEP_SUMMARY"

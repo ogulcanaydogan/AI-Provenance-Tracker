@@ -113,22 +113,26 @@ jobs:
           profile="smoke"
           target_profile="smoke_ci"
           require_training_artifact="false"
+          allow_artifact_fallback="false"
           baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_smoke.json"
           if [ "${{ github.event_name }}" = "schedule" ]; then
             profile="full_v3"
             target_profile="full_v3"
             require_training_artifact="true"
+            allow_artifact_fallback="true"
             baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.benchmark_profile || 'smoke' }}" = "full" ]; then
             profile="full_v3"
             target_profile="full_v3"
             require_training_artifact="true"
+            allow_artifact_fallback="false"
             baseline_snapshot="benchmark/baselines/public_benchmark_snapshot_full.json"
           fi
           {
             echo "profile=${profile}"
             echo "target_profile=${target_profile}"
             echo "require_training_artifact=${require_training_artifact}"
+            echo "allow_artifact_fallback=${allow_artifact_fallback}"
             echo "baseline_snapshot=${baseline_snapshot}"
           } >> "$GITHUB_OUTPUT"
       - uses: actions/setup-python@v6
@@ -142,6 +146,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUIRE_TRAINING_ARTIFACT: ${{ steps.profile.outputs.require_training_artifact }}
+          ALLOW_ARTIFACT_FALLBACK: ${{ steps.profile.outputs.allow_artifact_fallback }}
         run: |
           bash scripts/fetch_latest_text_training_artifact.sh benchmark/results/ci/training_bundle
       - name: Start backend for live benchmark
