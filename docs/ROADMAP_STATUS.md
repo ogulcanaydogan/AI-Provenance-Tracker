@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-04-20 (v2.3.2 scheduled quality pipeline stabilization)
+Last updated: 2026-04-20 (v2.3.2 hybrid closure: manual gate completed, scheduled gate pending next cron)
 
 ## Overall
 
@@ -27,6 +27,33 @@ Last updated: 2026-04-20 (v2.3.2 scheduled quality pipeline stabilization)
 - Policy state:
   - Scheduled monitoring jobs keep running even when external training artifacts are temporarily unavailable.
   - Release approval remains strict via manual/full + private benchmark gates.
+- Hybrid closure execution evidence (2026-04-20):
+  - Preflight on `e883afc` confirmed green:
+    - `CI`: [24656657440](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24656657440)
+    - `CodeQL Security Analysis`: [24656657488](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24656657488)
+    - push `Public Provenance Benchmark`: [24656657428](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24656657428)
+  - Latest successful `Text Training Pipeline` artifact availability check:
+    - run [23032251519](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/23032251519)
+    - `gh run download -n text-training-artifacts-a100` => `no valid artifacts found to download`
+  - Manual acceptance wave (`workflow_dispatch`) results:
+    - `Cost Governance Snapshot` [24658730185](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658730185) => `success` (summary step no longer crashes with heredoc/`NameError`)
+    - `Weekly Text Calibration Refresh` [24658731464](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658731464) => `success`
+      - `Open calibration refresh PR` hit permission error (`GitHub Actions is not permitted to create or approve pull requests`)
+      - workflow stayed green; non-blocking PR policy validated and summary outcome step executed
+    - `Publish Benchmark Leaderboard` [24658733344](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658733344) => `failure` at `Download latest text training bundle`
+      - deterministic strict failure: `ALLOW_ARTIFACT_FALLBACK=false` + warning `Could not download artifact 'text-training-artifacts-a100'...`
+    - `Text Quality Drift Watch` (`benchmark_profile=smoke`, `drift_mode=normal`) [24658734643](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658734643) => `failure` at strict artifact download gate
+      - deterministic strict failure signature matches policy (`ALLOW_ARTIFACT_FALLBACK=false`)
+      - `Build drift summary` step executed successfully (summary path regression fixed)
+    - `Public Provenance Benchmark` (`benchmark_profile=full`, `cost_override=true`) [24658735843](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658735843) => `failure` at strict artifact download gate
+      - `cost-precheck` passed, benchmark job failed deterministically on required artifact
+- Scheduled observation gate status:
+  - Next cron window after these changes is `2026-04-21` UTC:
+    - `Public Provenance Benchmark` 02:00
+    - `Publish Benchmark Leaderboard` 02:30
+    - `Text Quality Drift Watch` 03:15
+    - `Cost Governance Snapshot` 05:20
+  - v2.3.2 closure evidence will be finalized with the first post-fix scheduled run URLs once this window completes.
 
 ## v2.3.1 Text-First Stabilization (Smoke CI Policy Split) — IMPLEMENTED
 
