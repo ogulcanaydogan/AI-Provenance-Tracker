@@ -48,6 +48,7 @@ dependencies = [
 ml = [
     "torch>=2.1.0",
     "torchvision>=0.16.0",
+    "accelerate>=1.1.0",
 ]
 dev = [
     "pytest>=7.4.0",
