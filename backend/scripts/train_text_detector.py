@@ -298,16 +298,22 @@ def run() -> int:
 
     class_weights = torch.tensor([float(args.fp_penalty), 1.0], dtype=torch.float)
 
-    trainer = WeightedTrainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
-        data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
-        compute_metrics=_compute_metrics,
-        class_weights=class_weights,
-    )
+    trainer_kwargs: dict[str, Any] = {
+        "model": model,
+        "args": training_args,
+        "train_dataset": train_dataset,
+        "eval_dataset": eval_dataset,
+        "data_collator": DataCollatorWithPadding(tokenizer=tokenizer),
+        "compute_metrics": _compute_metrics,
+        "class_weights": class_weights,
+    }
+    trainer_supported = set(inspect.signature(Trainer.__init__).parameters)
+    if "tokenizer" in trainer_supported:
+        trainer_kwargs["tokenizer"] = tokenizer
+    elif "processing_class" in trainer_supported:
+        trainer_kwargs["processing_class"] = tokenizer
+
+    trainer = WeightedTrainer(**trainer_kwargs)
 
     trainer.train()
     eval_metrics = trainer.evaluate()
