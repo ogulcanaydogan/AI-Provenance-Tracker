@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-04-21 (v2.3.2 split closure finalized; v2.3.3 quality remediation kickoff)
+Last updated: 2026-04-21 (v2.3.3 manual full recovery evidence added; scheduled confirmation pending)
 
 ## Overall
 
@@ -70,6 +70,19 @@ Last updated: 2026-04-21 (v2.3.2 split closure finalized; v2.3.3 quality remedia
   - regenerate calibration profile against current benchmark set,
   - rerun manual full checks for leaderboard and drift,
   - keep single-thread quality tracking in [#78](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/78) until scheduled recovery.
+- v2.3.3 remediation execution evidence (2026-04-21, `event=workflow_dispatch`, `headSha=ee3b3fc`):
+  - `Text Training Pipeline` [24725375636](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24725375636) => `success`
+    - `train-a100` succeeded and produced latest artifact bundle for benchmark consumers.
+  - `Text Quality Drift Watch` (`benchmark_profile=full`, `drift_mode=normal`) [24725557598](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24725557598) => `success`
+    - `target_profile=full_v3`, `fail_reasons=none`, drift checks `0/5` failed.
+    - recovery metric snapshot: `calibration_ece=0.0004`, domain FP (`code/finance/legal/science`) all `0.0`.
+  - `Publish Benchmark Leaderboard` first run [24725555995](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24725555995) => `failure`
+    - failure class: transient runner dependency transport (`pip` SSL error while downloading wheel), not a quality-gate rejection.
+  - `Publish Benchmark Leaderboard` rerun [24725775926](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24725775926) => `success`
+    - strict `full_v3` regression gate passed (`failed_checks=0`), confirming quality checks pass on manual strict path.
+- Single-thread quality tracking state:
+  - [#78](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/78) reopened intentionally after manual recovery to wait for cron-path confirmation.
+  - Closure condition remains unchanged: next scheduled leaderboard + drift window must pass under hard-fail policy.
 
 ## v2.3.1 Text-First Stabilization (Smoke CI Policy Split) — IMPLEMENTED
 
