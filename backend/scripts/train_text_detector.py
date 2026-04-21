@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import random
 import sys
@@ -224,6 +225,38 @@ def _compute_metrics(eval_pred: tuple[np.ndarray, np.ndarray]) -> dict[str, floa
     }
 
 
+def _build_training_args(run_dir: Path, args: argparse.Namespace) -> TrainingArguments:
+    """Build TrainingArguments compatible with multiple transformers versions."""
+    supported = set(inspect.signature(TrainingArguments.__init__).parameters)
+
+    kwargs: dict[str, Any] = {
+        "output_dir": str(run_dir / "checkpoints"),
+        "save_strategy": "epoch",
+        "learning_rate": float(args.learning_rate),
+        "per_device_train_batch_size": int(args.train_batch_size),
+        "per_device_eval_batch_size": int(args.eval_batch_size),
+        "num_train_epochs": float(args.epochs),
+        "weight_decay": 0.01,
+        "logging_steps": 25,
+        "load_best_model_at_end": True,
+        "metric_for_best_model": "f1",
+        "report_to": "none",
+        "save_total_limit": 2,
+        "seed": int(args.seed),
+    }
+
+    # transformers renamed this field in some versions.
+    if "eval_strategy" in supported:
+        kwargs["eval_strategy"] = "epoch"
+    elif "evaluation_strategy" in supported:
+        kwargs["evaluation_strategy"] = "epoch"
+
+    if "overwrite_output_dir" in supported:
+        kwargs["overwrite_output_dir"] = True
+
+    return TrainingArguments(**kwargs)
+
+
 def run() -> int:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[2]
@@ -261,23 +294,7 @@ def run() -> int:
     run_dir = output_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    training_args = TrainingArguments(
-        output_dir=str(run_dir / "checkpoints"),
-        overwrite_output_dir=True,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        learning_rate=float(args.learning_rate),
-        per_device_train_batch_size=int(args.train_batch_size),
-        per_device_eval_batch_size=int(args.eval_batch_size),
-        num_train_epochs=float(args.epochs),
-        weight_decay=0.01,
-        logging_steps=25,
-        load_best_model_at_end=True,
-        metric_for_best_model="f1",
-        report_to="none",
-        save_total_limit=2,
-        seed=int(args.seed),
-    )
+    training_args = _build_training_args(run_dir, args)
 
     class_weights = torch.tensor([float(args.fp_penalty), 1.0], dtype=torch.float)
 

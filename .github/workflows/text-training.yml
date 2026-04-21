@@ -46,6 +46,7 @@ jobs:
     timeout-minutes: 360
     env:
       CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
+      TEXT_DETECTION_MODEL_PATH: backend/evidence/models/text
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -187,6 +188,7 @@ jobs:
     timeout-minutes: 360
     env:
       CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
+      TEXT_DETECTION_MODEL_PATH: backend/evidence/models/text
     strategy:
       fail-fast: false
       matrix:
