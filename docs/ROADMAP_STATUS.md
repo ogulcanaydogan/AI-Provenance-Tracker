@@ -1,6 +1,6 @@
 # Roadmap Status
 
-Last updated: 2026-04-20 (v2.3.2 hybrid closure: manual gate completed, scheduled gate pending next cron)
+Last updated: 2026-04-21 (v2.3.2 split closure finalized; v2.3.3 quality remediation kickoff)
 
 ## Overall
 
@@ -47,13 +47,29 @@ Last updated: 2026-04-20 (v2.3.2 hybrid closure: manual gate completed, schedule
       - `Build drift summary` step executed successfully (summary path regression fixed)
     - `Public Provenance Benchmark` (`benchmark_profile=full`, `cost_override=true`) [24658735843](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24658735843) => `failure` at strict artifact download gate
       - `cost-precheck` passed, benchmark job failed deterministically on required artifact
-- Scheduled observation gate status:
-  - Next cron window after these changes is `2026-04-21` UTC:
-    - `Public Provenance Benchmark` 02:00
-    - `Publish Benchmark Leaderboard` 02:30
-    - `Text Quality Drift Watch` 03:15
-    - `Cost Governance Snapshot` 05:20
-  - v2.3.2 closure evidence will be finalized with the first post-fix scheduled run URLs once this window completes.
+- Scheduled observation gate evidence (2026-04-21, `event=schedule`, `headSha=3938087`):
+  - `Public Provenance Benchmark` [24701755542](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24701755542) => `success` (cost policy status=`block`; benchmark job skipped by gate, no crash)
+  - `Publish Benchmark Leaderboard` [24702753318](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24702753318) => `failure`
+  - `Text Quality Drift Watch` [24703784317](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24703784317) => `failure`
+  - `Cost Governance Snapshot` [24706717231](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/runs/24706717231) => `success`
+- Signature verification vs v2.3.2 target failures:
+  - No artifact-download hard-fail in scheduled fallback paths:
+    - both failing scheduled runs logged warning (`Could not download artifact ...`) with `TEXT_TRAINING_ARTIFACT_AVAILABLE=false`, but download step stayed `success`.
+  - No drift summary-path crash:
+    - drift run `Build drift summary` step passed and artifacts uploaded.
+  - No cost-governance heredoc/`NameError` recurrence:
+    - `Append policy status to summary` passed in scheduled run `24706717231`.
+- Split closure decision (locked):
+  - `v2.3.2` is now **closed as pipeline-stability closure**.
+  - Remaining scheduled failures are **quality gate failures**, not pipeline-regression failures:
+    - leaderboard: `calibration_ece=0.1561 > 0.08`
+    - drift: `fail_reasons=[ece_limit_breach, drift_spike]`, `calibration_ece=0.1445 > 0.08` (delta `0.1438 > 0.02`)
+  - Scheduled full quality gates remain intentionally hard-fail; no policy relaxation in this phase.
+- v2.3.3 quality remediation kickoff (tracking-only in this step):
+  - refresh/publish a valid latest text training artifact bundle,
+  - regenerate calibration profile against current benchmark set,
+  - rerun manual full checks for leaderboard and drift,
+  - keep single-thread quality tracking in [#78](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/issues/78) until scheduled recovery.
 
 ## v2.3.1 Text-First Stabilization (Smoke CI Policy Split) — IMPLEMENTED
 
