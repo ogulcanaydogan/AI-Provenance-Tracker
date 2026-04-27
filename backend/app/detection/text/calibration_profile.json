@@ -1,13 +1,14 @@
 {
-  "version": "calibrated-20260312",
-  "decision_threshold": 0.45,
-  "uncertainty_margin": 0.08,
+  "version": "calibrated-20260427",
+  "decision_threshold": 0.2,
+  "uncertainty_margin": 0.18,
   "short_text_min_words": 120,
   "short_text_min_sentences": 4,
   "calibration_map": {
     "type": "platt",
-    "coef": 22.0,
-    "intercept": -9.9
+    "coef": 48.949287,
+    "intercept": -23.202953,
+    "sample_count": 1020
   },
   "ml_weight": 0.38,
   "weights": {
@@ -20,50 +21,6 @@
     "stopword_ratio": 0.06,
     "sentence_length_variance": 0.07,
     "sentence_length_kurtosis": 0.03
-  },
-  "domain_profiles": {
-    "news": {
-      "decision_threshold": 0.44,
-      "uncertainty_margin": 0.048
-    },
-    "social-short": {
-      "decision_threshold": 0.49,
-      "uncertainty_margin": 0.09
-    },
-    "finance-business": {
-      "decision_threshold": 0.47,
-      "uncertainty_margin": 0.07
-    },
-    "legal-policy": {
-      "decision_threshold": 0.46,
-      "uncertainty_margin": 0.07
-    },
-    "science-academic": {
-      "decision_threshold": 0.43,
-      "uncertainty_margin": 0.047
-    },
-    "code-doc": {
-      "decision_threshold": 0.46,
-      "uncertainty_margin": 0.05
-    },
-    "general": {
-      "decision_threshold": 0.45,
-      "uncertainty_margin": 0.047
-    }
-  },
-  "length_band_profiles": {
-    "short-form": {
-      "decision_threshold": 0.5,
-      "uncertainty_margin": 0.11
-    },
-    "standard": {
-      "decision_threshold": 0.45,
-      "uncertainty_margin": 0.08
-    },
-    "long-form": {
-      "decision_threshold": 0.43,
-      "uncertainty_margin": 0.06
-    }
   },
   "ranges": {
     "perplexity_low": 8.0,
@@ -85,7 +42,51 @@
     "sentence_kurtosis_low": -1.2,
     "sentence_kurtosis_high": 4.0
   },
-  "source": "/Users/ogulcanaydogan/Desktop/Projects/YaPAY/AI-Provenance-Tracker/benchmark/datasets/detection_multidomain.jsonl",
-  "sample_count": 495,
-  "calibrated_at": "2026-03-12T09:29:48.921355+00:00"
+  "domain_profiles": {
+    "code-doc": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 139
+    },
+    "finance-business": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 143
+    },
+    "general": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 114
+    },
+    "legal-policy": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 141
+    },
+    "news": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 117
+    },
+    "science-academic": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 252
+    },
+    "social-short": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 114
+    }
+  },
+  "length_band_profiles": {
+    "short-form": {
+      "decision_threshold": 0.2,
+      "uncertainty_margin": 0.18,
+      "sample_count": 1020
+    }
+  },
+  "source": "/home/runner/work/AI-Provenance-Tracker/AI-Provenance-Tracker/benchmark/datasets/detection_multidomain.jsonl",
+  "sample_count": 1020,
+  "calibrated_at": "2026-04-27T03:22:28.375046+00:00"
 }

@@ -1,0 +1,49 @@
+{
+  "report": "/home/runner/work/AI-Provenance-Tracker/AI-Provenance-Tracker/backend/evidence/calibration/text/latest_text_calibration.json",
+  "status": "ok",
+  "sample_count": 1020,
+  "fp_rate": 0.0,
+  "ece": 0.0007,
+  "uncertainty_margin": 0.18,
+  "max_domain_fp_rate": 0.3,
+  "min_domain_sample_count": 30,
+  "domain_checks": [
+    {
+      "domain": "code",
+      "sample_count": 139,
+      "human_sample_count": 139,
+      "fp_rate": 0.0,
+      "max_allowed_fp_rate": 0.3,
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "domain": "finance",
+      "sample_count": 143,
+      "human_sample_count": 143,
+      "fp_rate": 0.0,
+      "max_allowed_fp_rate": 0.3,
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "domain": "legal",
+      "sample_count": 141,
+      "human_sample_count": 141,
+      "fp_rate": 0.0,
+      "max_allowed_fp_rate": 0.3,
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "domain": "science",
+      "sample_count": 139,
+      "human_sample_count": 139,
+      "fp_rate": 0.0,
+      "max_allowed_fp_rate": 0.3,
+      "status": "pass",
+      "reason": ""
+    }
+  ],
+  "failures": []
+}
