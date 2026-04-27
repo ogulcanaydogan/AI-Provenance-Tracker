@@ -37,7 +37,7 @@ jobs:
       X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
       DEFAULT_HANDLE: ${{ vars.TALENT_VISA_HANDLE || '@ogulcanaydogan' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -85,7 +85,7 @@ jobs:
         run: echo "X_BEARER_TOKEN secret is not set; skipping weekly evidence run."
       - name: Upload weekly artifacts
         if: ${{ always() && env.X_BEARER_TOKEN != '' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: weekly-talent-visa-evidence
           path: |
