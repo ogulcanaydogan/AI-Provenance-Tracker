@@ -48,7 +48,7 @@ jobs:
       CUDA_VISIBLE_DEVICES: ${{ github.event.inputs.cuda_visible_devices }}
       TEXT_DETECTION_MODEL_PATH: backend/evidence/models/text
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -167,7 +167,7 @@ jobs:
 
       - name: Upload training artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: text-training-artifacts-a100
           path: |
@@ -194,7 +194,7 @@ jobs:
       matrix:
         profile: ${{ fromJson(github.event.inputs.v100_profile == 'all' && '["v11_fp_sweep_lr2e5_pen17","v11_fp_sweep_lr3e5_pen20","v11_fp_sweep_lr15e5_pen15","v11_fp_sweep_lr25e5_pen18","v11_fp_sweep_lr1e5_pen22"]' || format('["{0}"]', github.event.inputs.v100_profile)) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -310,7 +310,7 @@ jobs:
 
       - name: Upload training artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: text-training-artifacts-${{ matrix.profile }}
           path: |
