@@ -21,7 +21,7 @@ jobs:
       PRODUCTION_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -58,7 +58,7 @@ jobs:
         run: |
           cat ops/reports/runtime_observability_report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload report artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: slo-observability-report
           path: |

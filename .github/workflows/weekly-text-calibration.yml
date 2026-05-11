@@ -13,7 +13,7 @@ jobs:
   calibrate-text:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -79,7 +79,7 @@ jobs:
           PY
 
       - name: Upload calibration report artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: weekly-text-calibration-report
           path: |
@@ -92,7 +92,7 @@ jobs:
       - name: Open calibration refresh PR (manual review required)
         id: calibration_pr
         continue-on-error: true
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: automation/weekly-text-calibration
           delete-branch: true
