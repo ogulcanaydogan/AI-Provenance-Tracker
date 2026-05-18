@@ -11,7 +11,7 @@ Multimodal AI provenance detection platform (text, image, audio, video). Produce
 - [ ] Promote audio detector from experimental to stable (confidence calibration complete)
 - [ ] Promote video detector from experimental to stable (frame-sampling pipeline hardened)
 - [ ] Accessibility audit and remediation for the Next.js frontend (WCAG 2.1 AA)
-- [ ] Ship deferred docs: `API.md` (full REST reference), updated `SECURITY.md`
+- [x] Ship deferred docs: `API.md` extended with previously undocumented endpoints (streaming text detection, detailed analysis, Stripe webhook, X scheduler/drilldown/report) and `X-Billing-Webhook-Secret` header. `SECURITY.md` refresh still pending.
 - [ ] Dependabot config for automated dependency PRs
 
 **Target branch**: `feature/v1.1.0`

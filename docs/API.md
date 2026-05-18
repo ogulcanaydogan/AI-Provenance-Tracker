@@ -469,20 +469,114 @@ Triggers collection and analysis of recent posts from configured
 X handles. Requires `X_BEARER_TOKEN` to be set.
 
 ```
-GET /api/v1/intel/x/collect/estimate
+POST /api/v1/intel/x/collect/estimate
 ```
 
-Estimates API request cost before running a collection.
+Estimates API request cost before running a collection. Returns the
+expected post count and the estimated unit cost so callers can decide
+whether to proceed with the live `x/collect` call.
+
+```
+POST /api/v1/intel/x/drilldown
+```
+
+Run a focused drilldown on a single X handle or query, returning the
+per-post evidence rows used by the collection pipeline.
+
+```
+POST /api/v1/intel/x/report
+```
+
+Build a consolidated report from a previous collection or drilldown.
+Useful for sharing a single artifact link with a reviewer.
+
+```
+GET /api/v1/intel/x/scheduler/status
+```
+
+Returns the runtime status of the X pipeline scheduler: whether it is
+running, the configured handle set, and the last run timestamp.
+
+```
+POST /api/v1/intel/x/scheduler/run
+```
+
+Triggers one immediate scheduled run. Pass `?handle=<username>` to scope
+the run to a single handle; omit it to run against the configured set.
+
+### Detailed Analysis
+
+```
+POST /api/v1/analyze/detailed
+```
+
+Returns an in-depth breakdown of a previously stored analysis, including
+the original detection signals and metadata forensics. The request body
+takes a `content_id` that maps to an earlier detection response:
+
+```json
+{ "content_id": "01HXX..." }
+```
+
+Responds `404` if the analysis record cannot be found.
+
+### Streaming Text Detection
+
+```
+POST /api/v1/detect/stream/text
+```
+
+Server-Sent Events (SSE) variant of `POST /detect/text`. Emits a sequence
+of named events as the detection progresses: `started`, intermediate
+provider events, and a final `completed` event carrying the same payload
+as the non-streaming endpoint. Use this for long-running detections
+where you want to surface progress in a UI.
+
+Request body matches `POST /detect/text` (an empty `text` field returns
+`400`; oversized inputs return `400` with the configured maximum length).
+
+Response `Content-Type` is `text/event-stream`. The connection stays open
+until the final event is flushed.
+
+### Stripe Webhook
+
+```
+POST /api/v1/billing/stripe/webhook
+```
+
+Stripe-style webhook handler for plan synchronization. Expects the
+`X-Billing-Webhook-Secret` header to match the configured secret;
+unauthenticated requests are rejected.
+
+Expected payload (subset):
+
+```json
+{
+  "id": "evt_...",
+  "type": "customer.subscription.updated",
+  "data": {
+    "object": {
+      "metadata": { "api_key": "<client key>", "plan": "pro" },
+      "items": { "data": [{ "price": { "id": "price_..." } }] }
+    }
+  }
+}
+```
+
+Returns `{ "ok": true }` on successful processing. Unrecognised event
+types are accepted but not acted on, mirroring Stripe's at-least-once
+delivery semantics.
 
 ---
 
 ## Request Headers
 
-| Header         | Purpose                              |
-| -------------- | ------------------------------------ |
-| `X-API-Key`    | API authentication (when enabled)    |
-| `X-Request-Id` | Client-provided correlation ID       |
-| `X-Actor-Id`   | Identifies the acting user for audit |
+| Header                       | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `X-API-Key`                  | API authentication (when enabled)                    |
+| `X-Request-Id`               | Client-provided correlation ID                       |
+| `X-Actor-Id`                 | Identifies the acting user for audit                 |
+| `X-Billing-Webhook-Secret`   | Shared secret for `POST /billing/stripe/webhook`     |
 
 ---
 
