@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Global error handler with structured JSON error responses and request IDs
 - `docs/API.md` — comprehensive API reference with rate limits, error codes, and batch best practices; extended with previously undocumented endpoints: streaming text detection (SSE), detailed analysis, Stripe webhook, and full X-intelligence scheduler/drilldown/report; added `X-Billing-Webhook-Secret` to the request-headers table
-- `SECURITY.md` — responsible disclosure policy and security contact
+- `SECURITY.md` — responsible disclosure policy and security contact; refreshed for v1.x support matrix, GitHub private vulnerability advisories alongside email reporting, expanded in-scope surface (webhook signatures, SSE streaming, plan-quota logic, X-intel pipeline), production security controls section, and least-privilege contributor guidance
 - `CHANGELOG.md` — structured change tracking
 - `.github/dependabot.yml` — automated dependency updates for pip, npm, and GitHub Actions
 - `.github/CODEOWNERS` — required reviewers for critical paths
