@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Evaluation endpoint test (`test_evaluation_endpoint_returns_registered_reports`) no longer time-bombs: seeded report now uses a relative timestamp 30 days back so it stays inside the rolling 90-day evaluation window regardless of when the test runs.
 - Removed obsolete `version` key from `docker-compose.yml`
 
 ## [0.1.0] — 2025-06-01
