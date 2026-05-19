@@ -3,6 +3,7 @@ import json
 import math
 import struct
 import wave
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -591,7 +592,7 @@ async def test_evaluation_endpoint_returns_registered_reports(client: AsyncClien
     settings.calibration_reports_dir = str(tmp_path)
     try:
         payload = {
-            "generated_at": "2026-02-15T12:00:00+00:00",
+            "generated_at": (datetime.now(UTC) - timedelta(days=30)).isoformat(),
             "content_type": "text",
             "sample_count": 40,
             "recommended_threshold": 0.55,
