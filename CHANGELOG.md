@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/dependabot.yml` — automated dependency updates for pip, npm, and GitHub Actions
 - `.github/CODEOWNERS` — required reviewers for critical paths
 - `.pre-commit-config.yaml` — ruff, eslint, and secret scanning hooks
+- Automated accessibility audit via `@axe-core/playwright` (`frontend/e2e/accessibility.spec.ts`) scanning 7 routes at WCAG 2.1 A/AA tags; current threshold rejects only `critical` severity violations, providing a regression gate without blocking on pre-existing `serious`/`moderate` findings that future remediations will address
 - Frontend accessibility improvements: ARIA labels, roles, live regions on all detect and history pages
 - Detect page UX: file size limit hints, beta badges on audio/video detection
 - Next.js bundle analyzer integration via `ANALYZE=true` environment variable
