@@ -10,7 +10,7 @@ Multimodal AI provenance detection platform (text, image, audio, video). Produce
 
 - [ ] Promote audio detector from experimental to stable (confidence calibration complete)
 - [ ] Promote video detector from experimental to stable (frame-sampling pipeline hardened)
-- [ ] Accessibility audit and remediation for the Next.js frontend (WCAG 2.1 AA)
+- [x] Accessibility audit and remediation for the Next.js frontend (WCAG 2.1 AA) [scaffolded — axe-core baseline in `frontend/e2e/accessibility.spec.ts` covering 7 routes at WCAG 2.1 AA tags; current threshold `critical`, will tighten to `serious`/`moderate` in v1.1.0 follow-ups as remediations land]
 - [x] Ship deferred docs: `API.md` extended with previously undocumented endpoints (streaming text detection, detailed analysis, Stripe webhook, X scheduler/drilldown/report) and `X-Billing-Webhook-Secret` header. `SECURITY.md` refreshed to cover v1.x supported versions, GitHub private advisories, webhook/SSE/plan-quota attack surface, and production security controls.
 - [ ] Dependabot config for automated dependency PRs
 
