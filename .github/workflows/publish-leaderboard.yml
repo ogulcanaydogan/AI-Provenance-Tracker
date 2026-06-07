@@ -1,9 +1,9 @@
 name: Publish Benchmark Leaderboard
 
 on:
+  # Scheduled runs removed: the backend can't boot unattended in CI, so the cron
+  # run always failed. Trigger manually once the backend starts reliably.
   workflow_dispatch:
-  schedule:
-    - cron: "30 2 * * *"
 
 permissions:
   contents: read
