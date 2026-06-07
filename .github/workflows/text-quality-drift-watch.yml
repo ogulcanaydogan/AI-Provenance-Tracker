@@ -19,8 +19,8 @@ on:
           - normal
           - drill_fail
         default: normal
-  schedule:
-    - cron: "15 3 * * *"
+  # Scheduled runs removed: the backend can't boot unattended in CI, so the cron
+  # run always failed. Trigger manually once the backend starts reliably.
 
 permissions:
   contents: read
