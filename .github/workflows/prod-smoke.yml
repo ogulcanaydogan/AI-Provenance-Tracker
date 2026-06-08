@@ -7,8 +7,6 @@ on:
         description: "Optional smoke target URL override"
         required: false
         default: ""
-  schedule:
-    - cron: "0 */6 * * *"
 
 permissions:
   contents: read
