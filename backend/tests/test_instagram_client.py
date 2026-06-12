@@ -1,4 +1,5 @@
 """Unit tests for InstagramClient."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -33,22 +34,22 @@ def disabled_settings():
 
 
 class TestEnsureEnabled:
-    def test_raises_when_disabled(self, disabled_settings):
+    def test_raises_when_disabled(self, disabled_settings) -> None:
         with pytest.raises(InstagramClientError, match="disabled"):
             InstagramClient._ensure_enabled()
 
-    def test_raises_when_token_blank(self, enabled_settings):
+    def test_raises_when_token_blank(self, enabled_settings) -> None:
         enabled_settings.instagram_access_token = "   "
         with pytest.raises(InstagramClientError, match="access token"):
             InstagramClient._ensure_enabled()
 
-    def test_passes_when_configured(self, enabled_settings):
+    def test_passes_when_configured(self, enabled_settings) -> None:
         InstagramClient._ensure_enabled()  # should not raise
 
 
 class TestSendTextMessage:
     @pytest.mark.asyncio
-    async def test_success(self, enabled_settings):
+    async def test_success(self, enabled_settings) -> None:
         client = InstagramClient()
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -58,20 +59,18 @@ class TestSendTextMessage:
             mock_http.return_value.__aenter__.return_value.post = AsyncMock(
                 return_value=mock_response
             )
-            result = await client.send_text_message(
-                recipient_id="user-456", message="Hello"
-            )
+            result = await client.send_text_message(recipient_id="user-456", message="Hello")
 
         assert result == {"message_id": "msg-1"}
 
     @pytest.mark.asyncio
-    async def test_raises_when_recipient_blank(self, enabled_settings):
+    async def test_raises_when_recipient_blank(self, enabled_settings) -> None:
         client = InstagramClient()
         with pytest.raises(InstagramClientError, match="recipient id is required"):
             await client.send_text_message(recipient_id="  ", message="Hello")
 
     @pytest.mark.asyncio
-    async def test_raises_when_biz_account_missing(self, enabled_settings):
+    async def test_raises_when_biz_account_missing(self, enabled_settings) -> None:
         enabled_settings.instagram_business_account_id = ""
         client = InstagramClient()
         with pytest.raises(InstagramClientError, match="business account id"):
@@ -80,7 +79,7 @@ class TestSendTextMessage:
 
 class TestReplyToComment:
     @pytest.mark.asyncio
-    async def test_success(self, enabled_settings):
+    async def test_success(self, enabled_settings) -> None:
         client = InstagramClient()
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -90,14 +89,12 @@ class TestReplyToComment:
             mock_http.return_value.__aenter__.return_value.post = AsyncMock(
                 return_value=mock_response
             )
-            result = await client.reply_to_comment(
-                comment_id="comment-1", message="Thanks!"
-            )
+            result = await client.reply_to_comment(comment_id="comment-1", message="Thanks!")
 
         assert result == {"id": "reply-789"}
 
     @pytest.mark.asyncio
-    async def test_raises_when_comment_id_blank(self, enabled_settings):
+    async def test_raises_when_comment_id_blank(self, enabled_settings) -> None:
         client = InstagramClient()
         with pytest.raises(InstagramClientError, match="comment id is required"):
             await client.reply_to_comment(comment_id="", message="Reply")
@@ -105,7 +102,7 @@ class TestReplyToComment:
 
 class TestPostJson:
     @pytest.mark.asyncio
-    async def test_raises_on_http_error(self, enabled_settings):
+    async def test_raises_on_http_error(self, enabled_settings) -> None:
         client = InstagramClient()
         mock_response = MagicMock()
         mock_response.status_code = 401
@@ -119,7 +116,7 @@ class TestPostJson:
                 await client._post_json("https://example.com", {})
 
     @pytest.mark.asyncio
-    async def test_raises_on_malformed_response(self, enabled_settings):
+    async def test_raises_on_malformed_response(self, enabled_settings) -> None:
         client = InstagramClient()
         mock_response = MagicMock()
         mock_response.status_code = 200
