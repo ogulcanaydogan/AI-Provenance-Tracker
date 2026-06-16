@@ -1,12 +1,15 @@
 # Core
-fastapi>=0.109.0
+# Pin fastapi/instrumentator below the versions that introduced the Starlette
+# _IncludedRouter change: fastapi 0.137 + prometheus-fastapi-instrumentator 8.0
+# break app startup with "'_IncludedRouter' object has no attribute 'path'".
+fastapi>=0.109.0,<0.137
 uvicorn[standard]>=0.27.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 python-multipart>=0.0.6
 httpx>=0.26.0
 structlog>=24.1.0
-prometheus-fastapi-instrumentator>=7.0.0
+prometheus-fastapi-instrumentator>=7.0.0,<8.0.0
 
 # Scientific computing
 numpy>=1.26.0
