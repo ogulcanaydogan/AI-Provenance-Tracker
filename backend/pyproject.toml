@@ -23,7 +23,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastapi>=0.109.0",
+    # fastapi 0.137 + prometheus-fastapi-instrumentator 8.0 break app startup
+    # with "'_IncludedRouter' object has no attribute 'path'" (Starlette router
+    # internals changed). Cap both below the breaking releases until upstream
+    # instrumentator supports the new router layout.
+    "fastapi>=0.109.0,<0.137",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
@@ -41,7 +45,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "redis>=5.0.1",
     "structlog>=24.1.0",
-    "prometheus-fastapi-instrumentator>=7.0.0",
+    "prometheus-fastapi-instrumentator>=7.0.0,<8.0.0",
 ]
 
 [project.optional-dependencies]
