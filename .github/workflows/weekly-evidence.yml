@@ -73,13 +73,17 @@ jobs:
           X_MAX_REQUESTS_PER_RUN: ${{ steps.params.outputs.max_requests_per_run }}
         run: |
           cd backend
+          # The X API is an external dependency; an expired/invalid X_BEARER_TOKEN
+          # or an API outage (401/429/5xx) should degrade to a warning rather than
+          # turn the scheduled run red every week. Prior evidence is left in place.
           python scripts/run_weekly_talent_visa_cycle.py \
             --handle "${{ steps.params.outputs.handle }}" \
             --window-days "${{ steps.params.outputs.window_days }}" \
             --max-posts "${{ steps.params.outputs.max_posts }}" \
             --output-dir ./evidence/runs/weekly \
             --comparisons-dir ./evidence/runs/comparisons \
-            --summary-output ./evidence/runs/weekly/latest_summary.json
+            --summary-output ./evidence/runs/weekly/latest_summary.json \
+            || echo "::warning::weekly X evidence collection failed (X API unavailable or X_BEARER_TOKEN invalid/expired); leaving prior evidence in place"
       - name: Skip when token is not configured
         if: ${{ env.X_BEARER_TOKEN == '' }}
         run: echo "X_BEARER_TOKEN secret is not set; skipping weekly evidence run."
@@ -93,3 +97,4 @@ jobs:
             backend/evidence/runs/weekly/**
             backend/evidence/runs/comparisons/**
           retention-days: 30
+          if-no-files-found: warn
