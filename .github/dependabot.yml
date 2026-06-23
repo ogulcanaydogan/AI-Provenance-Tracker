@@ -44,6 +44,18 @@ updates:
           - "major"
           - "minor"
           - "patch"
+    # eslint-config-next does not yet support these majors: eslint 10 removes
+    # context.getFilename() used by its bundled eslint-plugin-react, lucide v1
+    # drops icons the UI imports, and typescript 6 is unverified. They break
+    # frontend-build, so block the major bumps until the ecosystem catches up
+    # (remove an entry to re-enable that major once supported).
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "javascript"
