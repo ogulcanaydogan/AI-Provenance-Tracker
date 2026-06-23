@@ -55,7 +55,14 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: |
           cd backend
-          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-fail-under=80
+          pytest -v --tb=short --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
       - name: Optional Reality Defender live smoke (non-blocking)
         continue-on-error: true
         env:
