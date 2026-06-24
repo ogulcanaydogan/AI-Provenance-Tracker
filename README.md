@@ -5,9 +5,11 @@ Built for fact-checking, newsroom workflows, trust-and-safety teams, and investi
 
 [![CI](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/workflows/codeql.yml/badge.svg)](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/ogulcanaydogan/AI-Provenance-Tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/ogulcanaydogan/AI-Provenance-Tracker)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ogulcanaydogan/AI-Provenance-Tracker/badge)](https://scorecard.dev/viewer/?uri=github.com/ogulcanaydogan/AI-Provenance-Tracker)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
 
 [Live Demo](https://whoisfake.com) | [API Docs](https://api.whoisfake.com/docs) | [Benchmark & Status](docs/ROADMAP_STATUS.md) | [Open-Core Model](docs/OPEN_CORE.md)
 
@@ -125,14 +127,10 @@ curl -X POST "https://api.whoisfake.com/api/v1/detect/text" \
 - Roadmap and run evidence: [docs/ROADMAP_STATUS.md](docs/ROADMAP_STATUS.md)
 - Open-core boundary: [docs/OPEN_CORE.md](docs/OPEN_CORE.md)
 - Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-## Suggested GitHub About / Topics
-
-**About text (recommended):**
-Open-source multimodal AI provenance detection platform with explainable evidence cards, provider consensus, and benchmark-driven quality gates.
-
-**Topics (recommended):**
-`ai-detection`, `fact-checking`, `fastapi`, `nextjs`, `provenance`, `multimodal`
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Maintainers and governance: [MAINTAINERS.md](MAINTAINERS.md)
+- Security policy: [SECURITY.md](SECURITY.md)
 
 ## Kisa TR Ozet
 
