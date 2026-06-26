@@ -10,8 +10,11 @@ Built for fact-checking, newsroom workflows, trust-and-safety teams, and investi
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Container image](https://img.shields.io/badge/ghcr.io-provenance--api-2496ED?logo=docker&logoColor=white)](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/pkgs/container/provenance-api)
 
 [Live Demo](https://whoisfake.com) | [API Docs](https://api.whoisfake.com/docs) | [Benchmark & Status](docs/ROADMAP_STATUS.md) | [Open-Core Model](docs/OPEN_CORE.md)
+
+![AI Provenance Tracker home — multi-modal detection across text, image, audio, and video](docs/assets/screenshot-home.png)
 
 ## Start In 3 Steps
 
@@ -101,6 +104,15 @@ make up
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
 - URL analysis UI: `http://localhost:3000/detect/url`
+
+### Prebuilt API image
+
+The backend API is published to GHCR, so you can run it without building:
+
+```bash
+docker pull ghcr.io/ogulcanaydogan/provenance-api:latest
+docker run --rm -p 8000:8000 ghcr.io/ogulcanaydogan/provenance-api:latest
+```
 
 ## API Snapshot
 
