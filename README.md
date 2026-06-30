@@ -114,6 +114,25 @@ The backend package is published to PyPI:
 pip install ai-provenance-tracker
 ```
 
+### Command-line interface
+
+Installing the package adds a `provenance` command so you can run detection from
+the terminal without starting the API server (no database, no network except
+`--url`):
+
+```bash
+provenance detect --text "some text to analyze"
+echo "piped text" | provenance detect --text -
+provenance detect --file path/to/image.png
+provenance detect --url https://example.com/article
+provenance detect --text "..." --json           # machine-readable output
+provenance detect --file clip.wav --fail-on-ai   # exit 1 if AI-generated
+```
+
+The file modality is inferred from the extension (image, audio WAV, video, or
+text). Text detection runs on pure heuristics unless the optional `[ml]` extra
+is installed, so the CLI stays fully offline by default.
+
 ### Prebuilt API image
 
 The backend API is published to GHCR, so you can run it without building:
