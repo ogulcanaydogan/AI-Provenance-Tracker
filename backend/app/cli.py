@@ -136,23 +136,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    detect = subparsers.add_parser(
-        "detect", help="Run detection on text, a file, or a URL."
-    )
+    detect = subparsers.add_parser("detect", help="Run detection on text, a file, or a URL.")
     source = detect.add_mutually_exclusive_group(required=True)
-    source.add_argument(
-        "--text", metavar="TEXT", help='Text to analyze (use "-" to read stdin).'
-    )
+    source.add_argument("--text", metavar="TEXT", help='Text to analyze (use "-" to read stdin).')
     source.add_argument(
         "--file", metavar="PATH", help="Path to an image, audio, video, or text file."
     )
-    source.add_argument(
-        "--url", metavar="URL", help="URL to fetch and analyze (requires network)."
-    )
+    source.add_argument("--url", metavar="URL", help="URL to fetch and analyze (requires network).")
     detect.add_argument("--domain", help="Optional domain hint for text detection.")
-    detect.add_argument(
-        "--json", action="store_true", help="Emit the raw result as JSON."
-    )
+    detect.add_argument("--json", action="store_true", help="Emit the raw result as JSON.")
     detect.add_argument(
         "--fail-on-ai",
         action="store_true",
@@ -179,9 +171,7 @@ def _resolve_input(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
             if not text.strip():
                 raise ValueError("file is empty")
             return "text", asyncio.run(_detect_text(text, args.domain))
-        return modality, asyncio.run(
-            _detect_bytes(modality, path.read_bytes(), path.name)
-        )
+        return modality, asyncio.run(_detect_bytes(modality, path.read_bytes(), path.name))
 
     # args.url
     modality, body, filename = _fetch_url(args.url)
@@ -203,9 +193,7 @@ def run(argv: Optional[list[str]] = None) -> int:
     except (ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    except (
-        Exception
-    ) as exc:  # noqa: BLE001 - surface any detector/network error cleanly
+    except Exception as exc:  # noqa: BLE001 - surface any detector/network error cleanly
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
