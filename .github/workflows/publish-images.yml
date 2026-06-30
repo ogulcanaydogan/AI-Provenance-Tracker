@@ -39,7 +39,7 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7
       - name: Evaluate cost policy gate
         id: gate
         run: |
@@ -94,7 +94,7 @@ jobs:
     if: ${{ needs.cost-precheck.outputs.allow_run == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7
       - name: Enforce package policy allow/deny rules
         run: |
           set -euo pipefail
@@ -128,7 +128,7 @@ jobs:
       matrix:
         component: [api, worker]
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
