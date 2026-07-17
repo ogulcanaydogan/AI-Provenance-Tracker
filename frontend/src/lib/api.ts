@@ -3,6 +3,7 @@ import {
   BackendDetailedAnalysisResponse,
   BackendDetectionResponse,
   BackendEvaluationResponse,
+  BackendEvidencePack,
   BackendHistoryItem,
   BackendHistoryResponse,
   BackendUrlDetectionResponse,
@@ -577,6 +578,15 @@ export async function getAnalysis(id: string): Promise<DetectionResult> {
     payload.details.content_type,
     payload.metadata?.created_at
   );
+}
+
+export function getEvidencePackUrl(id: string): string {
+  return `${API_URL}/api/v1/analyze/evidence/${encodeURIComponent(id)}`;
+}
+
+export async function getEvidencePack(id: string): Promise<BackendEvidencePack> {
+  const response = await request(getEvidencePackUrl(id));
+  return handleResponse<BackendEvidencePack>(response);
 }
 
 export async function getDashboard(days = 14): Promise<BackendDashboardResponse> {
