@@ -7,6 +7,8 @@ export type Verdict =
   | "likely_ai"
   | "ai_generated";
 
+export type DecisionBand = "human" | "uncertain" | "ai";
+
 export interface DetectionSignal {
   name: string;
   score: number; // 0-1
@@ -92,7 +94,7 @@ export interface BackendTextDetectionResponse {
   analysis_id?: string | null;
   is_ai_generated: boolean;
   confidence: number; // 0-1
-  decision_band: "human" | "uncertain" | "ai";
+  decision_band: DecisionBand;
   distance_to_threshold: number;
   uncertainty_reason?: string | null;
   model_prediction: string | null;
@@ -194,6 +196,55 @@ export interface BackendDetailedAnalysisResponse {
   };
   metadata?: {
     created_at?: string;
+  };
+}
+
+export interface BackendEvidenceChunk {
+  index: number;
+  word_count: number;
+  sentence_count: number;
+  confidence: number; // 0-1
+  decision_band: DecisionBand;
+  distance_to_threshold: number;
+  domain_profile: string;
+}
+
+export interface BackendEvidenceChunkSummary {
+  chunk_count: number;
+  aggregate_confidence: number;
+  mean_confidence: number;
+  confidence_spread: number;
+  disagreement_ratio: number;
+  dominant_domain: string;
+  route_mismatch: boolean;
+  chunks: BackendEvidenceChunk[];
+}
+
+export interface BackendEvidencePack {
+  analysis_id: string;
+  content_type: ContentType;
+  verdict: Verdict;
+  confidence: number; // 0-1
+  decision_band: DecisionBand | null;
+  uncertainty_reason: string | null;
+  timestamp: string;
+  source: string;
+  source_url: string | null;
+  explanation: string | null;
+  detector_versions: {
+    model_version: string | null;
+    calibration_version: string | null;
+  };
+  trace: {
+    route_profile: string | null;
+    uncertainty_flags: string[];
+    chunk_summary: BackendEvidenceChunkSummary | null;
+    disagreement_reasons: string[];
+    artifact_lineage: {
+      model_bundle_version: string | null;
+      calibration_bundle_version: string | null;
+      private_benchmark_manifest: string | null;
+    };
   };
 }
 
