@@ -8,10 +8,8 @@ Built for fact-checking, newsroom workflows, trust-and-safety teams, and investi
 [![codecov](https://codecov.io/gh/ogulcanaydogan/AI-Provenance-Tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/ogulcanaydogan/AI-Provenance-Tracker)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ogulcanaydogan/AI-Provenance-Tracker/badge)](https://scorecard.dev/viewer/?uri=github.com/ogulcanaydogan/AI-Provenance-Tracker)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12171/badge)](https://www.bestpractices.dev/projects/12171)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/ai-provenance-tracker.svg)](https://pypi.org/project/ai-provenance-tracker/)
-[![Container image](https://img.shields.io/badge/ghcr.io-provenance--api-2496ED?logo=docker&logoColor=white)](https://github.com/ogulcanaydogan/AI-Provenance-Tracker/pkgs/container/provenance-api)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Live Demo](https://whoisfake.com) | [API Docs](https://api.whoisfake.com/docs) | [Benchmark & Status](docs/ROADMAP_STATUS.md) | [Open-Core Model](docs/OPEN_CORE.md)
 
