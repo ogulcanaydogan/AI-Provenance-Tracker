@@ -80,7 +80,7 @@ jobs:
             echo "max_domain_fp_drift=${max_domain_fp_drift}"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
