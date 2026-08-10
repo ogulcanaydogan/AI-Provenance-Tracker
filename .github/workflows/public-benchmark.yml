@@ -135,7 +135,7 @@ jobs:
             echo "allow_artifact_fallback=${allow_artifact_fallback}"
             echo "baseline_snapshot=${baseline_snapshot}"
           } >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install backend dependencies
