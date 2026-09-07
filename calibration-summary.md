@@ -1,0 +1,1 @@
+## Weekly Text Calibration Summary\n- sample_count: 1020\n- recommended_threshold: 0.2\n- recommended_uncertainty_margin: 0.18\n- ece: 0.0007\n- brier_score: 0.0\n- quality_gate: ok\n- domain_profiles_count: 7\n
