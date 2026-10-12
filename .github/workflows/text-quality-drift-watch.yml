@@ -80,7 +80,7 @@ jobs:
             echo "max_domain_fp_drift=${max_domain_fp_drift}"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -303,7 +303,7 @@ jobs:
 
       - name: Upload drift watch artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: text-quality-drift-artifacts
           path: benchmark/results/drift/current

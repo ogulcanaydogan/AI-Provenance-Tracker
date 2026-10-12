@@ -151,7 +151,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: deploy-spark-cost-gate
           path: ops/reports/deploy_cost_gate.*
@@ -165,7 +165,7 @@ jobs:
       resolved_runner_type: ${{ steps.resolve_runner.outputs.runner_type }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Resolve runner type
@@ -450,7 +450,7 @@ jobs:
 
       - name: Set up Python for smoke test
         if: ${{ steps.ssh_prep.outputs.keyscan_ok == 'true' && steps.resolve.outputs.run_smoke == 'true' && steps.resolve.outputs.smoke_base_url != '' }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -534,7 +534,7 @@ jobs:
 
       - name: Upload Spark smoke artifacts
         if: ${{ always() && steps.resolve.outputs.run_smoke == 'true' }}
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: spark-deploy-smoke
           path: backend/evidence/smoke

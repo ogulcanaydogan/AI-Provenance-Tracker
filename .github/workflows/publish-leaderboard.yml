@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install backend dependencies
@@ -108,7 +108,7 @@ jobs:
             kill "$(cat benchmark/results/latest/backend.pid)" || true
           fi
       - name: Upload benchmark run artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: benchmark-run-artifacts
           path: |

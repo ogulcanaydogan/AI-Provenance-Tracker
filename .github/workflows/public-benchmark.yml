@@ -93,7 +93,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload cost gate artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: public-benchmark-cost-gate
           path: benchmark/results/ci/cost_gate.*
@@ -135,7 +135,7 @@ jobs:
             echo "allow_artifact_fallback=${allow_artifact_fallback}"
             echo "baseline_snapshot=${baseline_snapshot}"
           } >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install backend dependencies
@@ -251,7 +251,7 @@ jobs:
           fi
       - name: Upload benchmark artifacts
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: public-benchmark-artifacts
           path: benchmark/results/ci
