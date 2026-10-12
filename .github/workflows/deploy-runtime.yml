@@ -447,7 +447,7 @@ jobs:
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -483,7 +483,7 @@ jobs:
 
       - name: Upload smoke artifact (Helm)
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: deploy-smoke-artifact-helm
           path: backend/evidence/smoke/prod_detect_smoke_helm.json
@@ -502,7 +502,7 @@ jobs:
       PRODUCTION_API_KEY_HEADER: ${{ vars.PRODUCTION_API_KEY_HEADER || 'X-API-Key' }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -538,7 +538,7 @@ jobs:
 
       - name: Upload smoke artifact (Railway)
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: deploy-smoke-artifact-railway
           path: backend/evidence/smoke/prod_detect_smoke_railway.json
@@ -884,7 +884,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload deployment summary artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: deploy-runtime-summary
           path: artifacts/deploy_runtime_summary.json
