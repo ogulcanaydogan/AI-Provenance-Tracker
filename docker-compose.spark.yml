@@ -81,7 +81,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      # Private DB: backend/worker use internal Docker DNS db.
+      # Remote operators should use authenticated SSH tunnelling.
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -93,7 +95,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      # Private cache: backend/worker use internal Docker DNS redis.
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
